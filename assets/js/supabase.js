@@ -219,12 +219,12 @@ function beginMaintenanceCheck() {
   style.id = 'nusc-maintenance-check-style';
   style.textContent = `
     html.nusc-maintenance-pending body { visibility: hidden !important; }
+    /* Keep the page hidden until the maintenance check completes, but show no
+       loading message or spinner to avoid a distracting intermediate screen. */
     html.nusc-maintenance-pending::before {
-      content: "جاري التحقق من حالة المنصة…";
+      content: "";
       position: fixed; inset: 0; z-index: 2147483647;
-      display: flex; align-items: center; justify-content: center;
-      padding: 24px; background: #fffef8; color: #6b570a;
-      font: 800 1rem/1.8 Cairo, system-ui, sans-serif; text-align: center;
+      background: #fffef8;
     }
   `;
   document.head.appendChild(style);
