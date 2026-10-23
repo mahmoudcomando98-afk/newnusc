@@ -3,70 +3,114 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f5f7f2" />
+  <meta name="description" content="تسجيل الدخول إلى منصة NUSC الأكاديمية" />
   <title>تسجيل الدخول | NUSC</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/css/main.css" />
-  <style>
-    .auth-page {
-      background:
-        radial-gradient(900px 480px at 100% 0%, rgba(59,130,246,.35), transparent 55%),
-        radial-gradient(700px 400px at 0% 100%, rgba(245,158,11,.12), transparent 50%),
-        linear-gradient(160deg, #06101f 0%, #0b1f3a 50%, #123056 100%) !important;
-    }
-    .auth-card {
-      border: 1px solid rgba(255,255,255,.08);
-      box-shadow: 0 20px 50px rgba(0,0,0,.35);
-    }
-    .auth-logo .logo-icon {
-      background: linear-gradient(145deg, #3b82f6, #1d4ed8);
-      box-shadow: 0 10px 30px rgba(59,130,246,.35);
-    }
-    .config-banner {
-      display: none; background: #fef3c7; color: #92400e; border: 1px solid #fcd34d;
-      border-radius: 10px; padding: 10px 12px; font-size: .85rem; margin-bottom: 14px; line-height: 1.5;
-    }
-    .config-banner.show { display: block; }
-  </style>
+  <link rel="stylesheet" href="/assets/css/auth.css" />
 </head>
 <body>
   <div class="auth-page">
-    <div class="auth-card">
-      <div class="auth-logo">
-        <div class="logo-icon">M</div>
-        <p class="text-muted" style="font-weight:700;margin-bottom:4px">كلية الحاسبات والمعلومات</p>\n        <h1>NUSC</h1>
-        <p>مرحباً بعودتك — سجّل دخولك للمتابعة</p>
-      </div>
-      <div id="config-banner" class="config-banner"></div>
-      <form id="login-form" novalidate>
-        <div class="form-group">
-          <label class="form-label" for="email">البريد الإلكتروني</label>
-          <input type="email" id="email" name="email" class="form-input" placeholder="example@email.com" required autocomplete="email" dir="ltr" />
+    <main class="auth-layout auth-login-layout">
+      <section class="auth-main" aria-labelledby="login-title">
+        <a class="auth-brand" href="/index.html" aria-label="NUSC الصفحة الرئيسية">
+          <span class="auth-brand-dot" aria-hidden="true"></span>
+          <span>NUSC</span>
+        </a>
+
+        <div class="auth-heading">
+          <span class="auth-eyebrow"><span class="auth-eyebrow-dot" aria-hidden="true"></span> مساحتك الأكاديمية</span>
+          <h1 id="login-title">أهلًا بعودتك 👋</h1>
+          <p>سجّل دخولك واستكمل يومك الدراسي من مكان واحد.</p>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="password">كلمة المرور</label>
-          <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="current-password" minlength="6" />
+
+        <div id="config-banner" class="auth-config-banner" role="status" aria-live="polite"></div>
+
+        <form id="login-form" class="auth-form" novalidate>
+          <div class="auth-field">
+            <label class="form-label" for="email">البريد الإلكتروني</label>
+            <input type="email" id="email" name="email" class="form-input auth-input" placeholder="name@example.com" required autocomplete="email" dir="ltr" />
+          </div>
+
+          <div class="auth-field">
+            <label class="form-label" for="password">كلمة المرور</label>
+            <input type="password" id="password" name="password" class="form-input auth-input" placeholder="أدخل كلمة المرور" required autocomplete="current-password" minlength="6" />
+          </div>
+
+          <div class="auth-help-row">
+            <a href="/forgot-password.html">نسيت كلمة المرور؟</a>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block auth-submit">
+            <span>تسجيل الدخول</span>
+            <span aria-hidden="true">←</span>
+          </button>
+        </form>
+
+        <p class="auth-footer">
+          لسه ماعندكش حساب؟
+          <a href="/register.html">أنشئ حسابك الآن</a>
+        </p>
+        <p class="auth-note">دخول آمن إلى حسابك الأكاديمي · NUSC</p>
+      </section>
+
+      <aside class="auth-aside" aria-label="مميزات منصة NUSC">
+        <div class="auth-aside-top">
+          <span class="auth-aside-label">NUSC · بوابتك الجامعية</span>
+          <span class="auth-status-pill"><span aria-hidden="true"></span> مكانك جاهز</span>
         </div>
-        <div class="flex justify-between items-center mb-2">
-          <a href="/forgot-password.html" class="text-sm">نسيت كلمة المرور؟</a>
+
+        <div class="auth-aside-content">
+          <h2>كل يوم دراسي،<br />أبسط وأوضح.</h2>
+          <p>تابع موادك ومواعيدك وإعلاناتك من واجهة هادئة ومصممة علشان تساعدك تركز على المهم.</p>
+
+          <ul class="auth-benefits">
+            <li><span class="auth-benefit-check" aria-hidden="true">✓</span><span>موادك وملفاتك في مكان واحد</span></li>
+            <li><span class="auth-benefit-check" aria-hidden="true">✓</span><span>متابعة الكويزات والمواعيد بسهولة</span></li>
+            <li><span class="auth-benefit-check" aria-hidden="true">✓</span><span>إعلانات وتحديثات دراسية أولًا بأول</span></li>
+          </ul>
+
+          <div class="auth-preview" aria-hidden="true">
+            <div class="auth-preview-head">
+              <span class="auth-preview-title">مساحتك الدراسية</span>
+              <span class="auth-preview-tag">منظمة وبسيطة</span>
+            </div>
+            <div class="auth-preview-row">
+              <span class="auth-preview-icon">▤</span>
+              <span class="auth-preview-copy"><b>المواد الدراسية</b><span>محاضرات وملفاتك الأساسية</span></span>
+              <span class="auth-preview-line"></span>
+            </div>
+            <div class="auth-preview-row">
+              <span class="auth-preview-icon">◷</span>
+              <span class="auth-preview-copy"><b>مواعيدك وكويزاتك</b><span>خليك مستعد من بدري</span></span>
+              <span class="auth-preview-line"></span>
+            </div>
+            <div class="auth-preview-row">
+              <span class="auth-preview-icon">✳</span>
+              <span class="auth-preview-copy"><b>آخر المستجدات</b><span>كل جديد في لوحة واحدة</span></span>
+              <span class="auth-preview-line"></span>
+            </div>
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-block">تسجيل الدخول</button>
-      </form>
-      <p class="auth-footer">
-        ليس لديك حساب؟
-        <a href="/register.html"><strong>إنشاء حساب</strong></a>
-      </p>
-    </div>
+
+        <div class="auth-aside-bottom">
+          <span>كلية الحاسبات والمعلومات</span>
+          <span>تعلّم · نظّم · تقدّم</span>
+        </div>
+      </aside>
+    </main>
   </div>
+
   <script type="module">
     import { initLoginPage } from './assets/js/auth.js';
     import { isSupabaseConfigured, getConfigError } from './assets/js/supabase.js';
-    import { initIcons } from './assets/js/utils.js';
-    initIcons();
+
+    const banner = document.getElementById('config-banner');
     if (!isSupabaseConfigured()) {
-      const banner = document.getElementById('config-banner');
-      banner.textContent = getConfigError() || 'إعدادات Supabase غير مكتملة.';
+      banner.textContent = getConfigError() || 'إعدادات الاتصال غير مكتملة.';
       banner.classList.add('show');
     }
     initLoginPage();
