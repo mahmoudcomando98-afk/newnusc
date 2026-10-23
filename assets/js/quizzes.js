@@ -20,59 +20,23 @@ let quizzes = [];
 let currentStatus = 'upcoming';
 
 function getStartDate(quiz) {
-  return quiz.quiz_date || quiz.start_at || quiz.start_date || null;
-}
-
-function getEndDate(quiz) {
-  return quiz.end_at || quiz.end_date || null;
+  return quiz.quiz_date || null;
 }
 
 function getQuizStatus(quiz) {
-  const savedStatus = String(quiz.status || '').toLowerCase();
-
-  if (savedStatus === 'closed' || savedStatus === 'completed') {
-    const end = getEndDate(quiz);
-
-    if (!end || Date.now() > new Date(end).getTime()) {
-      return 'closed';
-    }
-  }
-
   const startValue = getStartDate(quiz);
-  const endValue = getEndDate(quiz);
-
-  if (!startValue) {
-    if (savedStatus === 'open') return 'open';
-    if (savedStatus === 'closed') return 'closed';
-    return 'upcoming';
-  }
+  if (!startValue) return 'upcoming';
 
   const start = new Date(startValue).getTime();
-
-  if (Number.isNaN(start)) {
-    return savedStatus === 'closed' ? 'closed' : 'upcoming';
-  }
+  if (Number.isNaN(start)) return 'upcoming';
 
   const now = Date.now();
-
   if (now < start) return 'upcoming';
 
-  if (endValue) {
-    const end = new Date(endValue).getTime();
-
-    if (!Number.isNaN(end)) {
-      return now <= end ? 'open' : 'closed';
-    }
-  }
-
   if (quiz.duration_minutes) {
-    const end =
-      start + Number(quiz.duration_minutes) * 60 * 1000;
-
+    const end = start + Number(quiz.duration_minutes) * 60 * 1000;
     return now <= end ? 'open' : 'closed';
   }
-
-  if (savedStatus === 'closed') return 'closed';
 
   return 'open';
 }
@@ -103,7 +67,7 @@ async function loadQuizzes() {
   try {
     const { data, error } = await supabase
       .from('quizzes')
-      .select('*');
+      .select('id, title, rules, quiz_date, duration_minutes, total_marks, passing_score, is_published, subjects(name)');
 
     if (error) throw error;
 
@@ -164,20 +128,13 @@ function renderQuizzes() {
           : 'badge-info';
 
     const startDate = getStartDate(quiz);
-    const endDate = getEndDate(quiz);
-
-    const topics =
-      quiz.topics ||
-      quiz.rules ||
-      quiz.instructions ||
-      '';
+    const topics = quiz.rules || '';
 
     const subjectName =
       quiz.subjects?.name ||
       quiz.subject_name ||
       '';
 
-    const quizUrl = quiz.quiz_url || quiz.url || '';
 
     return `
       <article class="card mb-2">
@@ -204,12 +161,6 @@ function renderQuizzes() {
         }
 
         ${
-          endDate
-            ? `<p class="text-sm mt-1"><strong>النهاية:</strong> ${escapeHtml(getQuizDateText(endDate))}</p>`
-            : ''
-        }
-
-        ${
           quiz.duration_minutes
             ? `<p class="text-sm mt-1">المدة: ${Number(quiz.duration_minutes)} دقيقة</p>`
             : ''
@@ -227,11 +178,8 @@ function renderQuizzes() {
             : ''
         }
 
-        ${
-          quizUrl && status === 'open'
-            ? `<a href="${escapeHtml(quizUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm mt-2">فتح الكويز</a>`
-            : ''
-        }
+        ${quiz.total_marks != null ? `<p class="text-sm mt-1">الدرجة الكلية: ${Number(quiz.total_marks)}</p>` : ''}
+        ${quiz.passing_score != null ? `<p class="text-sm mt-1">درجة النجاح: ${Number(quiz.passing_score)}</p>` : ''}
       </article>
     `;
   }).join('');
