@@ -94,11 +94,11 @@
       const readIds = getReadIds();
       el.innerHTML = announcements.map(n => {
         const isRead = readIds.has(String(n.id));
-        const priority = n.priority === 'urgent' || n.priority === 'high'
-          ? '<span class="badge badge-warning">مهم</span>'
-          : '';
+        const priority = n.priority === 'urgent'
+          ? '<span class="badge badge-urgent">عاجل</span>'
+          : n.priority === 'high' ? '<span class="badge badge-important">مهم</span>' : '';
         return `
-          <article class="card mb-2" data-id="${escapeHtml(String(n.id))}" style="${isRead ? 'opacity:.72' : ''}">
+          <article class="card mb-2 notification-card ${n.priority === 'urgent' ? 'notification-urgent' : ['high'].includes(n.priority) ? 'notification-important' : ''}" data-id="${escapeHtml(String(n.id))}" style="${isRead ? 'opacity:.78' : ''}">
             <div class="flex items-center justify-between gap-1 mb-1">
               <h3 class="card-title">${escapeHtml(n.title || 'إعلان جديد')}</h3>
               <div class="flex items-center gap-1">${priority}${isRead ? '<span class="badge">مقروء</span>' : '<span class="badge badge-primary">جديد</span>'}</div>
