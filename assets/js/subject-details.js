@@ -38,10 +38,16 @@ function setupTabs() {
 async function loadSubject() {
   const el = document.getElementById('subject-header');
   try {
+    // Use the actual row instead of filtering on a specific schema-version column
+    // (deployments may use is_active or is_published).
     const { data, error } = await supabase.from('subjects')
-      .select('id, name, code, instructor, description')
-      .eq('id', subjectId).eq('is_active', true).single();
-    if (error || !data) { showError(el, 'المادة دي مش موجودة أو لسه مش منشورة.'); return; }
+      .select('*')
+      .eq('id', subjectId)
+      .maybeSingle();
+    if (error || !data || data.is_active === false || data.is_published === false) {
+      showError(el, 'المادة دي مش موجودة أو لسه مش منشورة.');
+      return;
+    }
     document.getElementById('page-title').textContent = data.name;
     document.title = `${data.name} | NUSC`;
     el.innerHTML = `
@@ -72,12 +78,16 @@ async function loadTab(tab) {
 }
 
 async function loadSubjectMaterials() {
+  // Selecting * avoids breaking the page if an older database is missing a
+  // newer optional column such as description or material_type.
   const { data, error } = await supabase.from('materials')
-    .select('id, title, description, file_type, file_size, file_path, material_type, created_at')
-    .eq('subject_id', subjectId).eq('is_published', true)
-    .order('created_at', { ascending: false });
+    .select('*')
+    .eq('subject_id', subjectId);
   if (error) throw error;
-  return data || [];
+  return (data || [])
+    .filter((item) => item.is_published !== false)
+    .map((item) => ({ ...item, material_type: item.material_type || 'lecture' }))
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 }
 
 function materialCard(material, badgeLabel) {
@@ -108,17 +118,26 @@ function bindDownloads(el) {
 }
 
 async function loadLectures(el) {
-  const [lecturesResult, materials] = await Promise.all([
-    supabase.from('lectures')
-      .select('id, title, lecture_number, description, lecture_date, created_at')
-      .eq('subject_id', subjectId).eq('is_published', true)
-      .order('lecture_number', { ascending: true, nullsFirst: false })
-      .order('created_at', { ascending: true }),
-    loadSubjectMaterials()
+  // Avoid naming columns that may differ between existing Supabase schemas.
+  // Also let the lecture list work if the optional materials table has a schema issue.
+  const [lecturesResult, materialsResult] = await Promise.all([
+    supabase.from('lectures').select('*').eq('subject_id', subjectId),
+    loadSubjectMaterials().then((data) => ({ data, error: null }))
+      .catch((error) => ({ data: [], error }))
   ]);
   if (lecturesResult.error) throw lecturesResult.error;
-  const lectures = lecturesResult.data || [];
-  // Keep old material types visible so removing the old "Files" tab never hides existing files.
+  const lectures = (lecturesResult.data || [])
+    .filter((item) => item.is_published !== false && item.is_active !== false)
+    .sort((a, b) => {
+      const numberA = Number(a.lecture_number ?? 999999);
+      const numberB = Number(b.lecture_number ?? 999999);
+      if (numberA !== numberB) return numberA - numberB;
+      return new Date(a.lecture_date || a.published_at || a.created_at || 0) -
+        new Date(b.lecture_date || b.published_at || b.created_at || 0);
+    });
+  const materials = materialsResult.data || [];
+  if (materialsResult.error) console.warn('Subject materials are temporarily unavailable:', materialsResult.error);
+  // Keep old material types visible so existing files do not disappear.
   const lectureFiles = materials.filter((m) => !['section', 'assignment'].includes(m.material_type));
   if (!lectures.length && !lectureFiles.length) {
     showEmpty(el, 'لسه مفيش محاضرات أو ملفات للمادة دي.');
@@ -133,7 +152,7 @@ async function loadLectures(el) {
           ${escapeHtml(lecture.title)}
         </div>
         <div class="list-item-desc">
-          ${lecture.lecture_date ? formatDate(lecture.lecture_date) : timeAgo(lecture.created_at)}
+          ${(lecture.lecture_date || lecture.published_at || lecture.created_at) ? formatDate(lecture.lecture_date || lecture.published_at || lecture.created_at) : ''}
           ${lecture.description ? ` · ${escapeHtml(lecture.description.slice(0, 90))}` : ''}
         </div>
       </div>
