@@ -184,9 +184,11 @@ function getQuizStatus(quiz) {
     ? new Date(quiz.quiz_date).getTime()
     : 0;
 
-  if (quiz.status === 'closed') return 'closed';
+  if (!quiz.quiz_date) return 'upcoming';
   if (start && now < start) return 'upcoming';
-
+  if (start && quiz.duration_minutes) {
+    return now <= start + Number(quiz.duration_minutes) * 60000 ? 'open' : 'closed';
+  }
   return 'open';
 }
 
