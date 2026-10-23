@@ -10,12 +10,14 @@ ALTER TABLE public.announcements
   ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT false,
   ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT true,
   ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW(),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW(),
   ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES public.profiles(id);
 
 UPDATE public.announcements SET importance = 'normal' WHERE importance IS NULL;
 UPDATE public.announcements SET is_pinned = false WHERE is_pinned IS NULL;
 UPDATE public.announcements SET is_published = true WHERE is_published IS NULL;
 UPDATE public.announcements SET created_at = NOW() WHERE created_at IS NULL;
+UPDATE public.announcements SET updated_at = NOW() WHERE updated_at IS NULL;
 
 ALTER TABLE public.announcements ALTER COLUMN importance SET DEFAULT 'normal';
 ALTER TABLE public.announcements ALTER COLUMN importance SET NOT NULL;
@@ -24,6 +26,7 @@ ALTER TABLE public.announcements ALTER COLUMN is_pinned SET NOT NULL;
 ALTER TABLE public.announcements ALTER COLUMN is_published SET DEFAULT true;
 ALTER TABLE public.announcements ALTER COLUMN is_published SET NOT NULL;
 ALTER TABLE public.announcements ALTER COLUMN created_at SET DEFAULT NOW();
+ALTER TABLE public.announcements ALTER COLUMN updated_at SET DEFAULT NOW();
 
 CREATE INDEX IF NOT EXISTS announcements_subject_published_created_idx
   ON public.announcements (subject_id, is_published, created_at DESC);
