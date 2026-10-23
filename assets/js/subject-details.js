@@ -155,7 +155,7 @@ async function loadMaterialsByType(el, type, emptyMessage) {
 
 async function loadAnnouncements(el) {
   const { data, error } = await supabase.from('announcements')
-    .select('id, title, content, importance, priority, created_at, is_pinned')
+    .select('*')
     .eq('subject_id', subjectId).eq('is_published', true)
     .order('created_at', { ascending: false });
   if (error) throw error;
