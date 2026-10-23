@@ -18,6 +18,23 @@
   <main class="page" style="padding-bottom:24px">
     <div class="container page-content">
       <div class="card mb-3">
+        <h3 class="card-title mb-2">شعار المنصة</h3>
+        <p class="text-sm text-muted mb-2">ارفع لوجو PNG أو JPG أو WEBP. الشعار هيظهر في تسجيل الدخول وإنشاء الحساب ورؤوس صفحات المنصة.</p>
+        <div id="logo-preview" class="mb-2" style="display:flex;align-items:center;gap:12px;min-height:64px">
+          <span class="logo-icon" aria-hidden="true">N</span>
+          <span class="text-sm text-muted">جاري تحميل الشعار الحالي…</span>
+        </div>
+        <form id="logo-form">
+          <div class="form-group">
+            <label class="form-label" for="logo-file">اختار صورة اللوجو</label>
+            <input class="form-input" type="file" id="logo-file" accept="image/png,image/jpeg,image/webp" required />
+            <p class="text-sm text-muted mt-1">الحد الأقصى 4 ميجابايت.</p>
+          </div>
+          <button type="submit" id="logo-submit" class="btn btn-primary">حفظ شعار المنصة</button>
+        </form>
+        <p id="logo-status" class="text-sm text-muted mt-2" role="status" aria-live="polite"></p>
+      </div>
+      <div class="card mb-3">
         <h3 class="card-title mb-2">معلومات عامة</h3>
         <p class="text-sm text-muted mb-2">يمكن تعديل الإعدادات من هنا أو مباشرة من جدول platform_settings في Supabase.</p>
         <div id="settings-list"><div class="skeleton skeleton-text"></div></div>
@@ -35,19 +52,118 @@ WHERE email = 'your-admin@email.com';</pre>
   <script type="module">
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
-    import { escapeHtml, showError, initIcons } from '../assets/js/utils.js';
+    import { escapeHtml, showError, showToast, initIcons } from '../assets/js/utils.js';
+
+    const LOGO_BUCKET = 'platform-assets';
+    const MAX_LOGO_BYTES = 4 * 1024 * 1024;
+    let currentLogoUrl = '';
+
+    function normalizeSettingValue(value) {
+      if (typeof value === 'string') return value;
+      if (value && typeof value === 'object') return value.url || value.logo_url || '';
+      return '';
+    }
+
+    function renderLogoPreview(url) {
+      const el = document.getElementById('logo-preview');
+      if (!el) return;
+      if (!url) {
+        el.innerHTML = '<span class="logo-icon" aria-hidden="true">N</span><span class="text-sm text-muted">لم يتم رفع لوجو بعد؛ هيظهر الشعار الافتراضي.</span>';
+        return;
+      }
+      el.innerHTML = `<img src="${escapeHtml(url)}" alt="شعار المنصة الحالي" style="width:72px;height:72px;object-fit:contain;background:#fff;border:1px solid var(--border);border-radius:14px;padding:5px" /><span class="text-sm text-muted">الشعار المحفوظ حاليًا</span>`;
+    }
+
+    async function loadLogo() {
+      const { data, error } = await supabase.from('platform_settings')
+        .select('value').eq('key', 'platform_logo_url').maybeSingle();
+      if (error) throw error;
+      currentLogoUrl = normalizeSettingValue(data?.value);
+      renderLogoPreview(currentLogoUrl);
+    }
+
+    async function loadSettingsList() {
+      const el = document.getElementById('settings-list');
+      try {
+        const { data, error } = await supabase.from('platform_settings').select('key, value, description').order('key');
+        if (error) throw error;
+        el.innerHTML = (data || []).map(s => `<div class="list-item"><div class="list-item-body"><div class="list-item-title">${escapeHtml(s.key)}</div><div class="list-item-desc">${escapeHtml(s.description || '')} · ${escapeHtml(JSON.stringify(s.value))}</div></div></div>`).join('') || '<p class="text-muted">لا توجد إعدادات</p>';
+      } catch (error) {
+        console.error('Platform settings list failed:', error);
+        showError(el, 'تعذر تحميل قائمة الإعدادات؛ تقدر تجرب رفع اللوجو بشكل منفصل.');
+      }
+    }
+
+    async function saveLogo(event) {
+      event.preventDefault();
+      const input = document.getElementById('logo-file');
+      const button = document.getElementById('logo-submit');
+      const status = document.getElementById('logo-status');
+      const file = input.files?.[0];
+      if (!file) { showToast('اختار صورة اللوجو الأول.', 'error'); return; }
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        showToast('نوع الصورة لازم يكون PNG أو JPG أو WEBP.', 'error');
+        return;
+      }
+      if (file.size > MAX_LOGO_BYTES) {
+        showToast('حجم الصورة أكبر من 4 ميجابايت.', 'error');
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'جاري رفع الشعار…';
+      status.textContent = '';
+      try {
+        const extension = file.type === 'image/jpeg' ? 'jpg' : file.type === 'image/png' ? 'png' : 'webp';
+        const objectPath = `platform-logo/logo-${Date.now()}.${extension}`;
+        const { error: uploadError } = await supabase.storage.from(LOGO_BUCKET).upload(objectPath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: file.type
+        });
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(objectPath);
+        const publicUrl = urlData?.publicUrl;
+        if (!publicUrl) throw new Error('تعذر إنشاء رابط عام للصورة.');
+
+        const { error: saveError } = await supabase.from('platform_settings').upsert({
+          key: 'platform_logo_url',
+          value: publicUrl,
+          description: 'رابط شعار المنصة'
+        }, { onConflict: 'key' });
+        if (saveError) throw saveError;
+
+        currentLogoUrl = publicUrl;
+        renderLogoPreview(publicUrl);
+        window.dispatchEvent(new CustomEvent('nusc:branding-updated', { detail: { url: publicUrl } }));
+        status.textContent = 'تم حفظ الشعار. هيظهر في الصفحات عند فتحها أو تحديثها.';
+        input.value = '';
+        showToast('تم حفظ شعار المنصة بنجاح.', 'success');
+        await loadSettingsList();
+      } catch (error) {
+        console.error('Platform logo save failed:', error);
+        status.textContent = 'ماقدرناش نحفظ الشعار.';
+        showToast('فشل حفظ الشعار: ' + (error?.message || 'راجع صلاحيات قاعدة البيانات والتخزين.'), 'error');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'حفظ شعار المنصة';
+      }
+    }
+
     async function init() {
       const result = await protectAdminPage();
       if (!result) return;
       initIcons();
-      const el = document.getElementById('settings-list');
-      try {
-        const { data, error } = await supabase.from('platform_settings').select('key, value, description');
-        if (error) throw error;
-        el.innerHTML = (data || []).map(s => `<div class="list-item"><div class="list-item-body"><div class="list-item-title">${escapeHtml(s.key)}</div><div class="list-item-desc">${escapeHtml(s.description || '')} · ${escapeHtml(JSON.stringify(s.value))}</div></div></div>`).join('') || '<p class="text-muted">لا توجد إعدادات</p>';
-      } catch { showError(el, 'تعذر التحميل'); }
+      document.getElementById('logo-form').addEventListener('submit', saveLogo);
+      await Promise.allSettled([loadLogo(), loadSettingsList()]);
     }
-    init();
+
+    init().catch(error => {
+      console.error('Platform settings initialization failed:', error);
+      showError(document.getElementById('settings-list'), 'تعذر فتح إعدادات المنصة. راجع صلاحيات الإدارة.');
+    });
   </script>
 </body>
 </html>
