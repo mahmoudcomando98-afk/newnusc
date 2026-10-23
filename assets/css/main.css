@@ -99,3 +99,9 @@ body:after{content:"تم الصنع بواسطة COMADO";display:block;width:100
 body:after{position:static;left:auto;bottom:auto;transform:none;z-index:auto;display:block;width:100%;white-space:normal;margin:0 auto;padding:16px 14px 22px;text-align:center;direction:rtl;border-radius:0;box-shadow:none;pointer-events:none}
 body.home-page:after{display:none}
 .home-footer .footer-credit{flex-basis:100%;display:block;width:100%;padding-top:12px;margin-top:8px;border-top:1px solid #eee6bd;text-align:center;color:#78651a;font-size:.76rem;font-weight:800;letter-spacing:.2px}
+
+
+/* Homepage: keep COMADO credit in normal document flow at the very bottom, never fixed. */
+body.home-page:after{display:none!important;content:none!important}
+body.home-page .home-footer{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;text-align:center;gap:8px 18px;margin-top:28px;padding:22px 12px calc(28px + env(safe-area-inset-bottom));border-top:1px solid #eee6bd;background:linear-gradient(180deg,#fffef9,#fffbea);}
+body.home-page .home-footer .footer-credit{order:10;flex:0 0 100%;display:block;width:100%;position:static;margin:10px 0 0;padding:14px 8px 0;border-top:1px solid #eee6bd;text-align:center;color:#78651a;font-size:.78rem;font-weight:900;letter-spacing:.2px;}
