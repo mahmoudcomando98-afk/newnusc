@@ -254,7 +254,11 @@ export async function protectAdminPage() {
 ========================= */
 
 export function initLoginPage() {
-  redirectIfAuthenticated('/home.html');
+  const requestedNext = new URLSearchParams(window.location.search).get('next') || '';
+  const loginRedirect = requestedNext.startsWith('/admin/') && !requestedNext.startsWith('//')
+    ? requestedNext
+    : '/home.html';
+  redirectIfAuthenticated(loginRedirect);
 
   const form = document.getElementById('login-form');
   if (!form) return;
@@ -271,7 +275,7 @@ export function initLoginPage() {
         await login({ email, password });
 
         showToast('تم تسجيل الدخول بنجاح.', 'success');
-        window.location.href = '/home.html';
+        window.location.replace(loginRedirect);
       });
     } catch (err) {
       showToast(getErrorMessage(err, 'تعذر تسجيل الدخول.'), 'error');
