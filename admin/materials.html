@@ -129,6 +129,16 @@
       }
     }
 
+    async function insertMaterial(payload) {
+      let result = await supabase.from('materials').insert(payload);
+      const message = String(result.error?.message || '').toLowerCase();
+      // Older database variants may require uploaded_by rather than created_by.
+      if (result.error && message.includes('uploaded_by') && (result.error.code === '23502' || result.error.code === '42703' || result.error.code === 'PGRST204')) {
+        result = await supabase.from('materials').insert({ ...payload, uploaded_by: profile.id });
+      }
+      return result;
+    }
+
     async function save(event) {
       event.preventDefault();
       const fileInput = document.getElementById('file');
@@ -145,7 +155,7 @@
         const { error: uploadError } = await supabase.storage.from('materials').upload(path, file);
         if (uploadError) { showToast(uploadError.message, 'error'); return; }
 
-        const { error } = await supabase.from('materials').insert({
+        const { error } = await insertMaterial({
           title: document.getElementById('title').value.trim(),
           description: document.getElementById('description').value.trim() || null,
           subject_id: subjectId,
