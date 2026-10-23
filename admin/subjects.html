@@ -51,10 +51,14 @@
     async function loadSubjects() {
       const el = document.getElementById('subjects-list');
       try {
-        const { data, error } = await supabase.from('subjects').select('id, name, code, instructor, description, is_active, sort_order').order('sort_order').order('name');
+        const { data, error } = await supabase.from('subjects').select('*');
         if (error) throw error;
         if (!data?.length) { showEmpty(el, 'لا توجد مواد. اضغط «إضافة مادة» للبدء.'); return; }
-        el.innerHTML = data.map(s => `
+        const sorted = [...data].sort((a, b) =>
+          Number(a.sort_order || 0) - Number(b.sort_order || 0) ||
+          String(a.name || '').localeCompare(String(b.name || ''), 'ar')
+        );
+        el.innerHTML = sorted.map(s => `
           <div class="card mb-2">
             <div class="flex justify-between items-center flex-wrap gap-1">
               <div>
@@ -62,7 +66,7 @@
                 <div class="card-meta">
                   ${s.code ? `<span class="badge badge-primary">${escapeHtml(s.code)}</span>` : ''}
                   ${s.instructor ? `<span>${escapeHtml(s.instructor)}</span>` : ''}
-                  <span class="badge ${s.is_active ? 'badge-success' : 'badge-warning'}">${s.is_active ? 'منشورة' : 'مسودة'}</span>
+                  <span class="badge ${(s.is_active ?? s.is_published ?? true) ? 'badge-success' : 'badge-warning'}">${(s.is_active ?? s.is_published ?? true) ? 'منشورة' : 'مسودة'}</span>
                 </div>
               </div>
               <div class="flex gap-1">
@@ -92,9 +96,54 @@
       document.getElementById('code').value = s?.code || '';
       document.getElementById('instructor').value = s?.instructor || '';
       document.getElementById('description').value = s?.description || '';
-      document.getElementById('is_active').checked = s ? s.is_active : true;
+      document.getElementById('is_active').checked = s ? (s.is_active ?? s.is_published ?? true) : true;
     }
     function closeForm() { document.getElementById('form-panel').classList.add('hidden'); }
+    function isMissingColumn(error, column) {
+      const text = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
+      return text.includes(`could not find the '${column.toLowerCase()}' column`) ||
+        text.includes(`column "${column.toLowerCase()}" does not exist`) ||
+        text.includes(`column ${column.toLowerCase()} does not exist`) ||
+        text.includes(`subjects.${column.toLowerCase()}`);
+    }
+
+    async function saveSubjectRecord(id, payload) {
+      const activeValue = payload.is_published ?? payload.is_active ?? true;
+      const candidate = { ...payload, is_published: activeValue };
+      delete candidate.is_active;
+      const triedActiveColumns = new Set();
+
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const request = id
+          ? supabase.from('subjects').update(candidate).eq('id', id).select('id, name').single()
+          : supabase.from('subjects').insert(candidate).select('id, name').single();
+        const result = await request;
+        if (!result.error) return result;
+
+        const activeColumn = ['is_published', 'is_active'].find((column) =>
+          Object.prototype.hasOwnProperty.call(candidate, column) && isMissingColumn(result.error, column)
+        );
+        if (activeColumn) {
+          triedActiveColumns.add(activeColumn);
+          const otherColumn = activeColumn === 'is_published' ? 'is_active' : 'is_published';
+          delete candidate[activeColumn];
+          if (!triedActiveColumns.has(otherColumn)) candidate[otherColumn] = activeValue;
+          continue;
+        }
+
+        const optionalColumns = ['code', 'instructor', 'description', 'sort_order', 'created_by'];
+        const missingOptional = optionalColumns.find((column) =>
+          Object.prototype.hasOwnProperty.call(candidate, column) && isMissingColumn(result.error, column)
+        );
+        if (missingOptional) {
+          delete candidate[missingOptional];
+          continue;
+        }
+        return result;
+      }
+      return { data: null, error: { message: 'تعذر حفظ المادة بعد التحقق من أعمدة قاعدة البيانات.' } };
+    }
+
     async function saveSubject(e) {
       e.preventDefault();
       const btn = e.target.querySelector('[type="submit"]');
@@ -105,13 +154,15 @@
           code: document.getElementById('code').value.trim() || null,
           instructor: document.getElementById('instructor').value.trim() || null,
           description: document.getElementById('description').value.trim() || null,
-          is_active: document.getElementById('is_active').checked
+          is_published: document.getElementById('is_active').checked
         };
-        const { error } = id
-          ? await supabase.from('subjects').update(payload).eq('id', id)
-          : await supabase.from('subjects').insert(payload);
-        if (error) { showToast(error.message, 'error'); return; }
-        showToast('تم الحفظ', 'success');
+        const { data, error } = await saveSubjectRecord(id, payload);
+        if (error || !data?.id) {
+          console.error('Subject save was not confirmed:', error);
+          showToast(error?.message || 'لم يتم تأكيد حفظ المادة.', 'error');
+          return;
+        }
+        showToast('تم حفظ المادة بنجاح.', 'success');
         closeForm();
         await loadSubjects();
       });
