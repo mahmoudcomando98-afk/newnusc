@@ -115,21 +115,45 @@ END
 $storage_policy$;
 
 -- Security-definer RPCs must enforce maintenance themselves because they may
--- run with table-owner privileges and otherwise bypass table RLS.
+-- run with table-owner privileges and otherwise bypass table RLS. These use
+-- PL/pgSQL + dynamic SQL so a partially-installed optional table such as
+-- notification_reads does not make this migration fail at CREATE FUNCTION time.
+
 CREATE OR REPLACE FUNCTION public.get_unread_notifications_count(p_user_id UUID DEFAULT auth.uid())
 RETURNS INTEGER
-LANGUAGE sql
+LANGUAGE plpgsql
 SECURITY DEFINER
 STABLE
 SET search_path = public, private
 AS $unread_count$
-  SELECT CASE WHEN private.is_platform_open_or_admin() THEN COUNT(*)::INTEGER ELSE 0 END
-  FROM public.notifications n
-  WHERE (n.user_id = p_user_id OR (COALESCE(to_jsonb(n)->>'is_global', 'false') = 'true' OR ((to_jsonb(n)->>'is_global') IS NULL AND n.user_id IS NULL)))
+DECLARE
+  unread_count INTEGER := 0;
+BEGIN
+  IF NOT private.is_platform_open_or_admin() THEN
+    RETURN 0;
+  END IF;
+  IF to_regclass('public.notifications') IS NULL
+     OR to_regclass('public.notification_reads') IS NULL THEN
+    RETURN 0;
+  END IF;
+
+  EXECUTE $query$
+    SELECT COUNT(*)::INTEGER
+    FROM public.notifications n
+    WHERE (
+      n.user_id = $1
+      OR COALESCE(to_jsonb(n)->>'is_global', 'false') = 'true'
+      OR ((to_jsonb(n)->>'is_global') IS NULL AND n.user_id IS NULL)
+    )
     AND NOT EXISTS (
-      SELECT 1 FROM public.notification_reads nr
-      WHERE nr.notification_id = n.id AND nr.user_id = p_user_id
-    );
+      SELECT 1
+      FROM public.notification_reads nr
+      WHERE nr.notification_id = n.id AND nr.user_id = $1
+    )
+  $query$ INTO unread_count USING p_user_id;
+
+  RETURN COALESCE(unread_count, 0);
+END;
 $unread_count$;
 
 CREATE OR REPLACE FUNCTION public.mark_notification_read(p_notification_id UUID)
@@ -139,10 +163,17 @@ SECURITY DEFINER
 SET search_path = public, private
 AS $mark_read$
 BEGIN
-  IF NOT private.is_platform_open_or_admin() THEN RETURN; END IF;
-  INSERT INTO public.notification_reads (notification_id, user_id)
-  VALUES (p_notification_id, auth.uid())
-  ON CONFLICT (notification_id, user_id) DO NOTHING;
+  IF NOT private.is_platform_open_or_admin()
+     OR to_regclass('public.notifications') IS NULL
+     OR to_regclass('public.notification_reads') IS NULL THEN
+    RETURN;
+  END IF;
+
+  EXECUTE $query$
+    INSERT INTO public.notification_reads (notification_id, user_id)
+    VALUES ($1, $2)
+    ON CONFLICT (notification_id, user_id) DO NOTHING
+  $query$ USING p_notification_id, auth.uid();
 END;
 $mark_read$;
 
@@ -153,16 +184,25 @@ SECURITY DEFINER
 SET search_path = public, private
 AS $mark_all_read$
 BEGIN
-  IF NOT private.is_platform_open_or_admin() THEN RETURN; END IF;
-  INSERT INTO public.notification_reads (notification_id, user_id)
-  SELECT n.id, auth.uid()
-  FROM public.notifications n
-  WHERE (n.user_id = auth.uid() OR (COALESCE(to_jsonb(n)->>'is_global', 'false') = 'true' OR ((to_jsonb(n)->>'is_global') IS NULL AND n.user_id IS NULL)))
-    AND NOT EXISTS (
-      SELECT 1 FROM public.notification_reads nr
-      WHERE nr.notification_id = n.id AND nr.user_id = auth.uid()
-    )
-  ON CONFLICT (notification_id, user_id) DO NOTHING;
+  IF NOT private.is_platform_open_or_admin()
+     OR to_regclass('public.notifications') IS NULL
+     OR to_regclass('public.notification_reads') IS NULL THEN
+    RETURN;
+  END IF;
+
+  EXECUTE $query$
+    INSERT INTO public.notification_reads (notification_id, user_id)
+    SELECT n.id, $1
+    FROM public.notifications n
+    WHERE (n.user_id = $1
+      OR COALESCE(to_jsonb(n)->>'is_global', 'false') = 'true'
+      OR ((to_jsonb(n)->>'is_global') IS NULL AND n.user_id IS NULL))
+      AND NOT EXISTS (
+        SELECT 1 FROM public.notification_reads nr
+        WHERE nr.notification_id = n.id AND nr.user_id = $1
+      )
+    ON CONFLICT (notification_id, user_id) DO NOTHING
+  $query$ USING auth.uid();
 END;
 $mark_all_read$;
 
@@ -173,10 +213,13 @@ SECURITY DEFINER
 SET search_path = public, private
 AS $download_count$
 BEGIN
-  IF NOT private.is_platform_open_or_admin() THEN RETURN; END IF;
-  UPDATE public.materials
-  SET download_count = download_count + 1
-  WHERE id = p_material_id AND is_published = true;
+  IF NOT private.is_platform_open_or_admin()
+     OR to_regclass('public.materials') IS NULL THEN
+    RETURN;
+  END IF;
+
+  EXECUTE 'UPDATE public.materials SET download_count = download_count + 1 WHERE id = $1 AND is_published = true'
+    USING p_material_id;
 END;
 $download_count$;
 
@@ -187,10 +230,13 @@ SECURITY DEFINER
 SET search_path = public, private
 AS $view_count$
 BEGIN
-  IF NOT private.is_platform_open_or_admin() THEN RETURN; END IF;
-  UPDATE public.materials
-  SET view_count = view_count + 1
-  WHERE id = p_material_id AND is_published = true;
+  IF NOT private.is_platform_open_or_admin()
+     OR to_regclass('public.materials') IS NULL THEN
+    RETURN;
+  END IF;
+
+  EXECUTE 'UPDATE public.materials SET view_count = view_count + 1 WHERE id = $1 AND is_published = true'
+    USING p_material_id;
 END;
 $view_count$;
 
@@ -212,52 +258,63 @@ STABLE
 SET search_path = public, private
 AS $search_content$
 BEGIN
-  IF NOT private.is_platform_open_or_admin() THEN RETURN; END IF;
+  IF NOT private.is_platform_open_or_admin() THEN
+    RETURN;
+  END IF;
 
-  RETURN QUERY
-  (
-    SELECT 'subject'::TEXT, s.id, s.name, s.description, NULL::TEXT, s.created_at
-    FROM public.subjects s
-    WHERE s.is_published = true
-      AND (s.name ILIKE '%' || p_query || '%' OR s.code ILIKE '%' || p_query || '%' OR s.description ILIKE '%' || p_query || '%')
-    LIMIT p_limit
-  )
-  UNION ALL
-  (
-    SELECT 'lecture'::TEXT, l.id, l.title, l.description, s.name, l.created_at
-    FROM public.lectures l
-    JOIN public.subjects s ON s.id = l.subject_id
-    WHERE l.is_published = true AND s.is_published = true
-      AND (l.title ILIKE '%' || p_query || '%' OR l.description ILIKE '%' || p_query || '%')
-    LIMIT p_limit
-  )
-  UNION ALL
-  (
-    SELECT 'material'::TEXT, m.id, m.title, m.description, s.name, m.created_at
-    FROM public.materials m
-    LEFT JOIN public.subjects s ON s.id = m.subject_id
-    WHERE m.is_published = true
-      AND (m.title ILIKE '%' || p_query || '%' OR m.description ILIKE '%' || p_query || '%' OR m.file_name ILIKE '%' || p_query || '%')
-    LIMIT p_limit
-  )
-  UNION ALL
-  (
-    SELECT 'announcement'::TEXT, a.id, a.title, LEFT(a.content, 200), s.name, a.created_at
-    FROM public.announcements a
-    LEFT JOIN public.subjects s ON s.id = a.subject_id
-    WHERE a.is_published = true AND (a.expires_at IS NULL OR a.expires_at > NOW())
-      AND (a.title ILIKE '%' || p_query || '%' OR a.content ILIKE '%' || p_query || '%')
-    LIMIT p_limit
-  )
-  UNION ALL
-  (
-    SELECT 'quiz'::TEXT, q.id, q.title, q.description, s.name, q.created_at
-    FROM public.quizzes q
-    LEFT JOIN public.subjects s ON s.id = q.subject_id
-    WHERE q.is_published = true
-      AND (q.title ILIKE '%' || p_query || '%' OR q.topics ILIKE '%' || p_query || '%')
-    LIMIT p_limit
-  );
+  IF to_regclass('public.subjects') IS NULL
+     OR to_regclass('public.lectures') IS NULL
+     OR to_regclass('public.materials') IS NULL
+     OR to_regclass('public.announcements') IS NULL
+     OR to_regclass('public.quizzes') IS NULL THEN
+    RETURN;
+  END IF;
+
+  RETURN QUERY EXECUTE $query$
+    (
+      SELECT 'subject'::TEXT, s.id, s.name, s.description, NULL::TEXT, s.created_at
+      FROM public.subjects s
+      WHERE s.is_published = true
+        AND (s.name ILIKE '%' || $1 || '%' OR s.code ILIKE '%' || $1 || '%' OR s.description ILIKE '%' || $1 || '%')
+      LIMIT $2
+    )
+    UNION ALL
+    (
+      SELECT 'lecture'::TEXT, l.id, l.title, l.description, s.name, l.created_at
+      FROM public.lectures l
+      JOIN public.subjects s ON s.id = l.subject_id
+      WHERE l.is_published = true AND s.is_published = true
+        AND (l.title ILIKE '%' || $1 || '%' OR l.description ILIKE '%' || $1 || '%')
+      LIMIT $2
+    )
+    UNION ALL
+    (
+      SELECT 'material'::TEXT, m.id, m.title, m.description, s.name, m.created_at
+      FROM public.materials m
+      LEFT JOIN public.subjects s ON s.id = m.subject_id
+      WHERE m.is_published = true
+        AND (m.title ILIKE '%' || $1 || '%' OR m.description ILIKE '%' || $1 || '%' OR m.file_name ILIKE '%' || $1 || '%')
+      LIMIT $2
+    )
+    UNION ALL
+    (
+      SELECT 'announcement'::TEXT, a.id, a.title, LEFT(a.content, 200), s.name, a.created_at
+      FROM public.announcements a
+      LEFT JOIN public.subjects s ON s.id = a.subject_id
+      WHERE a.is_published = true AND (a.expires_at IS NULL OR a.expires_at > NOW())
+        AND (a.title ILIKE '%' || $1 || '%' OR a.content ILIKE '%' || $1 || '%')
+      LIMIT $2
+    )
+    UNION ALL
+    (
+      SELECT 'quiz'::TEXT, q.id, q.title, q.description, s.name, q.created_at
+      FROM public.quizzes q
+      LEFT JOIN public.subjects s ON s.id = q.subject_id
+      WHERE q.is_published = true
+        AND (q.title ILIKE '%' || $1 || '%' OR q.topics ILIKE '%' || $1 || '%')
+      LIMIT $2
+    )
+  $query$ USING p_query, LEAST(GREATEST(COALESCE(p_limit, 20), 1), 100);
 END;
 $search_content$;
 
