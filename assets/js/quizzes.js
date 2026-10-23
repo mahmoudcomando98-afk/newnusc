@@ -67,7 +67,7 @@ async function loadQuizzes() {
   try {
     const { data, error } = await supabase
       .from('quizzes')
-      .select('id, title, rules, quiz_date, duration_minutes, total_marks, passing_score, is_published, subjects(name)');
+      .select('id, title, rules, quiz_date, duration_minutes, total_marks, passing_score, is_published, quiz_url, subjects(name)');
 
     if (error) throw error;
 
@@ -180,6 +180,7 @@ function renderQuizzes() {
 
         ${quiz.total_marks != null ? `<p class="text-sm mt-1">الدرجة الكلية: ${Number(quiz.total_marks)}</p>` : ''}
         ${quiz.passing_score != null ? `<p class="text-sm mt-1">درجة النجاح: ${Number(quiz.passing_score)}</p>` : ''}
+        ${quiz.quiz_url ? `<div class="mt-2"><a class="btn btn-primary btn-block" href="${escapeHtml(quiz.quiz_url)}" target="_blank" rel="noopener noreferrer">فتح الامتحان ↗</a></div>` : ''}
       </article>
     `;
   }).join('');
