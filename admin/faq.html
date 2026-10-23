@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>إدارة الأسئلة الشائعة | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>الأسئلة الشائعة</span>
+      </a>
+      <button type="button" class="btn btn-sm btn-primary" id="add-btn">+ سؤال</button>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:24px">
+    <div class="container page-content">
+      <div id="form-panel" class="card mb-3 hidden">
+        <form id="faq-form">
+          <input type="hidden" id="edit-id" />
+          <div class="form-group">
+            <label class="form-label">السؤال *</label>
+            <input type="text" id="question" class="form-input" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">الإجابة *</label>
+            <textarea id="answer" class="form-textarea" required></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">التصنيف</label>
+            <input type="text" id="category" class="form-input" value="عام" />
+          </div>
+          <div class="flex gap-1">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button>
+          </div>
+        </form>
+      </div>
+      <div id="list"></div>
+    </div>
+  </main>
+  <script type="module">
+    import { supabase } from '../assets/js/supabase.js';
+    import { protectAdminPage } from '../assets/js/auth.js';
+    import { escapeHtml, showEmpty, showError, showToast, withLoading, initIcons } from '../assets/js/utils.js';
+    let profile = null;
+    async function init() {
+      const result = await protectAdminPage();
+      if (!result) return;
+      profile = result.profile;
+      initIcons();
+      document.getElementById('add-btn').addEventListener('click', () => {
+        document.getElementById('form-panel').classList.remove('hidden');
+        document.getElementById('faq-form').reset();
+        document.getElementById('edit-id').value = '';
+      });
+      document.getElementById('cancel-btn').addEventListener('click', () => {
+        document.getElementById('form-panel').classList.add('hidden');
+      });
+      document.getElementById('faq-form').addEventListener('submit', save);
+      await load();
+    }
+    async function load() {
+      const el = document.getElementById('list');
+      try {
+        const { data, error } = await supabase.from('faq').select('*').order('sort_order');
+        if (error) throw error;
+        if (!data?.length) { showEmpty(el, 'لا توجد أسئلة'); return; }
+        el.innerHTML = data.map(f => `
+          <div class="card mb-2">
+            <div class="flex justify-between flex-wrap gap-1">
+              <div>
+                <h3 class="card-title">${escapeHtml(f.question)}</h3>
+                <p class="text-sm text-muted">${escapeHtml((f.answer || '').slice(0, 80))}</p>
+              </div>
+              <button type="button" class="btn btn-sm btn-danger" data-delete="${f.id}">حذف</button>
+            </div>
+          </div>`).join('');
+        el.querySelectorAll('[data-delete]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (!confirm('حذف؟')) return;
+            await supabase.from('faq').delete().eq('id', btn.dataset.delete);
+            showToast('تم', 'success');
+            await load();
+          });
+        });
+      } catch { showError(el, 'تعذر التحميل'); }
+    }
+    async function save(e) {
+      e.preventDefault();
+      const btn = e.target.querySelector('[type="submit"]');
+      const handler = withLoading(btn, async () => {
+        const payload = {
+          question: document.getElementById('question').value.trim(),
+          answer: document.getElementById('answer').value.trim(),
+          category: document.getElementById('category').value.trim() || 'عام',
+          created_by: profile.id,
+          is_published: true
+        };
+        const { error } = await supabase.from('faq').insert(payload);
+        if (error) { showToast(error.message, 'error'); return; }
+        showToast('تم الحفظ', 'success');
+        document.getElementById('form-panel').classList.add('hidden');
+        e.target.reset();
+        await load();
+      });
+      await handler();
+    }
+    init();
+  </script>
+</body>
+</html>
