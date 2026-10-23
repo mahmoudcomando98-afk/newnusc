@@ -63,6 +63,92 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
   }
 });
 
+// Apply the platform logo globally. The URL is stored as a public platform setting,
+// so unauthenticated login/register pages can load it too.
+function normalizePlatformLogo(value) {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object') return value.url || value.logo_url || '';
+  return '';
+}
+
+function createPlatformLogoImage(url, className, size) {
+  const img = document.createElement('img');
+  img.src = url;
+  img.alt = 'شعار المنصة';
+  img.className = className;
+  img.loading = 'eager';
+  img.decoding = 'async';
+  img.style.width = size;
+  img.style.height = size;
+  img.style.objectFit = 'contain';
+  img.style.display = 'block';
+  img.style.flexShrink = '0';
+  img.style.borderRadius = '8px';
+  img.style.background = '#fff';
+  img.style.padding = '2px';
+  img.addEventListener('error', () => img.remove(), { once: true });
+  return img;
+}
+
+function applyPlatformLogo(url) {
+  if (typeof document === 'undefined' || !/^https?:\\/\\//i.test(url || '')) return;
+
+  document.querySelectorAll('.app-header .logo-icon').forEach((slot) => {
+    if (slot.querySelector('.platform-brand-image')) return;
+    slot.replaceChildren(createPlatformLogoImage(url, 'platform-brand-image', '100%'));
+    slot.setAttribute('aria-label', 'شعار المنصة');
+  });
+
+  document.querySelectorAll('.auth-brand .auth-brand-dot').forEach((slot) => {
+    if (slot.dataset.platformLogoApplied === 'true') return;
+    const img = createPlatformLogoImage(url, 'auth-brand-logo', '38px');
+    img.style.width = '38px';
+    img.style.height = '38px';
+    img.style.borderRadius = '10px';
+    slot.replaceWith(img);
+  });
+
+  document.querySelectorAll('.splash > .logo').forEach((slot) => {
+    if (slot.querySelector('.platform-brand-image')) return;
+    slot.replaceChildren(createPlatformLogoImage(url, 'platform-brand-image', '100%'));
+  });
+
+  document.querySelectorAll('.app-header a.logo').forEach((anchor) => {
+    if (anchor.querySelector('.logo-icon') || anchor.querySelector('.platform-header-logo')) return;
+    const img = createPlatformLogoImage(url, 'platform-header-logo', '30px');
+    img.style.width = '30px';
+    img.style.height = '30px';
+    const leadingIcon = anchor.querySelector(':scope > [data-icon]');
+    if (leadingIcon) leadingIcon.after(img);
+    else anchor.prepend(img);
+  });
+}
+
+async function loadPlatformLogo() {
+  try {
+    const { data, error } = await supabase.from('platform_settings')
+      .select('value').eq('key', 'platform_logo_url').maybeSingle();
+    if (error) throw error;
+    applyPlatformLogo(normalizePlatformLogo(data?.value));
+  } catch (error) {
+    // A missing setting should never stop authentication or other pages from loading.
+    console.warn('[NUSC] Could not load platform logo:', error?.message || error);
+  }
+}
+
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  window.NUSCBranding = { apply: applyPlatformLogo };
+  window.addEventListener('nusc:branding-updated', (event) => {
+    const url = normalizePlatformLogo(event.detail?.url);
+    applyPlatformLogo(url);
+  });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadPlatformLogo, { once: true });
+  } else {
+    loadPlatformLogo();
+  }
+}
+
 export function isSupabaseConfigured() {
   return Boolean(
     supabaseUrl &&
