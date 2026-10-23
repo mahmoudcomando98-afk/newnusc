@@ -129,14 +129,49 @@
       }
     }
 
+    function isMissingMaterialColumn(error, column) {
+      const text = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
+      return text.includes(`could not find the '${column.toLowerCase()}' column`) ||
+        text.includes(`column "${column.toLowerCase()}" does not exist`) ||
+        text.includes(`column ${column.toLowerCase()} does not exist`) ||
+        text.includes(`materials.${column.toLowerCase()}`);
+    }
+
     async function insertMaterial(payload) {
-      let result = await supabase.from('materials').insert(payload);
-      const message = String(result.error?.message || '').toLowerCase();
-      // Older database variants may require uploaded_by rather than created_by.
-      if (result.error && message.includes('uploaded_by') && (result.error.code === '23502' || result.error.code === '42703' || result.error.code === 'PGRST204')) {
-        result = await supabase.from('materials').insert({ ...payload, uploaded_by: profile.id });
+      const candidate = { ...payload };
+      for (let attempt = 0; attempt < 9; attempt += 1) {
+        const result = await supabase.from('materials')
+          .insert(candidate)
+          .select('id, title, subject_id')
+          .single();
+        if (!result.error) return result;
+
+        const message = String(result.error.message || '').toLowerCase();
+        if (candidate.created_by && isMissingMaterialColumn(result.error, 'created_by')) {
+          candidate.uploaded_by = candidate.created_by;
+          delete candidate.created_by;
+          continue;
+        }
+        if (message.includes('uploaded_by') && result.error.code === '23502' && profile?.id) {
+          candidate.uploaded_by = profile.id;
+          continue;
+        }
+        if (isMissingMaterialColumn(result.error, 'uploaded_by') && Object.prototype.hasOwnProperty.call(candidate, 'uploaded_by')) {
+          delete candidate.uploaded_by;
+          continue;
+        }
+
+        const optionalColumns = ['description', 'file_name', 'file_type', 'file_size', 'material_type', 'is_published', 'created_by'];
+        const missingOptional = optionalColumns.find(column =>
+          Object.prototype.hasOwnProperty.call(candidate, column) && isMissingMaterialColumn(result.error, column)
+        );
+        if (missingOptional) {
+          delete candidate[missingOptional];
+          continue;
+        }
+        return result;
       }
-      return result;
+      return { data: null, error: { message: 'تعذر حفظ سجل الملف بسبب اختلاف أعمدة قاعدة البيانات.' } };
     }
 
     async function save(event) {
@@ -155,7 +190,7 @@
         const { error: uploadError } = await supabase.storage.from('materials').upload(path, file);
         if (uploadError) { showToast(uploadError.message, 'error'); return; }
 
-        const { error } = await insertMaterial({
+        const { data: savedMaterial, error } = await insertMaterial({
           title: document.getElementById('title').value.trim(),
           description: document.getElementById('description').value.trim() || null,
           subject_id: subjectId,
@@ -167,14 +202,15 @@
           is_published: true,
           created_by: profile.id
         });
-        if (error) {
+        if (error || !savedMaterial?.id) {
           const { error: cleanupError } = await supabase.storage.from('materials').remove([path]);
           if (cleanupError) console.warn('Could not clean up uploaded file:', cleanupError.message);
           console.error('Material insert failed:', error);
-          showToast(error.message, 'error');
+          showToast(error?.message || 'لم يتم تأكيد حفظ سجل الملف.', 'error');
           return;
         }
-        showToast('الملف اترفع واتضاف للقسم المحدد.', 'success');
+        console.info('Material saved:', savedMaterial.id);
+        showToast('الملف اترفع واتحفظ في القسم المحدد.', 'success');
         document.getElementById('form-panel').classList.add('hidden');
         event.target.reset();
         document.getElementById('material_type').value = 'lecture';
