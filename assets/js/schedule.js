@@ -104,7 +104,7 @@ async function loadSchedule() {
 
   try {
     const { data, error } = await supabase
-      .from('schedules')
+      .from('schedule_items')
       .select('*');
 
     if (error) throw error;
