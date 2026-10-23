@@ -3,47 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#25271f" />
   <title>المواد الدراسية | MUSC</title>
   <link rel="stylesheet" href="/assets/css/main.css" />
 </head>
-<body>
+<body class="subjects-page">
   <header class="app-header">
     <div class="container">
-      <a href="/home.html" class="logo">
-        <span class="logo-icon">M</span>
-        <span>المواد الدراسية</span>
-      </a>
+      <a href="/home.html" class="logo"><span class="logo-icon">M</span><span>MUSC</span></a>
       <nav class="desktop-nav">
-        <a href="/home.html" data-nav="home">الرئيسية</a>
-        <a href="/subjects.html" data-nav="subjects" class="active">المواد</a>
-        <a href="/quizzes.html" data-nav="quizzes">الكويزات</a>
-        <a href="/schedule.html" data-nav="schedule">الجدول</a>
-        <a href="/announcements.html" data-nav="announcements">الإعلانات</a>
+        <a href="/home.html" data-nav="home">الرئيسية</a><a href="/subjects.html" data-nav="subjects" class="active">المواد</a><a href="/quizzes.html" data-nav="quizzes">الكويزات</a><a href="/schedule.html" data-nav="schedule">الجدول</a><a href="/announcements.html" data-nav="announcements">الإعلانات</a>
       </nav>
-      <div class="header-actions">
-        <a href="/profile.html" class="header-btn" title="حسابي"><span data-icon="user"></span></a>
-      </div>
+      <div class="header-actions"><a href="/notifications.html" class="header-btn" title="الإشعارات"><span data-icon="bell"></span></a><a href="/profile.html" class="header-btn" title="حسابي"><span data-icon="user"></span></a></div>
     </div>
   </header>
   <main class="page">
-    <div class="container page-content">
-      <div class="search-box">
-        <span class="search-icon" data-icon="search"></span>
-        <input type="search" id="search-input" placeholder="ابحث عن مادة..." autocomplete="off" />
-      </div>
-      <div class="card-grid" id="subjects-grid">
-        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
-        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
-        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
-      </div>
+    <div class="container page-content subjects-content">
+      <section class="subjects-intro">
+        <div class="subjects-intro-copy"><span class="section-kicker">المكتبة الأكاديمية</span><h1>موادك الدراسية</h1><p>كل مادة في مكانها؛ افتح المادة للوصول إلى محاضراتها وملفاتها والإعلانات المرتبطة بها.</p></div>
+        <div class="subjects-count"><span class="count-symbol" data-icon="library-big"></span><strong id="subjects-count">—</strong><span>مواد متاحة</span></div>
+      </section>
+      <div class="subjects-toolbar"><div class="search-box"><span class="search-icon" data-icon="search"></span><input type="search" id="search-input" placeholder="ابحث باسم المادة أو الكود أو الدكتور..." autocomplete="off" aria-label="ابحث عن مادة" /></div><span class="toolbar-note">اختر مادة للبدء <span aria-hidden="true">↙</span></span></div>
+      <div class="card-grid subjects-grid" id="subjects-grid"><div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div><div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div></div>
     </div>
   </main>
   <nav class="bottom-nav">
-    <a href="/home.html" data-nav="home"><span data-icon="home"></span>الرئيسية</a>
-    <a href="/subjects.html" data-nav="subjects" class="active"><span data-icon="book"></span>المواد</a>
-    <a href="/quizzes.html" data-nav="quizzes"><span data-icon="clipboard"></span>الكويزات</a>
-    <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
-    <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
+    <a href="/home.html" data-nav="home"><span data-icon="home"></span>الرئيسية</a><a href="/subjects.html" data-nav="subjects" class="active"><span data-icon="book"></span>المواد</a><a href="/quizzes.html" data-nav="quizzes"><span data-icon="clipboard"></span>الكويزات</a><a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a><a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
   <script type="module" src="/assets/js/subjects.js"></script>
 </body>
