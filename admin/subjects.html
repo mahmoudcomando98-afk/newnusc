@@ -26,7 +26,7 @@
           <div class="form-group"><label class="form-label">رمز المادة</label><input type="text" id="code" class="form-input" dir="ltr" /></div>
           <div class="form-group"><label class="form-label">المحاضر</label><input type="text" id="instructor" class="form-input" /></div>
           <div class="form-group"><label class="form-label">الوصف</label><textarea id="description" class="form-textarea"></textarea></div>
-          <div class="form-group"><label class="form-check"><input type="checkbox" id="is_published" checked /><span>منشورة</span></label></div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" id="is_active" checked /><span>منشورة</span></label></div>
           <div class="flex gap-1"><button type="submit" class="btn btn-primary">حفظ</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
         </form>
       </div>
@@ -51,7 +51,7 @@
     async function loadSubjects() {
       const el = document.getElementById('subjects-list');
       try {
-        const { data, error } = await supabase.from('subjects').select('id, name, code, instructor, description, is_published, sort_order').order('sort_order').order('name');
+        const { data, error } = await supabase.from('subjects').select('id, name, code, instructor, description, is_active, sort_order').order('sort_order').order('name');
         if (error) throw error;
         if (!data?.length) { showEmpty(el, 'لا توجد مواد. اضغط «إضافة مادة» للبدء.'); return; }
         el.innerHTML = data.map(s => `
@@ -62,7 +62,7 @@
                 <div class="card-meta">
                   ${s.code ? `<span class="badge badge-primary">${escapeHtml(s.code)}</span>` : ''}
                   ${s.instructor ? `<span>${escapeHtml(s.instructor)}</span>` : ''}
-                  <span class="badge ${s.is_published ? 'badge-success' : 'badge-warning'}">${s.is_published ? 'منشورة' : 'مسودة'}</span>
+                  <span class="badge ${s.is_active ? 'badge-success' : 'badge-warning'}">${s.is_active ? 'منشورة' : 'مسودة'}</span>
                 </div>
               </div>
               <div class="flex gap-1">
@@ -92,7 +92,7 @@
       document.getElementById('code').value = s?.code || '';
       document.getElementById('instructor').value = s?.instructor || '';
       document.getElementById('description').value = s?.description || '';
-      document.getElementById('is_published').checked = s ? s.is_published : true;
+      document.getElementById('is_active').checked = s ? s.is_active : true;
     }
     function closeForm() { document.getElementById('form-panel').classList.add('hidden'); }
     async function saveSubject(e) {
@@ -105,7 +105,7 @@
           code: document.getElementById('code').value.trim() || null,
           instructor: document.getElementById('instructor').value.trim() || null,
           description: document.getElementById('description').value.trim() || null,
-          is_published: document.getElementById('is_published').checked,
+          is_active: document.getElementById('is_active').checked,
           created_by: profile.id
         };
         const { error } = id
