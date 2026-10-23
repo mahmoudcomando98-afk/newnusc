@@ -190,23 +190,43 @@ async function loadMaterialsByType(el, type, emptyMessage) {
 }
 
 async function loadAnnouncements(el) {
+  // Avoid server-side filters/order on optional columns in older database schemas.
   const { data, error } = await supabase.from('announcements')
     .select('*')
-    .eq('subject_id', subjectId).eq('is_published', true)
-    .order('created_at', { ascending: false });
+    .eq('subject_id', subjectId);
   if (error) throw error;
-  if (!data?.length) { showEmpty(el, 'مفيش إعلانات خاصة بالمادة دي دلوقتي.'); return; }
-  el.innerHTML = data.map((announcement) => {
+
+  const now = Date.now();
+  const announcements = (data || [])
+    .filter((announcement) => {
+      if (announcement.is_published === false) return false;
+      if (announcement.expires_at) {
+        const expiry = new Date(announcement.expires_at).getTime();
+        if (!Number.isNaN(expiry) && expiry <= now) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+  if (!announcements.length) {
+    showEmpty(el, 'مفيش إعلانات منشورة خاصة بالمادة دي دلوقتي.');
+    return;
+  }
+
+  el.innerHTML = announcements.map((announcement) => {
     const level = announcement.importance || announcement.priority || 'normal';
     const badge = level === 'urgent' ? 'عاجل' : level === 'high' ? 'مهم' : '';
+    const title = announcement.title || 'إعلان';
+    const body = announcement.content || announcement.body || '';
+    const date = announcement.created_at ? timeAgo(announcement.created_at) : '';
     return `
       <article class="list-item">
         <div class="list-item-icon" data-icon="megaphone"></div>
         <div class="list-item-body">
-          <div class="list-item-title">${announcement.is_pinned ? '📌 ' : ''}${escapeHtml(announcement.title)}</div>
+          <div class="list-item-title">${announcement.is_pinned ? '📌 ' : ''}${escapeHtml(title)}</div>
           ${badge ? `<span class="badge badge-primary">${badge}</span>` : ''}
-          <p class="text-sm mt-1" style="white-space:pre-wrap">${escapeHtml(announcement.content || '')}</p>
-          <div class="list-item-desc">${timeAgo(announcement.created_at)}</div>
+          <p class="text-sm mt-1" style="white-space:pre-wrap">${escapeHtml(body)}</p>
+          ${date ? `<div class="list-item-desc">${escapeHtml(date)}</div>` : ''}
         </div>
       </article>`;
   }).join('');
