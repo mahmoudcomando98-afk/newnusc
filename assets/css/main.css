@@ -93,3 +93,9 @@ body:after{content:"تم الصنع بواسطة COMADO";position:fixed;left:50%
 @media(max-width:380px){.app-header .container{padding-left:11px;padding-right:11px}.app-header .logo{gap:7px}.app-header .logo-icon{width:36px;height:36px;border-radius:11px}.app-header .header-actions{gap:6px}.app-header .header-btn{width:36px;height:36px;border-radius:11px}}
 body:after{content:"تم الصنع بواسطة COMADO";display:block;width:100%;box-sizing:border-box;margin:0 auto;padding:18px 14px 22px;text-align:center;direction:rtl;color:#78651a;font-size:.72rem;font-weight:800;letter-spacing:.35px;border-top:1px solid #eee6bd;background:linear-gradient(180deg,#fffef9,#fffbea)}
 @media(max-width:899px){body:after{padding:16px 12px calc(18px + env(safe-area-inset-bottom));font-size:.7rem}}
+
+
+/* Keep the credit at the actual end of the page; homepage has its own footer credit. */
+body:after{position:static;left:auto;bottom:auto;transform:none;z-index:auto;display:block;width:100%;white-space:normal;margin:0 auto;padding:16px 14px 22px;text-align:center;direction:rtl;border-radius:0;box-shadow:none;pointer-events:none}
+body.home-page:after{display:none}
+.home-footer .footer-credit{flex-basis:100%;display:block;width:100%;padding-top:12px;margin-top:8px;border-top:1px solid #eee6bd;text-align:center;color:#78651a;font-size:.76rem;font-weight:800;letter-spacing:.2px}
