@@ -5,6 +5,24 @@
 
 BEGIN;
 
+-- Define the admin checker here as well; some existing projects do not have
+-- this helper installed yet. Only active profiles with role='admin' qualify.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $is_admin$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid()
+      AND role = 'admin'
+      AND is_active = true
+  );
+$is_admin$;
+
 CREATE SCHEMA IF NOT EXISTS private;
 
 CREATE OR REPLACE FUNCTION private.is_platform_open_or_admin()
