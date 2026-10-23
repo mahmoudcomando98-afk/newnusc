@@ -263,41 +263,39 @@ async function loadQuizzes() {
 async function loadAnnouncements() {
   const el = document.getElementById('announcements-list');
   if (!el) return;
-
   try {
-    const { data, error } = await supabase
-      .from('announcements')
-      .select('id, title, content, priority, is_pinned, created_at')
+    const { data, error } = await supabase.from('announcements')
+      .select('*')
       .eq('is_published', true)
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(5);
-
+      .limit(10);
     if (error) throw error;
+    if (!data?.length) { showEmpty(el, 'لا توجد إعلانات حالياً'); return; }
 
-    if (!data?.length) {
-      showEmpty(el, 'لا توجد إعلانات حالياً');
-      return;
+    let subjectNames = {};
+    const subjectIds = [...new Set(data.map((item) => item.subject_id).filter(Boolean))];
+    if (subjectIds.length) {
+      const { data: subjects, error: subjectsError } = await supabase.from('subjects').select('id, name').in('id', subjectIds);
+      if (!subjectsError) subjectNames = Object.fromEntries((subjects || []).map((item) => [item.id, item.name]));
     }
 
-    el.innerHTML = data.map((announcement) => `
-      <a href="/announcements.html" class="list-item announcement-item ${['urgent','high'].includes(announcement.priority) ? 'announcement-important' : ''}"
-         style="text-decoration:none;color:inherit">
-        <div class="list-item-icon" data-icon="megaphone"></div>
-        <div class="list-item-body">
-          <div class="list-item-title">
-            ${announcement.is_pinned ? '📌 ' : ''}
-            ${escapeHtml(announcement.title)}
-            ${announcement.priority === 'urgent' ? '<span class="badge badge-urgent">عاجل</span>' : announcement.priority === 'high' ? '<span class="badge badge-important">مهم</span>' : ''}
+    el.innerHTML = data.slice(0, 5).map((announcement) => {
+      const level = announcement.importance || announcement.priority || 'normal';
+      const subjectName = subjectNames[announcement.subject_id] || '';
+      return `
+        <a href="/announcements.html" class="list-item announcement-item ${['urgent','high'].includes(level) ? 'announcement-important' : ''}" style="text-decoration:none;color:inherit">
+          <div class="list-item-icon" data-icon="megaphone"></div>
+          <div class="list-item-body">
+            <div class="list-item-title">
+              ${announcement.is_pinned ? '📌 ' : ''}${escapeHtml(announcement.title)}
+              ${level === 'urgent' ? '<span class="badge badge-urgent">عاجل</span>' : level === 'high' ? '<span class="badge badge-important">مهم</span>' : ''}
+            </div>
+            ${subjectName ? `<div class="list-item-desc">${escapeHtml(subjectName)}</div>` : ''}
+            <div class="list-item-desc">${escapeHtml((announcement.content || announcement.body || '').slice(0, 80))} · ${timeAgo(announcement.created_at)}</div>
           </div>
-          <div class="list-item-desc">
-            ${escapeHtml((announcement.content || '').slice(0, 80))}
-            · ${timeAgo(announcement.created_at)}
-          </div>
-        </div>
-      </a>
-    `).join('');
-
+        </a>`;
+    }).join('');
     initIcons();
   } catch (error) {
     console.error('[NUSC] loadAnnouncements:', error);
@@ -309,28 +307,24 @@ async function loadImportantNotice() {
   const banner = document.getElementById('important-notice');
   if (!banner) return;
   try {
-    const { data, error } = await supabase
-      .from('announcements')
-      .select('id, title, content, priority, created_at')
+    const { data, error } = await supabase.from('announcements')
+      .select('*')
       .eq('is_published', true)
-      .in('priority', ['urgent', 'high'])
+      .is('subject_id', null)
       .order('created_at', { ascending: false })
-      .limit(1);
+      .limit(30);
     if (error) throw error;
-    const notice = data?.[0];
-    if (!notice) {
-      banner.classList.add('hidden');
-      return;
-    }
+    const notice = (data || []).find((item) => ['urgent', 'high'].includes(item.importance || item.priority));
+    if (!notice) { banner.classList.add('hidden'); return; }
+    const level = notice.importance || notice.priority || 'normal';
     document.getElementById('important-notice-title').textContent = notice.title || 'تنبيه من الإدارة';
-    document.getElementById('important-notice-content').textContent = (notice.content || '').slice(0, 260);
+    document.getElementById('important-notice-content').textContent = (notice.content || notice.body || '').slice(0, 260);
     const time = document.getElementById('important-notice-time');
-    if (time) time.textContent = notice.priority === 'urgent' ? 'تنبيه عاجل' : 'إعلان مهم من الإدارة';
-    banner.classList.toggle('notice-urgent', notice.priority === 'urgent');
+    if (time) time.textContent = level === 'urgent' ? 'تنبيه عاجل' : 'إعلان مهم من الإدارة';
+    banner.classList.toggle('notice-urgent', level === 'urgent');
     banner.classList.remove('hidden');
   } catch (error) {
-    console.warn('[MUSC] loadImportantNotice:', error);
-    // Keep the dashboard usable if the notice query fails.
+    console.warn('[NUSC] loadImportantNotice:', error);
   }
 }
 
