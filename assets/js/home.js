@@ -44,11 +44,17 @@ async function init() {
       loadLectures(),
       loadQuizzes(),
       loadAnnouncements(),
+      loadImportantNotice(),
       loadMaterials(),
       loadNotifCount()
     ]);
+    // Refresh announcements periodically and when the student returns to the tab.
+    window.setInterval(() => { loadImportantNotice(); loadNotifCount(); }, 30000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') { loadImportantNotice(); loadNotifCount(); }
+    });
   } catch (error) {
-    console.error('[NUSC] Home initialization failed:', error);
+    console.error('[MUSC] Home initialization failed:', error);
   }
 }
 
@@ -275,13 +281,14 @@ async function loadAnnouncements() {
     }
 
     el.innerHTML = data.map((announcement) => `
-      <a href="/announcements.html" class="list-item"
+      <a href="/announcements.html" class="list-item announcement-item ${['urgent','high'].includes(announcement.priority) ? 'announcement-important' : ''}"
          style="text-decoration:none;color:inherit">
         <div class="list-item-icon" data-icon="megaphone"></div>
         <div class="list-item-body">
           <div class="list-item-title">
             ${announcement.is_pinned ? '📌 ' : ''}
             ${escapeHtml(announcement.title)}
+            ${announcement.priority === 'urgent' ? '<span class="badge badge-urgent">عاجل</span>' : announcement.priority === 'high' ? '<span class="badge badge-important">مهم</span>' : ''}
           </div>
           <div class="list-item-desc">
             ${escapeHtml((announcement.content || '').slice(0, 80))}
@@ -295,6 +302,35 @@ async function loadAnnouncements() {
   } catch (error) {
     console.error('[NUSC] loadAnnouncements:', error);
     showError(el, 'تعذر تحميل الإعلانات. حاول مرة أخرى.');
+  }
+}
+
+async function loadImportantNotice() {
+  const banner = document.getElementById('important-notice');
+  if (!banner) return;
+  try {
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('id, title, content, priority, created_at')
+      .eq('is_published', true)
+      .in('priority', ['urgent', 'high'])
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    const notice = data?.[0];
+    if (!notice) {
+      banner.classList.add('hidden');
+      return;
+    }
+    document.getElementById('important-notice-title').textContent = notice.title || 'تنبيه من الإدارة';
+    document.getElementById('important-notice-content').textContent = (notice.content || '').slice(0, 260);
+    const time = document.getElementById('important-notice-time');
+    if (time) time.textContent = notice.priority === 'urgent' ? 'تنبيه عاجل' : 'إعلان مهم من الإدارة';
+    banner.classList.toggle('notice-urgent', notice.priority === 'urgent');
+    banner.classList.remove('hidden');
+  } catch (error) {
+    console.warn('[MUSC] loadImportantNotice:', error);
+    // Keep the dashboard usable if the notice query fails.
   }
 }
 
