@@ -45,7 +45,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $profile_privileges$
 BEGIN
-  IF (NEW.role IS DISTINCT FROM OLD.role OR NEW.is_active IS DISTINCT FROM OLD.is_active)
+  -- Trusted SQL editor/database administration sessions have no auth.uid().
+  -- Authenticated browser users must be active admins to change these fields.
+  IF auth.uid() IS NOT NULL
+     AND (NEW.role IS DISTINCT FROM OLD.role OR NEW.is_active IS DISTINCT FROM OLD.is_active)
      AND NOT public.is_admin() THEN
     RAISE EXCEPTION 'Only an active admin can change account roles or access status.'
       USING ERRCODE = '42501';
