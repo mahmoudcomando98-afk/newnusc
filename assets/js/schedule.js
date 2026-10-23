@@ -110,7 +110,7 @@ async function loadSchedule() {
     if (error) throw error;
 
     const visibleEvents = (data || []).filter(
-      (event) => event.is_published !== false
+      (event) => event.is_active !== false
     );
 
     // نحاول تحميل أسماء المواد بشكل منفصل لتفادي اعتماد العرض
