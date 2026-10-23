@@ -140,9 +140,9 @@ async function loadLectures() {
   try {
     const { data, error } = await supabase
       .from('lectures')
-      .select('id, title, lecture_number, created_at, subjects(name)')
-      .eq('is_published', true)
-      .order('created_at', { ascending: false })
+      .select('id, title, lecture_number, published_at, subjects(name)')
+      .not('published_at', 'is', null)
+      .order('published_at', { ascending: false })
       .limit(5);
 
     if (error) throw error;
@@ -165,7 +165,7 @@ async function loadLectures() {
           </div>
           <div class="list-item-desc">
             ${escapeHtml(lecture.subjects?.name || '')}
-            · ${timeAgo(lecture.created_at)}
+            · ${timeAgo(lecture.published_at)}
           </div>
         </div>
       </a>
@@ -197,7 +197,7 @@ async function loadQuizzes() {
   try {
     const { data, error } = await supabase
       .from('quizzes')
-      .select('id, title, description, rules, quiz_date, duration_minutes, status, subjects(name)')
+      .select('id, title, description, rules, quiz_date, duration_minutes, is_published, subjects(name)')
       .eq('is_published', true)
       .order('quiz_date', { ascending: true, nullsFirst: false })
       .limit(5);
@@ -259,9 +259,8 @@ async function loadAnnouncements() {
   try {
     const { data, error } = await supabase
       .from('announcements')
-      .select('id, title, content, priority, is_pinned, created_at, expires_at')
+      .select('id, title, content, priority, is_pinned, created_at')
       .eq('is_published', true)
-      .or('expires_at.is.null,expires_at.gt.now()')
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(5);
