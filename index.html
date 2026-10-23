@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="NUSC Student Hub - منصتك الجامعية لكل ما تحتاجه خلال السنة الدراسية" />
+  <title>NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+  <script type="module">
+    import { getSession } from './assets/js/supabase.js';
+    (async () => {
+      try {
+        const session = await getSession();
+        window.location.replace(session ? '/home.html' : '/login.html');
+      } catch {
+        window.location.replace('/login.html');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card" style="text-align:center">
+      <div class="logo-icon" style="margin:0 auto 16px">NS</div>
+      <h1>NUSC Student Hub</h1>
+      <p class="text-muted mt-1">جاري التحميل...</p>
+      <div class="spinner" style="margin:20px auto;border-color:rgba(30,58,95,0.2);border-top-color:var(--primary)"></div>
+    </div>
+  </div>
+</body>
+</html>

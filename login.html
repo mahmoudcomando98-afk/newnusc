@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="تسجيل الدخول - NUSC Student Hub" />
+  <title>تسجيل الدخول | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="logo-icon">NS</div>
+        <h1>NUSC Student Hub</h1>
+        <p>منصتك الجامعية لكل ما تحتاجه</p>
+      </div>
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="email">البريد الإلكتروني</label>
+          <input type="email" id="email" name="email" class="form-input" placeholder="example@email.com" required autocomplete="email" dir="ltr" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">كلمة المرور</label>
+          <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="current-password" minlength="6" />
+        </div>
+        <div class="form-group" style="text-align:left">
+          <a href="/forgot-password.html" class="text-sm">نسيت كلمة المرور؟</a>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">تسجيل الدخول</button>
+      </form>
+      <div class="auth-footer">
+        ليس لديك حساب؟
+        <a href="/register.html">إنشاء حساب جديد</a>
+      </div>
+    </div>
+  </div>
+  <script type="module">
+    import { initLoginPage } from './assets/js/auth.js';
+    initLoginPage();
+  </script>
+</body>
+</html>
