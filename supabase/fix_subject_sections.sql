@@ -60,7 +60,7 @@ BEGIN
     SELECT schemaname, tablename, policyname
     FROM pg_policies
     WHERE schemaname = 'public'
-      AND tablename IN ('subjects', 'lectures', 'materials')
+      AND tablename IN ('subjects', 'lectures', 'materials', 'announcements')
       AND concat_ws(' ', qual, with_check) ILIKE '%is_admin%'
   LOOP
     EXECUTE format('DROP POLICY %I ON %I.%I',
@@ -118,6 +118,27 @@ CREATE POLICY "NUSC users read published materials"
 
 CREATE POLICY "NUSC content managers manage materials"
   ON public.materials FOR ALL TO authenticated
+  USING (private.is_content_manager())
+  WITH CHECK (private.is_content_manager());
+
+-- Repair announcement read/manage policies independently of the materials tables.
+ALTER TABLE public.announcements ENABLE ROW LEVEL SECURITY;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.announcements TO authenticated;
+
+DROP POLICY IF EXISTS "Anyone authenticated can view published announcements" ON public.announcements;
+DROP POLICY IF EXISTS "Admins can manage announcements" ON public.announcements;
+DROP POLICY IF EXISTS "NUSC users read published announcements" ON public.announcements;
+DROP POLICY IF EXISTS "NUSC content managers manage announcements" ON public.announcements;
+
+CREATE POLICY "NUSC users read published announcements"
+  ON public.announcements FOR SELECT TO authenticated
+  USING (
+    (is_published = true AND (expires_at IS NULL OR expires_at > NOW()))
+    OR private.is_content_manager()
+  );
+
+CREATE POLICY "NUSC content managers manage announcements"
+  ON public.announcements FOR ALL TO authenticated
   USING (private.is_content_manager())
   WITH CHECK (private.is_content_manager());
 
