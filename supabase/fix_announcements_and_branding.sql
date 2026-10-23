@@ -20,7 +20,7 @@ UPDATE public.announcements SET importance = 'normal' WHERE importance IS NULL;
 UPDATE public.announcements SET is_pinned = false WHERE is_pinned IS NULL;
 UPDATE public.announcements SET is_published = true WHERE is_published IS NULL;
 UPDATE public.announcements SET link_label = 'دخول السيكشن أونلاين' WHERE link_label IS NULL OR BTRIM(link_label) = '';
-UPDATE public.announcements SET link_status = CASE WHEN link_url IS NOT NULL AND BTRIM(link_url) <> '' THEN 'available' ELSE 'none' END WHERE link_status IS NULL;
+UPDATE public.announcements SET link_status = CASE WHEN link_url IS NOT NULL AND BTRIM(link_url) <> '' THEN 'available' ELSE 'none' END WHERE link_status IS NULL OR (link_status = 'none' AND link_url IS NOT NULL AND BTRIM(link_url) <> '');
 UPDATE public.announcements SET created_at = NOW() WHERE created_at IS NULL;
 UPDATE public.announcements SET updated_at = NOW() WHERE updated_at IS NULL;
 
