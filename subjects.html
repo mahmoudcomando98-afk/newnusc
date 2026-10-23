@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>المواد الدراسية | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/home.html" class="logo">
+        <span class="logo-icon">NS</span>
+        <span>المواد الدراسية</span>
+      </a>
+      <nav class="desktop-nav">
+        <a href="/home.html" data-nav="home">الرئيسية</a>
+        <a href="/subjects.html" data-nav="subjects" class="active">المواد</a>
+        <a href="/quizzes.html" data-nav="quizzes">الكويزات</a>
+        <a href="/schedule.html" data-nav="schedule">الجدول</a>
+        <a href="/announcements.html" data-nav="announcements">الإعلانات</a>
+      </nav>
+      <div class="header-actions">
+        <a href="/profile.html" class="header-btn" title="حسابي"><span data-icon="user"></span></a>
+      </div>
+    </div>
+  </header>
+  <main class="page">
+    <div class="container page-content">
+      <div class="search-box">
+        <span class="search-icon" data-icon="search"></span>
+        <input type="search" id="search-input" placeholder="ابحث عن مادة..." autocomplete="off" />
+      </div>
+      <div class="card-grid" id="subjects-grid">
+        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+      </div>
+    </div>
+  </main>
+  <nav class="bottom-nav">
+    <a href="/home.html" data-nav="home"><span data-icon="home"></span>الرئيسية</a>
+    <a href="/subjects.html" data-nav="subjects" class="active"><span data-icon="book"></span>المواد</a>
+    <a href="/quizzes.html" data-nav="quizzes"><span data-icon="clipboard"></span>الكويزات</a>
+    <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
+    <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
+  </nav>
+  <script type="module" src="/assets/js/subjects.js"></script>
+</body>
+</html>
