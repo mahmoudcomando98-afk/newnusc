@@ -318,4 +318,46 @@ BEGIN
 END;
 $search_content$;
 
+
+-- Reliable maintenance toggle: update settings through a narrowly-scoped
+-- SECURITY DEFINER RPC so RLS policies cannot accidentally block the admin.
+CREATE OR REPLACE FUNCTION public.set_maintenance_mode(
+  p_enabled BOOLEAN,
+  p_message TEXT DEFAULT 'المنصة تحت الصيانة حاليًا. هنرجع قريبًا.'
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $set_maintenance$
+DECLARE
+  actor UUID := auth.uid();
+  clean_message TEXT := COALESCE(NULLIF(trim(p_message), ''), 'المنصة تحت الصيانة حاليًا. هنرجع قريبًا.');
+BEGIN
+  IF actor IS NULL OR NOT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = actor AND role = 'admin' AND is_active = true
+  ) THEN
+    RAISE EXCEPTION 'Only an active administrator can change maintenance mode'
+      USING ERRCODE = '42501';
+  END IF;
+
+  INSERT INTO public.platform_settings (key, value, description)
+  VALUES
+    ('site_maintenance', to_jsonb(COALESCE(p_enabled, false)), 'تشغيل وضع الصيانة'),
+    ('maintenance_message', to_jsonb(clean_message), 'رسالة وضع الصيانة')
+  ON CONFLICT (key) DO UPDATE
+    SET value = EXCLUDED.value,
+        description = EXCLUDED.description;
+
+  RETURN jsonb_build_object(
+    'enabled', COALESCE(p_enabled, false),
+    'message', clean_message
+  );
+END;
+$set_maintenance$;
+
+REVOKE ALL ON FUNCTION public.set_maintenance_mode(BOOLEAN, TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.set_maintenance_mode(BOOLEAN, TEXT) TO authenticated;
+
 COMMIT;
