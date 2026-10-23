@@ -6,6 +6,16 @@ import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
 import { escapeHtml, formatDate, timeAgo, showEmpty, showError, initIcons, formatFileSize, showToast } from './utils.js';
 
+function safeHttpUrl(raw) {
+  if (typeof raw !== 'string' || !raw.trim()) return '';
+  try {
+    const url = new URL(raw.trim());
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
 const params = new URLSearchParams(window.location.search);
 const subjectId = params.get('id');
 let profile = null;
@@ -226,6 +236,11 @@ async function loadAnnouncements(el) {
           <div class="list-item-title">${announcement.is_pinned ? '📌 ' : ''}${escapeHtml(title)}</div>
           ${badge ? `<span class="badge badge-primary">${badge}</span>` : ''}
           <p class="text-sm mt-1" style="white-space:pre-wrap">${escapeHtml(body)}</p>
+          ${safeHttpUrl(announcement.link_url)
+            ? `<div class="mt-2"><a href="${escapeHtml(safeHttpUrl(announcement.link_url))}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">${escapeHtml(announcement.link_label || 'دخول السيكشن أونلاين')}</a></div>`
+            : announcement.link_status === 'coming_soon'
+              ? '<div class="mt-2"><span class="badge badge-warning">رابط السيكشن قريبًا</span></div>'
+              : ''}
           ${date ? `<div class="list-item-desc">${escapeHtml(date)}</div>` : ''}
         </div>
       </article>`;
