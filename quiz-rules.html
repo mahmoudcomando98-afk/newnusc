@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>قواعد الكويزات | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/quizzes.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>قواعد الكويزات</span>
+      </a>
+    </div>
+  </header>
+  <main class="page">
+    <div class="container page-content">
+      <div id="rules-list">
+        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+      </div>
+    </div>
+  </main>
+  <nav class="bottom-nav">
+    <a href="/home.html"><span data-icon="home"></span>الرئيسية</a>
+    <a href="/subjects.html"><span data-icon="book"></span>المواد</a>
+    <a href="/quizzes.html" class="active"><span data-icon="clipboard"></span>الكويزات</a>
+    <a href="/schedule.html"><span data-icon="calendar"></span>الجدول</a>
+    <a href="/profile.html"><span data-icon="user"></span>حسابي</a>
+  </nav>
+  <script type="module">
+    import { supabase } from './assets/js/supabase.js';
+    import { protectPage } from './assets/js/auth.js';
+    import { escapeHtml, showEmpty, showError, initIcons } from './assets/js/utils.js';
+    async function init() {
+      const result = await protectPage();
+      if (!result) return;
+      initIcons();
+      const el = document.getElementById('rules-list');
+      try {
+        const { data, error } = await supabase.from('quiz_rules').select('id, title, content, is_general, subjects(name)').eq('is_published', true).order('is_general', { ascending: false }).order('sort_order');
+        if (error) throw error;
+        if (!data?.length) { showEmpty(el, 'لا توجد قواعد منشورة حالياً'); return; }
+        el.innerHTML = data.map(r => `<div class="card mb-2"><h3 class="card-title">${escapeHtml(r.title)}</h3>${r.is_general ? '<span class="badge badge-primary">قواعد عامة</span>' : ''}${r.subjects?.name ? `<span class="badge badge-info">${escapeHtml(r.subjects.name)}</span>` : ''}<p class="text-sm mt-2" style="white-space:pre-wrap">${escapeHtml(r.content)}</p></div>`).join('');
+      } catch (err) { showError(el, 'تعذر تحميل القواعد'); }
+    }
+    init();
+  </script>
+</body>
+</html>

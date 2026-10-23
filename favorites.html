@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>المفضلة | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/profile.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>المفضلة</span>
+      </a>
+    </div>
+  </header>
+  <main class="page">
+    <div class="container page-content">
+      <div id="fav-list">
+        <div class="skeleton-card"><div class="skeleton skeleton-title"></div></div>
+      </div>
+    </div>
+  </main>
+  <nav class="bottom-nav">
+    <a href="/home.html"><span data-icon="home"></span>الرئيسية</a>
+    <a href="/subjects.html"><span data-icon="book"></span>المواد</a>
+    <a href="/quizzes.html"><span data-icon="clipboard"></span>الكويزات</a>
+    <a href="/schedule.html"><span data-icon="calendar"></span>الجدول</a>
+    <a href="/profile.html" class="active"><span data-icon="user"></span>حسابي</a>
+  </nav>
+  <script type="module">
+    import { supabase } from './assets/js/supabase.js';
+    import { protectPage } from './assets/js/auth.js';
+    import { escapeHtml, showEmpty, showError, initIcons } from './assets/js/utils.js';
+    async function init() {
+      const result = await protectPage();
+      if (!result) return;
+      initIcons();
+      const el = document.getElementById('fav-list');
+      try {
+        const { data, error } = await supabase.from('favorites').select('id, item_type, item_id, created_at').eq('user_id', result.profile.id).order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!data?.length) { showEmpty(el, 'لم تضف أي عناصر إلى المفضلة بعد'); return; }
+        const subjects = data.filter(f => f.item_type === 'subject');
+        const subjectIds = subjects.map(s => s.item_id);
+        let subjectMap = {};
+        if (subjectIds.length) {
+          const { data: subs } = await supabase.from('subjects').select('id, name, code').in('id', subjectIds);
+          (subs || []).forEach(s => { subjectMap[s.id] = s; });
+        }
+        el.innerHTML = data.map(f => {
+          if (f.item_type === 'subject' && subjectMap[f.item_id]) {
+            const s = subjectMap[f.item_id];
+            return `<a href="/subject-details.html?id=${s.id}" class="card mb-2" style="display:block;text-decoration:none;color:inherit"><h3 class="card-title">${escapeHtml(s.name)}</h3>${s.code ? `<span class="badge badge-primary">${escapeHtml(s.code)}</span>` : ''}</a>`;
+          }
+          return `<div class="card mb-2"><p class="text-sm text-muted">${escapeHtml(f.item_type)} · ${f.item_id}</p></div>`;
+        }).join('');
+      } catch (err) { showError(el, 'تعذر تحميل المفضلة'); }
+    }
+    init();
+  </script>
+</body>
+</html>

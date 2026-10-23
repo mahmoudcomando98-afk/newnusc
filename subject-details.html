@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>تفاصيل المادة | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/subjects.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span id="page-title">تفاصيل المادة</span>
+      </a>
+      <div class="header-actions">
+        <button type="button" class="header-btn" id="fav-btn" title="إضافة للمفضلة"><span data-icon="star"></span></button>
+      </div>
+    </div>
+  </header>
+  <main class="page">
+    <div class="container page-content">
+      <div id="subject-header" class="mb-3">
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-text short"></div>
+      </div>
+      <div class="tabs" id="tabs">
+        <button type="button" class="tab active" data-tab="lectures">المحاضرات</button>
+        <button type="button" class="tab" data-tab="materials">الملفات</button>
+        <button type="button" class="tab" data-tab="assignments">الواجبات</button>
+        <button type="button" class="tab" data-tab="announcements">إعلانات المادة</button>
+      </div>
+      <div id="tab-content">
+        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+      </div>
+    </div>
+  </main>
+  <nav class="bottom-nav">
+    <a href="/home.html" data-nav="home"><span data-icon="home"></span>الرئيسية</a>
+    <a href="/subjects.html" data-nav="subjects" class="active"><span data-icon="book"></span>المواد</a>
+    <a href="/quizzes.html" data-nav="quizzes"><span data-icon="clipboard"></span>الكويزات</a>
+    <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
+    <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
+  </nav>
+  <script type="module" src="/assets/js/subject-details.js"></script>
+</body>
+</html>
