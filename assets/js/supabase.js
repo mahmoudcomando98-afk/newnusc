@@ -176,7 +176,7 @@ async function isActiveContentManager() {
     const { data: profile, error } = await supabase.from('profiles')
       .select('role, is_active').eq('id', user.id).maybeSingle();
     if (error) return false;
-    return ['admin', 'moderator'].includes(profile?.role) && profile?.is_active !== false;
+    return profile?.role === 'admin' && profile?.is_active === true;
   } catch {
     return false;
   }
