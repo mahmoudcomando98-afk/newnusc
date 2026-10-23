@@ -182,22 +182,86 @@ async function isActiveContentManager() {
   }
 }
 
+function isMaintenanceEnabled(value) {
+  return normalizeSettingBoolean(value);
+}
+
+function isMaintenanceExemptPath(pathname) {
+  // The maintenance page must always remain available. Login is the sole public
+  // entry point needed for the real administrator to sign in and reopen the site.
+  return pathname === '/maintenance.html' || pathname === '/login.html';
+}
+
 async function enforceMaintenanceMode(enabled) {
-  if (!enabled || typeof window === 'undefined') return;
+  if (typeof window === 'undefined') return false;
   const pathname = window.location.pathname.toLowerCase();
 
-  // Keep the admin console and account recovery available so the team can turn maintenance off.
-  const safePaths = ['/admin', '/login.html', '/forgot-password.html', '/reset-password.html', '/maintenance.html'];
-  if (safePaths.some((path) => pathname === path || pathname.startsWith(path + '/'))) return;
+  // The maintenance notice is the only public app page allowed during downtime.
+  if (pathname === '/maintenance.html') return false;
+  if (!enabled) return false;
 
-  if (await isActiveContentManager()) return;
+  // Admin accounts stay available so the real administrator can disable maintenance.
+  if (await isActiveContentManager()) return false;
 
-  if (pathname !== '/maintenance.html') {
-    window.location.replace('/maintenance.html');
+  // Keep login available as the administrator's recovery path. Any non-admin
+  // who signs in is redirected back to the maintenance page on the next route.
+  if (isMaintenanceExemptPath(pathname)) return false;
+
+  window.location.replace('/maintenance.html');
+  return true;
+}
+
+function beginMaintenanceCheck() {
+  if (typeof document === 'undefined') return;
+  document.documentElement.classList.add('nusc-maintenance-pending');
+  if (document.getElementById('nusc-maintenance-check-style')) return;
+  const style = document.createElement('style');
+  style.id = 'nusc-maintenance-check-style';
+  style.textContent = `
+    html.nusc-maintenance-pending body { visibility: hidden !important; }
+    html.nusc-maintenance-pending::before {
+      content: "جاري التحقق من حالة المنصة…";
+      position: fixed; inset: 0; z-index: 2147483647;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px; background: #fffef8; color: #6b570a;
+      font: 800 1rem/1.8 Cairo, system-ui, sans-serif; text-align: center;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function finishMaintenanceCheck() {
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.remove('nusc-maintenance-pending');
   }
 }
 
+let maintenanceMonitorStarted = false;
+function startMaintenanceMonitor() {
+  if (maintenanceMonitorStarted || typeof window === 'undefined') return;
+  maintenanceMonitorStarted = true;
+
+  // Also lock already-open tabs shortly after an admin switches maintenance on.
+  window.setInterval(async () => {
+    const pathname = window.location.pathname.toLowerCase();
+    if (pathname === '/maintenance.html' || pathname === '/login.html') return;
+    try {
+      const { data, error } = await supabase.from('platform_settings')
+        .select('value').eq('key', 'site_maintenance').maybeSingle();
+      if (error) throw error;
+      if (isMaintenanceEnabled(data?.value)) {
+        await enforceMaintenanceMode(true);
+      }
+    } catch (error) {
+      // A transient poll failure should not repeatedly interrupt a live session.
+      console.warn('[NUSC] Maintenance status refresh failed:', error?.message || error);
+    }
+  }, 8000);
+}
+
 async function loadPlatformBranding() {
+  beginMaintenanceCheck();
+  let redirected = false;
   try {
     const { data, error } = await supabase.from('platform_settings')
       .select('key, value').in('key', [
@@ -207,18 +271,29 @@ async function loadPlatformBranding() {
         'maintenance_message'
       ]);
     if (error) throw error;
+
     const settings = new Map((data || []).map((item) => [item.key, item.value]));
     const logoUrl = normalizePlatformLogo(settings.get('platform_logo_url'));
     const platformName = normalizePlatformName(settings.get('site_name'));
     applyPlatformLogo(logoUrl);
     if (platformName) applyPlatformName(platformName);
-    await enforceMaintenanceMode(normalizeSettingBoolean(settings.get('site_maintenance')));
+
+    redirected = await enforceMaintenanceMode(isMaintenanceEnabled(settings.get('site_maintenance')));
+    if (!redirected) startMaintenanceMonitor();
   } catch (error) {
-    // Missing branding settings should never stop authentication or other pages from loading.
-    console.warn('[NUSC] Could not load platform branding or maintenance mode:', error?.message || error);
+    console.warn('[NUSC] Could not load platform settings or verify maintenance mode:', error?.message || error);
+    const pathname = typeof window === 'undefined' ? '' : window.location.pathname.toLowerCase();
+
+    // Fail closed on app pages if maintenance status cannot be verified. The
+    // maintenance notice remains readable and explains that a retry may help.
+    if (typeof window !== 'undefined' && pathname !== '/maintenance.html' && pathname !== '/login.html') {
+      redirected = true;
+      window.location.replace('/maintenance.html?status=unavailable');
+    }
+  } finally {
+    if (!redirected) finishMaintenanceCheck();
   }
 }
-
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   window.NUSCBranding = { apply: applyPlatformLogo, applyName: applyPlatformName };
   window.addEventListener('nusc:branding-updated', (event) => {
