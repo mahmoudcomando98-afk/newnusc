@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="إنشاء حساب - NUSC Student Hub" />
+  <title>إنشاء حساب | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="logo-icon">NS</div>
+        <h1>إنشاء حساب جديد</h1>
+        <p>انضم إلى NUSC Student Hub</p>
+      </div>
+      <form id="register-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="full_name">الاسم الكامل</label>
+          <input type="text" id="full_name" name="full_name" class="form-input" placeholder="الاسم الثلاثي" required autocomplete="name" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="email">البريد الإلكتروني</label>
+          <input type="email" id="email" name="email" class="form-input" placeholder="example@email.com" required autocomplete="email" dir="ltr" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="student_id">الرقم الجامعي <span class="text-muted">(اختياري)</span></label>
+          <input type="text" id="student_id" name="student_id" class="form-input" placeholder="مثال: 2024001" autocomplete="off" dir="ltr" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">كلمة المرور</label>
+          <input type="password" id="password" name="password" class="form-input" placeholder="6 أحرف على الأقل" required autocomplete="new-password" minlength="6" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password_confirm">تأكيد كلمة المرور</label>
+          <input type="password" id="password_confirm" name="password_confirm" class="form-input" placeholder="أعد إدخال كلمة المرور" required autocomplete="new-password" minlength="6" />
+        </div>
+        <div class="form-group">
+          <label class="form-check">
+            <input type="checkbox" name="terms" required />
+            <span class="text-sm">أوافق على <a href="/faq.html" target="_blank">شروط الاستخدام</a> وسياسة الخصوصية</span>
+          </label>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">إنشاء حساب</button>
+      </form>
+      <div class="auth-footer">
+        لديك حساب بالفعل؟
+        <a href="/login.html">تسجيل الدخول</a>
+      </div>
+    </div>
+  </div>
+  <script type="module">
+    import { initRegisterPage } from './assets/js/auth.js';
+    initRegisterPage();
+  </script>
+</body>
+</html>
