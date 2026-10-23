@@ -125,7 +125,7 @@ SET search_path = public, private
 AS $unread_count$
   SELECT CASE WHEN private.is_platform_open_or_admin() THEN COUNT(*)::INTEGER ELSE 0 END
   FROM public.notifications n
-  WHERE (n.user_id = p_user_id OR n.is_global = true)
+  WHERE (n.user_id = p_user_id OR (COALESCE(to_jsonb(n)->>'is_global', 'false') = 'true' OR ((to_jsonb(n)->>'is_global') IS NULL AND n.user_id IS NULL)))
     AND NOT EXISTS (
       SELECT 1 FROM public.notification_reads nr
       WHERE nr.notification_id = n.id AND nr.user_id = p_user_id
@@ -157,7 +157,7 @@ BEGIN
   INSERT INTO public.notification_reads (notification_id, user_id)
   SELECT n.id, auth.uid()
   FROM public.notifications n
-  WHERE (n.user_id = auth.uid() OR n.is_global = true)
+  WHERE (n.user_id = auth.uid() OR (COALESCE(to_jsonb(n)->>'is_global', 'false') = 'true' OR ((to_jsonb(n)->>'is_global') IS NULL AND n.user_id IS NULL)))
     AND NOT EXISTS (
       SELECT 1 FROM public.notification_reads nr
       WHERE nr.notification_id = n.id AND nr.user_id = auth.uid()
