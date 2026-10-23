@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar-EG" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>إدارة الإعلانات | NUSC</title>
+  <title>إعلانات المواد | NUSC</title>
   <link rel="stylesheet" href="/assets/css/main.css" />
 </head>
 <body>
@@ -11,23 +11,30 @@
     <div class="container">
       <a href="/admin/index.html" class="logo">
         <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
-        <span>الإعلانات</span>
+        <span>إعلانات المواد</span>
       </a>
-      <button type="button" class="btn btn-sm btn-primary" id="add-btn">+ إعلان</button>
+      <button type="button" class="btn btn-sm btn-primary" id="add-btn">+ إعلان جديد</button>
     </div>
   </header>
   <main class="page" style="padding-bottom:24px">
     <div class="container page-content">
+      <p class="text-sm text-muted mb-2">اختار «كل المنصة» لإعلان عام، أو اختار مادة عشان الإعلان يظهر داخل صفحة المادة وفي الإشعارات.</p>
       <div id="form-panel" class="card mb-3 hidden">
         <form id="ann-form">
-          <div class="form-group"><label class="form-label">العنوان *</label><input type="text" id="title" class="form-input" required /></div>
-          <div class="form-group"><label class="form-label">المحتوى *</label><textarea id="content" class="form-textarea" required></textarea></div>
-          <div class="form-group"><label class="form-label">الأهمية</label>
-            <select id="importance" class="form-select"><option value="normal">عادي</option><option value="high">مهم</option><option value="urgent">عاجل</option><option value="low">منخفض</option></select>
+          <div class="form-group"><label class="form-label" for="title">عنوان الإعلان *</label><input type="text" id="title" class="form-input" required maxlength="180" /></div>
+          <div class="form-group">
+            <label class="form-label" for="subject_id">الإعلان موجّه لمين؟</label>
+            <select id="subject_id" class="form-select">
+              <option value="">كل المنصة</option>
+            </select>
           </div>
-          <div class="form-group"><label class="form-check"><input type="checkbox" id="is_pinned" /><span>مثبت</span></label></div>
-          <div class="form-group"><label class="form-check"><input type="checkbox" id="is_published" checked /><span>منشور</span></label></div>
-          <div class="flex gap-1"><button type="submit" class="btn btn-primary">نشر</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
+          <div class="form-group"><label class="form-label" for="content">محتوى الإعلان *</label><textarea id="content" class="form-textarea" required maxlength="10000"></textarea></div>
+          <div class="form-group"><label class="form-label" for="importance">الأهمية</label>
+            <select id="importance" class="form-select"><option value="normal">عادي</option><option value="high">مهم</option><option value="urgent">عاجل</option><option value="low">أهمية قليلة</option></select>
+          </div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" id="is_pinned" /><span>تثبيت الإعلان</span></label></div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" id="is_published" checked /><span>نشر الإعلان فورًا</span></label></div>
+          <div class="flex gap-1"><button type="submit" class="btn btn-primary">نشر الإعلان</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
         </form>
       </div>
       <div id="list"></div>
@@ -37,46 +44,113 @@
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
     import { escapeHtml, timeAgo, showEmpty, showError, showToast, withLoading, initIcons } from '../assets/js/utils.js';
-    let profile = null;
+
+    let subjectsById = new Map();
+
     async function init() {
       const result = await protectAdminPage();
       if (!result) return;
-      profile = result.profile;
       initIcons();
-      document.getElementById('add-btn').onclick = () => document.getElementById('form-panel').classList.remove('hidden');
-      document.getElementById('cancel-btn').onclick = () => document.getElementById('form-panel').classList.add('hidden');
-      document.getElementById('ann-form').onsubmit = save;
+      document.getElementById('add-btn').addEventListener('click', () => document.getElementById('form-panel').classList.remove('hidden'));
+      document.getElementById('cancel-btn').addEventListener('click', () => document.getElementById('form-panel').classList.add('hidden'));
+      document.getElementById('ann-form').addEventListener('submit', save);
+      await loadSubjects();
       await load();
     }
+
+    async function loadSubjects() {
+      const { data, error } = await supabase.from('subjects').select('id, name').order('name');
+      if (error) throw error;
+      const select = document.getElementById('subject_id');
+      (data || []).forEach((subject) => {
+        subjectsById.set(subject.id, subject.name);
+        const option = document.createElement('option');
+        option.value = subject.id;
+        option.textContent = subject.name;
+        select.appendChild(option);
+      });
+    }
+
+    function importanceOf(item) { return item.importance || item.priority || 'normal'; }
+
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase.from('announcements').select('id, title, content, priority, is_pinned, is_published, created_at').order('created_at', { ascending: false });
+        const { data, error } = await supabase.from('announcements').select('*').order('created_at', { ascending: false }).limit(100);
         if (error) throw error;
-        if (!data?.length) { showEmpty(el, 'لا توجد إعلانات'); return; }
-        el.innerHTML = data.map(a => `<div class="card mb-2"><div class="flex justify-between flex-wrap gap-1"><div><h3 class="card-title">${a.is_pinned ? '📌 ' : ''}${escapeHtml(a.title)}</h3><p class="text-sm text-muted">${escapeHtml((a.content||'').slice(0,80))} · ${timeAgo(a.created_at)}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${a.id}">حذف</button></div></div>`).join('');
-        el.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => { if(!confirm('حذف؟')) return; await supabase.from('announcements').delete().eq('id', btn.dataset.del); showToast('تم', 'success'); await load(); });
-      } catch { showError(el, 'تعذر التحميل'); }
+        if (!data?.length) { showEmpty(el, 'لسه مفيش إعلانات. اضغط «إعلان جديد» عشان تبدأ.'); return; }
+        el.innerHTML = data.map((item) => {
+          const subjectName = item.subject_id ? (subjectsById.get(item.subject_id) || 'إعلان لمادة') : 'كل المنصة';
+          const level = importanceOf(item);
+          const levelLabel = level === 'urgent' ? 'عاجل' : level === 'high' ? 'مهم' : level === 'low' ? 'أهمية قليلة' : 'عادي';
+          return `<article class="card mb-2">
+            <div class="flex justify-between items-center flex-wrap gap-1">
+              <div>
+                <h3 class="card-title">${item.is_pinned ? '📌 ' : ''}${escapeHtml(item.title || 'إعلان')}</h3>
+                <p class="text-sm text-muted">${escapeHtml(subjectName)} · ${levelLabel} · ${timeAgo(item.created_at)}</p>
+                <p class="text-sm mt-1">${escapeHtml((item.content || item.body || '').slice(0, 160))}</p>
+              </div>
+              <div class="flex gap-1 items-center">
+                <span class="badge ${item.is_published === false ? 'badge-warning' : 'badge-success'}">${item.is_published === false ? 'مسودة' : 'منشور'}</span>
+                <button type="button" class="btn btn-sm btn-danger" data-del="${item.id}">حذف</button>
+              </div>
+            </div>
+          </article>`;
+        }).join('');
+        el.querySelectorAll('[data-del]').forEach((button) => button.addEventListener('click', async () => {
+          if (!confirm('متأكد إنك عايز تحذف الإعلان ده؟')) return;
+          const { error: deleteError } = await supabase.from('announcements').delete().eq('id', button.dataset.del);
+          if (deleteError) { showToast(deleteError.message, 'error'); return; }
+          showToast('الإعلان اتحذف.', 'success');
+          await load();
+        }));
+      } catch (error) {
+        console.error('Announcement management load failed:', error);
+        showError(el, 'مش قادرين نحمّل الإعلانات. راجع اتصال قاعدة البيانات والصلاحيات.');
+      }
     }
-    async function save(e) {
-      e.preventDefault();
-      const btn = e.target.querySelector('[type=submit]');
-      await withLoading(btn, async () => {
-        const { error } = await supabase.from('announcements').insert({
+
+    function shouldTryPriority(error) {
+      const message = String(error?.message || '').toLowerCase();
+      return /importance|column.*not exist|schema cache|could not find.*column/.test(message) &&
+        (/42703|pgrst204|pgrst_schema_cache|column/i.test(String(error?.code || '') + ' ' + message));
+    }
+
+    async function insertAnnouncement(payload) {
+      let result = await supabase.from('announcements').insert(payload);
+      if (result.error && shouldTryPriority(result.error)) {
+        const fallback = { ...payload, priority: payload.importance };
+        delete fallback.importance;
+        result = await supabase.from('announcements').insert(fallback);
+      }
+      return result;
+    }
+
+    async function save(event) {
+      event.preventDefault();
+      const button = event.target.querySelector('[type=submit]');
+      await withLoading(button, async () => {
+        const payload = {
           title: document.getElementById('title').value.trim(),
           content: document.getElementById('content').value.trim(),
-          priority: document.getElementById('importance').value,
+          subject_id: document.getElementById('subject_id').value || null,
+          importance: document.getElementById('importance').value,
           is_pinned: document.getElementById('is_pinned').checked,
           is_published: document.getElementById('is_published').checked
-        });
-        if (error) { showToast(error.message, 'error'); return; }
-        showToast('تم النشر', 'success');
+        };
+        const { error } = await insertAnnouncement(payload);
+        if (error) { console.error('Announcement insert failed:', error); showToast(error.message, 'error'); return; }
+        showToast('الإعلان اتنشر.', 'success');
         document.getElementById('form-panel').classList.add('hidden');
-        e.target.reset();
+        event.target.reset();
         await load();
-      })();
+      });
     }
-    init();
+
+    init().catch((error) => {
+      console.error('Announcement admin setup failed:', error);
+      showError(document.getElementById('list'), 'مش قادرين نجهّز صفحة الإعلانات. راجع صلاحيات الإدارة وقاعدة البيانات.');
+    });
   </script>
 </body>
 </html>
