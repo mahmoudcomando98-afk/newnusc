@@ -41,15 +41,81 @@ ALTER TABLE public.materials
 CREATE INDEX IF NOT EXISTS materials_subject_type_published_created_idx
   ON public.materials (subject_id, material_type, is_published, created_at DESC);
 
+-- Normalize legacy RLS policies for subjects, lectures, and files.
+-- Some older deployments reference public.is_admin_or_moderator(), which may not exist.
+ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lectures ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.materials TO authenticated;
 
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.subjects, public.lectures, public.materials TO authenticated;
+GRANT USAGE ON SCHEMA private TO authenticated;
+GRANT EXECUTE ON FUNCTION private.is_content_manager() TO authenticated;
+
+-- Remove only content policies that reference legacy admin helper names.
+DO $
+DECLARE
+  policy_row RECORD;
+BEGIN
+  FOR policy_row IN
+    SELECT schemaname, tablename, policyname
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('subjects', 'lectures', 'materials')
+      AND concat_ws(' ', qual, with_check) ILIKE '%is_admin%'
+  LOOP
+    EXECUTE format('DROP POLICY %I ON %I.%I',
+      policy_row.policyname, policy_row.schemaname, policy_row.tablename);
+  END LOOP;
+END $;
+
+DROP POLICY IF EXISTS "Anyone authenticated can view published subjects" ON public.subjects;
+DROP POLICY IF EXISTS "Admins can manage subjects" ON public.subjects;
+DROP POLICY IF EXISTS "NUSC users read available subjects" ON public.subjects;
+DROP POLICY IF EXISTS "NUSC content managers manage subjects" ON public.subjects;
+
+DROP POLICY IF EXISTS "Anyone authenticated can view published lectures" ON public.lectures;
+DROP POLICY IF EXISTS "Admins can manage lectures" ON public.lectures;
+DROP POLICY IF EXISTS "NUSC users read published lectures" ON public.lectures;
+DROP POLICY IF EXISTS "NUSC content managers manage lectures" ON public.lectures;
+
+DROP POLICY IF EXISTS "Anyone authenticated can view published materials" ON public.materials;
+DROP POLICY IF EXISTS "Admins can manage materials" ON public.materials;
 DROP POLICY IF EXISTS "NUSC users read published materials" ON public.materials;
+DROP POLICY IF EXISTS "NUSC content managers manage materials" ON public.materials;
+
+CREATE POLICY "NUSC users read available subjects"
+  ON public.subjects FOR SELECT TO authenticated
+  USING (
+    COALESCE(to_jsonb(subjects)->>'is_published',
+             to_jsonb(subjects)->>'is_active', 'true') <> 'false'
+    OR private.is_content_manager()
+  );
+
+CREATE POLICY "NUSC content managers manage subjects"
+  ON public.subjects FOR ALL TO authenticated
+  USING (private.is_content_manager())
+  WITH CHECK (private.is_content_manager());
+
+CREATE POLICY "NUSC users read published lectures"
+  ON public.lectures FOR SELECT TO authenticated
+  USING (
+    COALESCE(to_jsonb(lectures)->>'is_published',
+             to_jsonb(lectures)->>'is_active', 'true') <> 'false'
+    OR private.is_content_manager()
+  );
+
+CREATE POLICY "NUSC content managers manage lectures"
+  ON public.lectures FOR ALL TO authenticated
+  USING (private.is_content_manager())
+  WITH CHECK (private.is_content_manager());
+
 CREATE POLICY "NUSC users read published materials"
   ON public.materials FOR SELECT TO authenticated
-  USING (is_published = true OR private.is_content_manager());
+  USING (
+    COALESCE(to_jsonb(materials)->>'is_published', 'true') <> 'false'
+    OR private.is_content_manager()
+  );
 
-DROP POLICY IF EXISTS "NUSC content managers manage materials" ON public.materials;
 CREATE POLICY "NUSC content managers manage materials"
   ON public.materials FOR ALL TO authenticated
   USING (private.is_content_manager())
