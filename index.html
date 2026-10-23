@@ -3,29 +3,87 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="NUSC Student Hub - منصتك الجامعية لكل ما تحتاجه خلال السنة الدراسية" />
+  <meta name="description" content="NUSC Student Hub - منصتك الجامعية" />
   <title>NUSC Student Hub</title>
-  <link rel="stylesheet" href="/assets/css/main.css" />
-  <script type="module">
-    import { getSession } from './assets/js/supabase.js';
-    (async () => {
-      try {
-        const session = await getSession();
-        window.location.replace(session ? '/home.html' : '/login.html');
-      } catch {
-        window.location.replace('/login.html');
-      }
-    })();
-  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100dvh;
+      font-family: 'Cairo', system-ui, sans-serif;
+      background: radial-gradient(1200px 600px at 80% -10%, #1e3a5f 0%, transparent 55%),
+                  radial-gradient(900px 500px at -10% 110%, #1d4ed8 0%, transparent 50%),
+                  linear-gradient(165deg, #06101f 0%, #0b1f3a 45%, #102a4c 100%);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .splash { text-align: center; max-width: 380px; width: 100%; animation: fadeUp .5s ease; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    .logo {
+      width: 72px; height: 72px; margin: 0 auto 18px; border-radius: 20px;
+      background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 1.4rem; box-shadow: 0 12px 40px rgba(59,130,246,.35);
+    }
+    h1 { font-size: 1.55rem; font-weight: 800; letter-spacing: -.02em; }
+    .tag { margin-top: 8px; color: rgba(255,255,255,.72); font-size: .95rem; line-height: 1.6; }
+    .loader {
+      width: 36px; height: 36px; margin: 28px auto 12px;
+      border: 3px solid rgba(255,255,255,.15); border-top-color: #60a5fa;
+      border-radius: 50%; animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status { font-size: .85rem; color: rgba(255,255,255,.55); min-height: 1.4em; }
+    .status.error { color: #fca5a5; }
+    .actions { display: none; gap: 10px; margin-top: 20px; flex-direction: column; }
+    .actions.show { display: flex; }
+    .btn { display: block; text-align: center; text-decoration: none; padding: 12px 16px; border-radius: 12px; font-weight: 700; font-size: .95rem; }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-ghost { background: rgba(255,255,255,.08); color: #fff; border: 1px solid rgba(255,255,255,.12); }
+  </style>
 </head>
 <body>
-  <div class="auth-page">
-    <div class="auth-card" style="text-align:center">
-      <div class="logo-icon" style="margin:0 auto 16px">NS</div>
-      <h1>NUSC Student Hub</h1>
-      <p class="text-muted mt-1">جاري التحميل...</p>
-      <div class="spinner" style="margin:20px auto;border-color:rgba(30,58,95,0.2);border-top-color:var(--primary)"></div>
+  <div class="splash">
+    <div class="logo">NS</div>
+    <h1>NUSC Student Hub</h1>
+    <p class="tag">منصة طلاب الفرقة الأولى<br>كلية الحاسبات والمعلومات</p>
+    <div class="loader" id="loader"></div>
+    <p class="status" id="status">جاري التحميل...</p>
+    <div class="actions" id="actions">
+      <a class="btn btn-primary" href="/login.html">تسجيل الدخول</a>
+      <a class="btn btn-ghost" href="/register.html">إنشاء حساب</a>
     </div>
   </div>
+  <script type="module">
+    const status = document.getElementById('status');
+    const loader = document.getElementById('loader');
+    const actions = document.getElementById('actions');
+    function showFallback(msg) {
+      loader.style.display = 'none';
+      status.textContent = msg || 'اختر أحد الخيارات للمتابعة';
+      status.classList.toggle('error', Boolean(msg && msg.includes('إعدادات')));
+      actions.classList.add('show');
+    }
+    const hardTimeout = setTimeout(() => {
+      showFallback('استغرق التحميل وقتاً طويلاً. يمكنك المتابعة يدوياً.');
+    }, 6000);
+    try {
+      const { getSession, isSupabaseConfigured, getConfigError } = await import('./assets/js/supabase.js');
+      if (!isSupabaseConfigured()) {
+        clearTimeout(hardTimeout);
+        showFallback(getConfigError() || 'إعدادات Supabase غير مكتملة على السيرفر.');
+      } else {
+        const session = await getSession();
+        clearTimeout(hardTimeout);
+        window.location.replace(session ? '/home.html' : '/login.html');
+      }
+    } catch (err) {
+      clearTimeout(hardTimeout);
+      console.error(err);
+      showFallback('تعذر الاتصال. تحقق من إعدادات المشروع على Vercel.');
+    }
+  </script>
 </body>
 </html>
