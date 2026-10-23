@@ -56,6 +56,29 @@ AS $admin_only$
   );
 $admin_only$;
 
+-- Prevent a user from promoting their own profile or toggling their own active state.
+CREATE OR REPLACE FUNCTION public.prevent_profile_privilege_escalation()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $profile_privileges$
+BEGIN
+  IF (NEW.role IS DISTINCT FROM OLD.role OR NEW.is_active IS DISTINCT FROM OLD.is_active)
+     AND NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Only an active admin can change account roles or access status.'
+      USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$profile_privileges$;
+
+DROP TRIGGER IF EXISTS protect_profile_privileges ON public.profiles;
+CREATE TRIGGER protect_profile_privileges
+  BEFORE UPDATE OF role, is_active ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.prevent_profile_privilege_escalation();
+
 -- SECURITY DEFINER avoids RLS recursion and uses the same strict admin-only rule.
 CREATE OR REPLACE FUNCTION private.is_content_manager()
 RETURNS BOOLEAN
