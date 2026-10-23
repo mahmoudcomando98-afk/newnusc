@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>إدارة الجدول | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo"><span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span><span>الجدول</span></a>
+      <button type="button" class="btn btn-sm btn-primary" id="add-btn">+ موعد</button>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:24px">
+    <div class="container page-content">
+      <div id="form-panel" class="card mb-3 hidden">
+        <form id="sch-form">
+          <div class="form-group"><label class="form-label">العنوان *</label><input type="text" id="title" class="form-input" required /></div>
+          <div class="form-group"><label class="form-label">النوع</label>
+            <select id="event_type" class="form-select"><option value="lecture">محاضرة</option><option value="section">سكشن</option><option value="quiz">كويز</option><option value="exam">امتحان</option><option value="other">أخرى</option></select>
+          </div>
+          <div class="form-group"><label class="form-label">اليوم</label>
+            <select id="day_of_week" class="form-select"><option value="">—</option><option value="0">الأحد</option><option value="1">الاثنين</option><option value="2">الثلاثاء</option><option value="3">الأربعاء</option><option value="4">الخميس</option><option value="5">الجمعة</option><option value="6">السبت</option></select>
+          </div>
+          <div class="form-group"><label class="form-label">من</label><input type="time" id="start_time" class="form-input" dir="ltr" /></div>
+          <div class="form-group"><label class="form-label">إلى</label><input type="time" id="end_time" class="form-input" dir="ltr" /></div>
+          <div class="form-group"><label class="form-label">المكان</label><input type="text" id="location" class="form-input" /></div>
+          <div class="flex gap-1"><button type="submit" class="btn btn-primary">حفظ</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
+        </form>
+      </div>
+      <div id="list"></div>
+    </div>
+  </main>
+  <script type="module">
+    import { supabase } from '../assets/js/supabase.js';
+    import { protectAdminPage } from '../assets/js/auth.js';
+    import { escapeHtml, formatTime, showEmpty, showError, showToast, withLoading, initIcons, WEEKDAYS_AR } from '../assets/js/utils.js';
+    let profile = null;
+    async function init() {
+      const result = await protectAdminPage(); if (!result) return;
+      profile = result.profile; initIcons();
+      document.getElementById('add-btn').onclick = () => document.getElementById('form-panel').classList.remove('hidden');
+      document.getElementById('cancel-btn').onclick = () => document.getElementById('form-panel').classList.add('hidden');
+      document.getElementById('sch-form').onsubmit = save;
+      await load();
+    }
+    async function load() {
+      const el = document.getElementById('list');
+      try {
+        const { data, error } = await supabase.from('schedules').select('*').order('day_of_week').order('start_time');
+        if (error) throw error;
+        if (!data?.length) { showEmpty(el, 'لا توجد مواعيد'); return; }
+        el.innerHTML = data.map(s => `<div class="card mb-2"><div class="flex justify-between"><div><h3 class="card-title">${escapeHtml(s.title)}</h3><p class="text-sm text-muted">${s.day_of_week!=null?WEEKDAYS_AR[s.day_of_week]:''} ${s.start_time?formatTime(s.start_time):''} ${s.location||''}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${s.id}">حذف</button></div></div>`).join('');
+        el.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => { if(!confirm('حذف؟')) return; await supabase.from('schedules').delete().eq('id', btn.dataset.del); await load(); });
+      } catch { showError(el, 'تعذر'); }
+    }
+    async function save(e) {
+      e.preventDefault();
+      await withLoading(e.target.querySelector('[type=submit]'), async () => {
+        const day = document.getElementById('day_of_week').value;
+        const { error } = await supabase.from('schedules').insert({
+          title: document.getElementById('title').value.trim(),
+          event_type: document.getElementById('event_type').value,
+          day_of_week: day !== '' ? parseInt(day) : null,
+          start_time: document.getElementById('start_time').value || null,
+          end_time: document.getElementById('end_time').value || null,
+          location: document.getElementById('location').value.trim() || null,
+          is_published: true,
+          created_by: profile.id
+        });
+        if (error) { showToast(error.message, 'error'); return; }
+        showToast('تم', 'success');
+        document.getElementById('form-panel').classList.add('hidden');
+        e.target.reset(); await load();
+      })();
+    }
+    init();
+  </script>
+</body>
+</html>
