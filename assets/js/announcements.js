@@ -15,6 +15,16 @@ import {
   setActiveNav
 } from './utils.js';
 
+function safeHttpUrl(raw) {
+  if (typeof raw !== 'string' || !raw.trim()) return '';
+  try {
+    const url = new URL(raw.trim());
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
 function getPriority(announcement) {
   return (
     announcement.priority ||
@@ -156,6 +166,14 @@ async function loadAnnouncements() {
           }
 
           <p class="text-sm mt-2" style="white-space:pre-wrap">${escapeHtml(announcement.content || announcement.body || '')}</p>
+
+          ${
+            safeHttpUrl(announcement.link_url)
+              ? `<div class="mt-2"><a href="${escapeHtml(safeHttpUrl(announcement.link_url))}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">${escapeHtml(announcement.link_label || 'دخول السيكشن أونلاين')}</a></div>`
+              : announcement.link_status === 'coming_soon'
+                ? '<div class="mt-2"><span class="badge badge-warning">رابط السيكشن قريبًا</span></div>'
+                : ''
+          }
 
           ${
             createdText
