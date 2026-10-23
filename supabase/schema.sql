@@ -258,5 +258,7 @@ $$;
 -- Default settings
 INSERT INTO public.platform_settings (key, value, description) VALUES
   ('site_name', '"NUSC Student Hub"', 'اسم المنصة'),
+  ('site_maintenance', 'false', 'تشغيل وضع الصيانة'),
+  ('maintenance_message', '"المنصة تحت الصيانة حاليًا. هنرجع قريبًا."', 'رسالة وضع الصيانة'),
   ('allow_registration', 'true', 'هل التسجيل مفتوح')
 ON CONFLICT (key) DO NOTHING;
