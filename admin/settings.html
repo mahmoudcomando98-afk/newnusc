@@ -18,6 +18,19 @@
   <main class="page" style="padding-bottom:24px">
     <div class="container page-content">
       <div class="card mb-3">
+        <h3 class="card-title mb-2">اسم المنصة</h3>
+        <p class="text-sm text-muted mb-2">غيّر الاسم اللي بيظهر في العلامة التجارية للمنصة وصفحات الدخول والرئيسية.</p>
+        <form id="site-name-form">
+          <div class="form-group">
+            <label class="form-label" for="site-name-input">اسم المنصة الجديد</label>
+            <input class="form-input" type="text" id="site-name-input" maxlength="60" required placeholder="اكتب اسم المنصة" />
+            <p class="text-sm text-muted mt-1">الاسم من 2 إلى 60 حرفًا.</p>
+          </div>
+          <button type="submit" id="site-name-submit" class="btn btn-primary">حفظ اسم المنصة</button>
+        </form>
+        <p id="site-name-status" class="text-sm text-muted mt-2" role="status" aria-live="polite"></p>
+      </div>
+      <div class="card mb-3">
         <h3 class="card-title mb-2">شعار المنصة</h3>
         <p class="text-sm text-muted mb-2">ارفع لوجو PNG أو JPG أو WEBP. الشعار هيظهر في تسجيل الدخول وإنشاء الحساب ورؤوس صفحات المنصة.</p>
         <div id="logo-preview" class="mb-2" style="display:flex;align-items:center;gap:12px;min-height:64px">
@@ -57,6 +70,7 @@ WHERE email = 'your-admin@email.com';</pre>
     const LOGO_BUCKET = 'platform-assets';
     const MAX_LOGO_BYTES = 4 * 1024 * 1024;
     let currentLogoUrl = '';
+    let currentPlatformName = 'NUSC Student Hub';
 
     function normalizeSettingValue(value) {
       if (typeof value === 'string') return value;
@@ -80,6 +94,56 @@ WHERE email = 'your-admin@email.com';</pre>
       if (error) throw error;
       currentLogoUrl = normalizeSettingValue(data?.value);
       renderLogoPreview(currentLogoUrl);
+    }
+
+    async function loadPlatformName() {
+      const { data, error } = await supabase.from('platform_settings')
+        .select('value').eq('key', 'site_name').maybeSingle();
+      if (error) throw error;
+      const value = typeof data?.value === 'string' ? data.value : '';
+      currentPlatformName = value.trim() || 'NUSC Student Hub';
+      document.getElementById('site-name-input').value = currentPlatformName;
+    }
+
+    async function savePlatformName(event) {
+      event.preventDefault();
+      const input = document.getElementById('site-name-input');
+      const button = document.getElementById('site-name-submit');
+      const status = document.getElementById('site-name-status');
+      const name = input.value.trim();
+
+      if (name.length < 2 || name.length > 60) {
+        showToast('اسم المنصة لازم يكون من 2 إلى 60 حرفًا.', 'error');
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'جاري حفظ الاسم…';
+      status.textContent = '';
+      try {
+        const { error } = await supabase.from('platform_settings').upsert({
+          key: 'site_name',
+          value: name,
+          description: 'اسم المنصة'
+        }, { onConflict: 'key' });
+        if (error) throw error;
+
+        currentPlatformName = name;
+        document.title = 'إعدادات المنصة | ' + name;
+        window.dispatchEvent(new CustomEvent('nusc:branding-updated', {
+          detail: { name }
+        }));
+        status.textContent = 'تم حفظ اسم المنصة وتطبيقه على العلامة التجارية.';
+        showToast('تم حفظ اسم المنصة بنجاح.', 'success');
+        await loadSettingsList();
+      } catch (error) {
+        console.error('Platform name save failed:', error);
+        status.textContent = 'ماقدرناش نحفظ الاسم.';
+        showToast('فشل حفظ اسم المنصة: ' + (error?.message || 'راجع صلاحيات قاعدة البيانات.'), 'error');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'حفظ اسم المنصة';
+      }
     }
 
     async function loadSettingsList() {
@@ -157,7 +221,8 @@ WHERE email = 'your-admin@email.com';</pre>
       if (!result) return;
       initIcons();
       document.getElementById('logo-form').addEventListener('submit', saveLogo);
-      await Promise.allSettled([loadLogo(), loadSettingsList()]);
+      document.getElementById('site-name-form').addEventListener('submit', savePlatformName);
+      await Promise.allSettled([loadLogo(), loadPlatformName(), loadSettingsList()]);
     }
 
     init().catch(error => {
