@@ -85,7 +85,10 @@ CREATE TABLE IF NOT EXISTS public.platform_settings (
 );
 
 INSERT INTO public.platform_settings (key, value, description)
-VALUES ('site_name', '"NUSC Student Hub"'::jsonb, 'اسم المنصة')
+VALUES
+  ('site_name', '"NUSC Student Hub"'::jsonb, 'اسم المنصة'),
+  ('site_maintenance', 'false'::jsonb, 'تشغيل وضع الصيانة'),
+  ('maintenance_message', '"المنصة تحت الصيانة حاليًا. هنرجع قريبًا."'::jsonb, 'رسالة وضع الصيانة')
 ON CONFLICT (key) DO NOTHING;
 
 -- Save the public logo URL in platform_settings.
@@ -96,7 +99,7 @@ GRANT INSERT, UPDATE, DELETE ON public.platform_settings TO authenticated;
 DROP POLICY IF EXISTS "Public can read platform branding settings" ON public.platform_settings;
 CREATE POLICY "Public can read platform branding settings"
   ON public.platform_settings FOR SELECT TO anon, authenticated
-  USING (key IN ('platform_logo_url', 'site_name'));
+  USING (key IN ('platform_logo_url', 'site_name', 'site_maintenance', 'maintenance_message'));
 
 DROP POLICY IF EXISTS "NUSC content managers manage platform branding settings" ON public.platform_settings;
 CREATE POLICY "NUSC content managers manage platform branding settings"
