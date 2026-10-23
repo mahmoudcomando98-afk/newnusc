@@ -22,7 +22,7 @@
       min-height: 100vh;
       min-height: 100dvh;
       font-family: 'Cairo', system-ui, sans-serif;
-      background: radial-gradient(900px 500px at 90% 0%, rgba(255,213,74,.28) 0%, transparent 60%), radial-gradient(700px 450px at -10% 100%, rgba(255,229,128,.3) 0%, transparent 55%), linear-gradient(165deg, #fffdf6 0%, #fff8df 55%, #ffffff 100%);\n      color: #292719;
+      background: radial-gradient(ellipse at top, #fff9e8 0%, #f7f6f1 62%, #efeee7 100%);\n      color: #25271f;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -52,13 +52,13 @@
       height: 72px;
       margin: 0 auto 18px;
       border-radius: 20px;
-      background: linear-gradient(145deg, #ffe780, #f2b900);\n      color: #4b3900;
+      background: #25271f;\n      color: #f4d779;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
-      font-size: 1.4rem;
-      box-shadow: 0 12px 34px rgba(229, 169, 0, .24);
+      font-size: 1.05rem; letter-spacing: .08em;
+      box-shadow: 0 12px 30px rgba(37,39,31,.15); border: 1px solid rgba(198,155,45,.55);
     }
 
     h1 {
@@ -69,7 +69,7 @@
 
     .tag {
       margin-top: 8px;
-      color: #77715c;
+      color: #77786e;
       font-size: .95rem;
       line-height: 1.6;
     }
@@ -78,7 +78,7 @@
       width: 36px;
       height: 36px;
       margin: 28px auto 12px;
-      border: 3px solid rgba(229, 169, 0, .18);\n      border-top-color: #d9a600;
+      border: 3px solid rgba(198,155,45,.18);\n      border-top-color: #82621a;
       border-radius: 50%;
       animation: spin .7s linear infinite;
     }
@@ -91,7 +91,7 @@
 
     .status {
       font-size: .85rem;
-      color: #8c856d;
+      color: #77786e;
       min-height: 1.4em;
     }
 
@@ -127,13 +127,13 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, #f6c900, #e6a900);\n      color: #352800;
+      background: #292b24;\n      color: #f7e5a5;
     }
 
     .btn-ghost {
-      background: rgba(255, 255, 255, .8);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, .12);
+      background: #fff;
+      color: #6b5115;
+      border: 1px solid #e9e4d6;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -151,12 +151,10 @@
   <main class="splash">
     <div class="logo" aria-hidden="true">MUSC</div>
 
+    <p class="tag" style="font-weight:800;color:#82621a;margin:0 0 5px">كلية الحاسبات والمعلومات</p>
     <h1>MUSC</h1>
-
-    <p class="tag">
-      منصة طلاب الفرقة الأولى<br />
-      كلية الحاسبات والمعلومات
-    </p>
+    <h1>MUSC</h1>
+    <p class="tag">منصتك الأكاديمية للفرقة الأولى</p>
 
     <div class="loader" id="loader" aria-hidden="true"></div>
 
