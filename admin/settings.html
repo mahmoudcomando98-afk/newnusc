@@ -30,6 +30,24 @@
         </form>
         <p id="site-name-status" class="text-sm text-muted mt-2" role="status" aria-live="polite"></p>
       </div>
+      <div class="card mb-3" id="maintenance-section">
+        <h3 class="card-title mb-2">وضع الصيانة</h3>
+        <p class="text-sm text-muted mb-2">فعّل الصيانة لإظهار صفحة تنبيه للطلاب بدل صفحات المنصة. لوحة الإدارة تفضل متاحة عشان تقدر توقف الصيانة وقت ما تحب.</p>
+        <form id="maintenance-form">
+          <div class="form-group">
+            <label class="form-check" for="maintenance-enabled">
+              <input type="checkbox" id="maintenance-enabled" />
+              <span>تشغيل وضع الصيانة</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="maintenance-message">رسالة الصيانة للطلاب</label>
+            <textarea class="form-textarea" id="maintenance-message" maxlength="500" rows="3" placeholder="المنصة تحت الصيانة حاليًا. هنرجع قريبًا."></textarea>
+          </div>
+          <button type="submit" id="maintenance-submit" class="btn btn-primary">حفظ إعدادات الصيانة</button>
+        </form>
+        <p id="maintenance-status" class="text-sm text-muted mt-2" role="status" aria-live="polite"></p>
+      </div>
       <div class="card mb-3">
         <h3 class="card-title mb-2">شعار المنصة</h3>
         <p class="text-sm text-muted mb-2">ارفع لوجو PNG أو JPG أو WEBP. الشعار هيظهر في تسجيل الدخول وإنشاء الحساب ورؤوس صفحات المنصة.</p>
@@ -94,6 +112,57 @@ WHERE email = 'your-admin@email.com';</pre>
       if (error) throw error;
       currentLogoUrl = normalizeSettingValue(data?.value);
       renderLogoPreview(currentLogoUrl);
+    }
+
+    function normalizeBoolean(value) {
+      return value === true || value === 'true' || value === 1 || value === '1';
+    }
+
+    async function loadMaintenanceSettings() {
+      const { data, error } = await supabase.from('platform_settings')
+        .select('key, value').in('key', ['site_maintenance', 'maintenance_message']);
+      if (error) throw error;
+      const settings = new Map((data || []).map((item) => [item.key, item.value]));
+      document.getElementById('maintenance-enabled').checked = normalizeBoolean(settings.get('site_maintenance'));
+      const message = settings.get('maintenance_message');
+      document.getElementById('maintenance-message').value =
+        typeof message === 'string' ? message : 'المنصة تحت الصيانة حاليًا. هنرجع قريبًا.';
+    }
+
+    async function saveMaintenanceSettings(event) {
+      event.preventDefault();
+      const enabled = document.getElementById('maintenance-enabled').checked;
+      const messageInput = document.getElementById('maintenance-message');
+      const message = messageInput.value.trim() || 'المنصة تحت الصيانة حاليًا. هنرجع قريبًا.';
+      const button = document.getElementById('maintenance-submit');
+      const status = document.getElementById('maintenance-status');
+
+      button.disabled = true;
+      button.textContent = 'جاري حفظ الإعدادات…';
+      status.textContent = '';
+      try {
+        const { error } = await supabase.from('platform_settings').upsert([
+          { key: 'site_maintenance', value: enabled, description: 'تشغيل وضع الصيانة' },
+          { key: 'maintenance_message', value: message, description: 'رسالة وضع الصيانة' }
+        ], { onConflict: 'key' });
+        if (error) throw error;
+
+        window.dispatchEvent(new CustomEvent('nusc:maintenance-updated', {
+          detail: { enabled, message }
+        }));
+        status.textContent = enabled
+          ? 'تم حفظ وضع الصيانة. الطلاب هيتوجّهوا لصفحة الصيانة عند فتح المنصة.'
+          : 'تم إيقاف الصيانة؛ المنصة متاحة للطلاب.';
+        showToast(enabled ? 'تم تشغيل وضع الصيانة.' : 'تم إيقاف وضع الصيانة.', 'success');
+        await loadSettingsList();
+      } catch (error) {
+        console.error('Maintenance settings save failed:', error);
+        status.textContent = 'ماقدرناش نحفظ إعدادات الصيانة.';
+        showToast('فشل حفظ إعدادات الصيانة: ' + (error?.message || 'راجع صلاحيات قاعدة البيانات.'), 'error');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'حفظ إعدادات الصيانة';
+      }
     }
 
     async function loadPlatformName() {
@@ -222,7 +291,8 @@ WHERE email = 'your-admin@email.com';</pre>
       initIcons();
       document.getElementById('logo-form').addEventListener('submit', saveLogo);
       document.getElementById('site-name-form').addEventListener('submit', savePlatformName);
-      await Promise.allSettled([loadLogo(), loadPlatformName(), loadSettingsList()]);
+      document.getElementById('maintenance-form').addEventListener('submit', saveMaintenanceSettings);
+      await Promise.allSettled([loadLogo(), loadPlatformName(), loadMaintenanceSettings(), loadSettingsList()]);
     }
 
     init().catch(error => {
