@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS public.materials (
   file_path TEXT,
   file_type TEXT,
   file_size BIGINT,
-  material_type TEXT DEFAULT 'lecture' CHECK (material_type IN ('lecture', 'notes', 'assignment', 'exam', 'other', 'pdf', 'slides')),
+  material_type TEXT DEFAULT 'lecture' CHECK (material_type IN ('lecture', 'section', 'notes', 'assignment', 'exam', 'other', 'pdf', 'slides')),
   download_count INTEGER DEFAULT 0,
   view_count INTEGER DEFAULT 0,
   is_published BOOLEAN NOT NULL DEFAULT true,
