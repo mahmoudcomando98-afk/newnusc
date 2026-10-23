@@ -65,11 +65,9 @@
       } catch (error) {
         console.warn('Could not load maintenance message:', error?.message || error);
         if (statusMessage === 'unavailable') {
-          document.querySelector('.maintenance-card h1').textContent = 'الوصول للمنصة متوقف مؤقتًا';
+          document.querySelector('.maintenance-card h1').textContent = 'المنصة متوقفة مؤقتًا';
           document.getElementById('maintenance-message').textContent =
-            'تعذر التحقق من حالة المنصة حاليًا. حفاظًا على أمان الحسابات، تم إيقاف الوصول مؤقتًا. اضغط إعادة المحاولة بعد قليل.';
-          const status = document.querySelector('.maintenance-status');
-          if (status) status.textContent = 'تعذر التحقق من حالة المنصة';
+            'المنصة غير متاحة مؤقتًا. اضغط إعادة المحاولة بعد قليل.';
         }
       } finally {
         isLoading = false;
