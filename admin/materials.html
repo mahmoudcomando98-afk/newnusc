@@ -1,26 +1,51 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar-EG" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>إدارة الملفات | NUSC</title>
+  <title>محتوى المواد | NUSC</title>
   <link rel="stylesheet" href="/assets/css/main.css" />
 </head>
 <body>
   <header class="app-header">
     <div class="container">
-      <a href="/admin/index.html" class="logo"><span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span><span>المحاضرات والملفات</span></a>
+      <a href="/admin/index.html" class="logo"><span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span><span>محتوى المواد</span></a>
       <button type="button" class="btn btn-sm btn-primary" id="add-btn">+ رفع ملف</button>
     </div>
   </header>
   <main class="page" style="padding-bottom:24px">
     <div class="container page-content">
+      <p class="text-sm text-muted mb-2">ارفع الملف وحدد المادة والقسم اللي هيظهر فيه: المحاضرات أو السكاشن أو الواجبات.</p>
       <div id="form-panel" class="card mb-3 hidden">
         <form id="mat-form">
-          <div class="form-group"><label class="form-label">العنوان *</label><input type="text" id="title" class="form-input" required /></div>
-          <div class="form-group"><label class="form-label">المادة</label><select id="subject_id" class="form-select"><option value="">— اختر —</option></select></div>
-          <div class="form-group"><label class="form-label">الملف *</label><input type="file" id="file" class="form-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,.jpg,.png,.webp" required /></div>
-          <div class="flex gap-1"><button type="submit" class="btn btn-primary">رفع</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
+          <div class="form-group">
+            <label class="form-label" for="title">اسم الملف *</label>
+            <input type="text" id="title" class="form-input" required maxlength="180" placeholder="مثال: محاضرة 1 - مقدمة" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="subject_id">المادة *</label>
+            <select id="subject_id" class="form-select" required><option value="">— اختار المادة —</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="material_type">القسم *</label>
+            <select id="material_type" class="form-select" required>
+              <option value="lecture">المحاضرات</option>
+              <option value="section">السكاشن</option>
+              <option value="assignment">الواجبات</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="description">وصف مختصر (اختياري)</label>
+            <textarea id="description" class="form-textarea" rows="2" maxlength="1000" placeholder="تفاصيل تساعد الطالب يعرف الملف"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="file">الملف *</label>
+            <input type="file" id="file" class="form-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,.jpg,.jpeg,.png,.webp,.xls,.xlsx" required />
+          </div>
+          <div class="flex gap-1">
+            <button type="submit" class="btn btn-primary">ارفع الملف</button>
+            <button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button>
+          </div>
         </form>
       </div>
       <div id="list"></div>
@@ -29,70 +54,128 @@
   <script type="module">
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
-    import { escapeHtml, formatFileSize, showEmpty, showError, showToast, withLoading, initIcons } from '../assets/js/utils.js';
+    import { escapeHtml, formatFileSize, showEmpty, showError, showToast, withLoading, initIcons, timeAgo } from '../assets/js/utils.js';
+
     let profile = null;
+    let subjectNames = new Map();
+    const typeLabels = { lecture: 'المحاضرات', section: 'السكاشن', assignment: 'الواجبات', notes: 'المحاضرات', exam: 'المحاضرات', other: 'المحاضرات', pdf: 'المحاضرات', slides: 'المحاضرات' };
+
     async function init() {
-      const result = await protectAdminPage(); if (!result) return;
-      profile = result.profile; initIcons();
-      document.getElementById('add-btn').onclick = () => document.getElementById('form-panel').classList.remove('hidden');
-      document.getElementById('cancel-btn').onclick = () => document.getElementById('form-panel').classList.add('hidden');
-      document.getElementById('mat-form').onsubmit = save;
-      const { data: subjects } = await supabase.from('subjects').select('id, name').order('name');
-      const sel = document.getElementById('subject_id');
-      (subjects||[]).forEach(s => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; sel.appendChild(o); });
+      const result = await protectAdminPage();
+      if (!result) return;
+      profile = result.profile;
+      initIcons();
+      document.getElementById('add-btn').addEventListener('click', () => document.getElementById('form-panel').classList.remove('hidden'));
+      document.getElementById('cancel-btn').addEventListener('click', () => document.getElementById('form-panel').classList.add('hidden'));
+      document.getElementById('mat-form').addEventListener('submit', save);
+      await loadSubjects();
       await load();
     }
+
+    async function loadSubjects() {
+      const { data, error } = await supabase.from('subjects').select('id, name').order('name');
+      if (error) throw error;
+      const select = document.getElementById('subject_id');
+      (data || []).forEach((subject) => {
+        subjectNames.set(subject.id, subject.name);
+        const option = document.createElement('option');
+        option.value = subject.id;
+        option.textContent = subject.name;
+        select.appendChild(option);
+      });
+    }
+
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase.from('materials').select('id, title, file_type, file_path, file_size, subjects(name)').order('created_at', { ascending: false }).limit(50);
+        const { data, error } = await supabase.from('materials')
+          .select('id, title, subject_id, material_type, file_type, file_path, file_size, created_at, is_published')
+          .order('created_at', { ascending: false }).limit(100);
         if (error) throw error;
-        if (!data?.length) { showEmpty(el, 'لا توجد ملفات'); return; }
-        el.innerHTML = data.map(m => `<div class="card mb-2"><div class="flex justify-between"><div><h3 class="card-title">${escapeHtml(m.title)}</h3><p class="text-sm text-muted">${escapeHtml(m.file_type || 'ملف')} ${m.file_size ? formatFileSize(m.file_size) : ''} ${m.subjects?.name||''}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${m.id}">حذف</button></div></div>`).join('');
-        el.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => {
-          if (!confirm('حذف الملف؟')) return;
-          const item = data.find(m => String(m.id) === String(btn.dataset.del));
-          const { error: deleteError } = await supabase.from('materials').delete().eq('id', btn.dataset.del);
-          if (deleteError) { showToast(deleteError.message, 'error'); return; }
-          if (item?.file_path) {
-            const { error: storageError } = await supabase.storage.from('materials').remove([item.file_path]);
-            if (storageError) console.warn('Storage cleanup failed:', storageError.message);
-          }
-          showToast('تم حذف السجل', 'success');
-          await load();
+        if (!data?.length) { showEmpty(el, 'لسه مفيش ملفات مرفوعة. اضغط «رفع ملف» عشان تبدأ.'); return; }
+        el.innerHTML = data.map((item) => {
+          const label = typeLabels[item.material_type] || 'المحاضرات';
+          return `<article class="card mb-2">
+            <div class="flex justify-between items-center flex-wrap gap-1">
+              <div>
+                <h3 class="card-title">${escapeHtml(item.title)}</h3>
+                <p class="text-sm text-muted">${escapeHtml(subjectNames.get(item.subject_id) || 'مادة غير محددة')} · ${label}</p>
+                <p class="text-sm text-muted">${escapeHtml(item.file_type || 'ملف')} ${item.file_size ? '· ' + formatFileSize(item.file_size) : ''} ${item.created_at ? '· ' + timeAgo(item.created_at) : ''}</p>
+              </div>
+              <div class="flex gap-1 items-center">
+                <span class="badge ${item.is_published === false ? 'badge-warning' : 'badge-success'}">${item.is_published === false ? 'مسودة' : 'منشور'}</span>
+                <button type="button" class="btn btn-sm btn-danger" data-del="${item.id}">حذف</button>
+              </div>
+            </div>
+          </article>`;
+        }).join('');
+        el.querySelectorAll('[data-del]').forEach((button) => {
+          button.addEventListener('click', async () => {
+            if (!confirm('متأكد إنك عايز تحذف الملف ده؟')) return;
+            const item = data.find((entry) => String(entry.id) === String(button.dataset.del));
+            const { error: deleteError } = await supabase.from('materials').delete().eq('id', button.dataset.del);
+            if (deleteError) { showToast(deleteError.message, 'error'); return; }
+            if (item?.file_path) {
+              const { error: storageError } = await supabase.storage.from('materials').remove([item.file_path]);
+              if (storageError) console.warn('Storage cleanup failed:', storageError.message);
+            }
+            showToast('الملف اتحذف.', 'success');
+            await load();
+          });
         });
-      } catch { showError(el, 'تعذر'); }
+      } catch (error) {
+        console.error('Material list load failed:', error);
+        showError(el, 'مش قادرين نحمّل الملفات. راجع اتصال قاعدة البيانات والصلاحيات.');
+      }
     }
-    async function save(e) {
-      e.preventDefault();
-      const file = document.getElementById('file').files[0];
-      if (!file) { showToast('اختر ملفاً', 'error'); return; }
-      await withLoading(e.target.querySelector('[type=submit]'), async () => {
+
+    async function save(event) {
+      event.preventDefault();
+      const fileInput = document.getElementById('file');
+      const file = fileInput.files?.[0];
+      const subjectId = document.getElementById('subject_id').value;
+      if (!subjectId) { showToast('اختار المادة الأول.', 'error'); return; }
+      if (!file) { showToast('اختار الملف اللي هترفعه.', 'error'); return; }
+      const allowed = /\.(pdf|doc|docx|ppt|pptx|zip|rar|jpg|jpeg|png|webp|xls|xlsx)$/i;
+      if (!allowed.test(file.name)) { showToast('نوع الملف ده مش مدعوم.', 'error'); return; }
+
+      await withLoading(event.target.querySelector('[type=submit]'), async () => {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const path = `${profile.id}/${Date.now()}_${safeName}`;
-        const { error: upErr } = await supabase.storage.from('materials').upload(path, file);
-        if (upErr) { showToast(upErr.message, 'error'); return; }
+        const { error: uploadError } = await supabase.storage.from('materials').upload(path, file);
+        if (uploadError) { showToast(uploadError.message, 'error'); return; }
+
         const { error } = await supabase.from('materials').insert({
           title: document.getElementById('title').value.trim(),
-          subject_id: document.getElementById('subject_id').value || null,
+          description: document.getElementById('description').value.trim() || null,
+          subject_id: subjectId,
+          material_type: document.getElementById('material_type').value,
+          file_name: file.name,
           file_path: path,
-          file_type: file.type,
+          file_type: file.type || file.name.split('.').pop().toLowerCase(),
           file_size: file.size,
           is_published: true,
-          uploaded_by: profile.id
+          created_by: profile.id
         });
         if (error) {
           const { error: cleanupError } = await supabase.storage.from('materials').remove([path]);
           if (cleanupError) console.warn('Could not clean up uploaded file:', cleanupError.message);
+          console.error('Material insert failed:', error);
           showToast(error.message, 'error');
           return;
         }
-        showToast('تم الرفع', 'success');
+        showToast('الملف اترفع واتضاف للقسم المحدد.', 'success');
         document.getElementById('form-panel').classList.add('hidden');
-        e.target.reset(); await load();
-      })();
+        event.target.reset();
+        document.getElementById('material_type').value = 'lecture';
+        await load();
+      });
     }
-    init();
+
+    init().catch((error) => {
+      console.error('Material admin setup failed:', error);
+      showError(document.getElementById('list'), 'مش قادرين نجهّز صفحة رفع الملفات. راجع إعدادات قاعدة البيانات.');
+    });
   </script>
 </body>
 </html>
