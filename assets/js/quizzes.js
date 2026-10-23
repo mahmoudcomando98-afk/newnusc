@@ -1,9 +1,11 @@
+
 /**
  * NUSC Student Hub - Quizzes Page
  */
 
 import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
+
 import {
   escapeHtml,
   formatDate,
@@ -11,102 +13,262 @@ import {
   showError,
   initIcons,
   setActiveNav,
-  computeQuizStatus,
-  quizStatusLabel,
-  createCountdown
+  quizStatusLabel
 } from './utils.js';
 
+let quizzes = [];
 let currentStatus = 'upcoming';
-const countdowns = [];
 
-async function init() {
-  const result = await protectPage();
-  if (!result) return;
+function getStartDate(quiz) {
+  return quiz.quiz_date || quiz.start_at || quiz.start_date || null;
+}
 
-  setActiveNav('quizzes');
-  initIcons();
+function getEndDate(quiz) {
+  return quiz.end_at || quiz.end_date || null;
+}
 
-  document.querySelectorAll('.tab').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
-      tab.classList.add('active');
-      currentStatus = tab.dataset.status;
-      loadQuizzes();
-    });
+function getQuizStatus(quiz) {
+  const savedStatus = String(quiz.status || '').toLowerCase();
+
+  if (savedStatus === 'closed' || savedStatus === 'completed') {
+    const end = getEndDate(quiz);
+
+    if (!end || Date.now() > new Date(end).getTime()) {
+      return 'closed';
+    }
+  }
+
+  const startValue = getStartDate(quiz);
+  const endValue = getEndDate(quiz);
+
+  if (!startValue) {
+    if (savedStatus === 'open') return 'open';
+    if (savedStatus === 'closed') return 'closed';
+    return 'upcoming';
+  }
+
+  const start = new Date(startValue).getTime();
+
+  if (Number.isNaN(start)) {
+    return savedStatus === 'closed' ? 'closed' : 'upcoming';
+  }
+
+  const now = Date.now();
+
+  if (now < start) return 'upcoming';
+
+  if (endValue) {
+    const end = new Date(endValue).getTime();
+
+    if (!Number.isNaN(end)) {
+      return now <= end ? 'open' : 'closed';
+    }
+  }
+
+  if (quiz.duration_minutes) {
+    const end =
+      start + Number(quiz.duration_minutes) * 60 * 1000;
+
+    return now <= end ? 'open' : 'closed';
+  }
+
+  if (savedStatus === 'closed') return 'closed';
+
+  return 'open';
+}
+
+function getQuizDateText(value) {
+  if (!value) return '';
+
+  return formatDate(value, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   });
-
-  await loadQuizzes();
 }
 
 async function loadQuizzes() {
-  countdowns.forEach(clearInterval);
-  countdowns.length = 0;
-
   const el = document.getElementById('quizzes-list');
-  el.innerHTML = '<div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>';
+
+  if (!el) {
+    console.error('Missing #quizzes-list in quizzes.html');
+    return;
+  }
+
+  el.innerHTML =
+    '<div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>';
 
   try {
-    try {
-      await supabase.rpc('update_quiz_status');
-    } catch {}
-
     const { data, error } = await supabase
       .from('quizzes')
-      .select('id, title, description, topics, instructions, start_at, end_at, duration_minutes, quiz_url, status, subjects(name)')
-      .eq('is_published', true)
-      .order('start_at', { ascending: true });
+      .select('*');
 
     if (error) throw error;
 
-    const filtered = (data || []).filter((q) => computeQuizStatus(q) === currentStatus);
+    // RLS في Supabase يجب أن يمنع الطلاب من قراءة الكويزات غير المنشورة.
+    // هذا الفلتر الإضافي يخفي المسودات إذا كان العمود موجودًا.
+    quizzes = (data || []).filter(
+      (quiz) => quiz.is_published !== false
+    );
 
-    if (!filtered.length) {
-      const msgs = {
-        upcoming: 'لا توجد كويزات قادمة حالياً',
-        open: 'لا توجد كويزات مفتوحة الآن',
-        closed: 'لا توجد كويزات منتهية معروضة'
-      };
-      showEmpty(el, msgs[currentStatus] || 'لا توجد كويزات');
-      return;
-    }
+    // ترتيب الكويزات حسب الموعد، مع دعم أسماء الأعمدة المختلفة.
+    quizzes.sort((a, b) => {
+      const aDate = getStartDate(a);
+      const bDate = getStartDate(b);
 
-    el.innerHTML = filtered.map((q) => {
-      const status = computeQuizStatus(q);
-      const badgeClass = status === 'open' ? 'badge-success' : status === 'closed' ? 'badge-danger' : 'badge-info';
-      const countdownId = `cd-${q.id}`;
+      if (!aDate) return 1;
+      if (!bDate) return -1;
 
-      return `
-        <div class="card mb-2">
-          <div class="flex justify-between items-center flex-wrap gap-1">
-            <h3 class="card-title">${escapeHtml(q.title)}</h3>
-            <span class="badge ${badgeClass}">${quizStatusLabel(status)}</span>
-          </div>
-          ${q.subjects?.name ? `<p class="text-sm text-muted">${escapeHtml(q.subjects.name)}</p>` : ''}
-          ${q.topics ? `<p class="text-sm mt-1"><strong>الموضوعات:</strong> ${escapeHtml(q.topics)}</p>` : ''}
-          <div class="card-meta mt-1">
-            ${q.start_at ? `<span>البداية: ${formatDate(q.start_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>` : ''}
-            ${q.end_at ? `<span>النهاية: ${formatDate(q.end_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>` : ''}
-            ${q.duration_minutes ? `<span>المدة: ${q.duration_minutes} دقيقة</span>` : ''}
-          </div>
-          ${status === 'upcoming' && q.start_at ? `<p class="text-sm mt-1"><strong>العداد:</strong> <span id="${countdownId}">—</span></p>` : ''}
-          ${q.instructions ? `<p class="text-sm text-muted mt-1">${escapeHtml(q.instructions.slice(0, 150))}</p>` : ''}
-          ${q.quiz_url && status === 'open' ? `<a href="${escapeHtml(q.quiz_url)}" target="_blank" rel="noopener" class="btn btn-primary btn-sm mt-2">فتح الكويز</a>` : ''}
-        </div>
-      `;
-    }).join('');
-
-    filtered.forEach((q) => {
-      if (computeQuizStatus(q) === 'upcoming' && q.start_at) {
-        const el = document.getElementById(`cd-${q.id}`);
-        if (el) {
-          const id = createCountdown(q.start_at, el);
-          if (id) countdowns.push(id);
-        }
-      }
+      return new Date(aDate).getTime() - new Date(bDate).getTime();
     });
-  } catch (err) {
-    console.error(err);
-    showError(el, 'تعذر تحميل الكويزات');
+
+    renderQuizzes();
+  } catch (error) {
+    console.error('Quizzes loading error:', error);
+    showError(
+      el,
+      'تعذر تحميل الكويزات. راجع Console وسياسات القراءة في Supabase.'
+    );
+  }
+}
+
+function renderQuizzes() {
+  const el = document.getElementById('quizzes-list');
+  if (!el) return;
+
+  const filtered = quizzes.filter(
+    (quiz) => getQuizStatus(quiz) === currentStatus
+  );
+
+  if (!filtered.length) {
+    const messages = {
+      upcoming: 'لا توجد كويزات قادمة حاليًا',
+      open: 'لا توجد كويزات مفتوحة الآن',
+      closed: 'لا توجد كويزات منتهية معروضة'
+    };
+
+    showEmpty(el, messages[currentStatus] || 'لا توجد كويزات');
+    return;
+  }
+
+  el.innerHTML = filtered.map((quiz) => {
+    const status = getQuizStatus(quiz);
+
+    const badgeClass =
+      status === 'open'
+        ? 'badge-success'
+        : status === 'closed'
+          ? 'badge-danger'
+          : 'badge-info';
+
+    const startDate = getStartDate(quiz);
+    const endDate = getEndDate(quiz);
+
+    const topics =
+      quiz.topics ||
+      quiz.rules ||
+      quiz.instructions ||
+      '';
+
+    const subjectName =
+      quiz.subjects?.name ||
+      quiz.subject_name ||
+      '';
+
+    const quizUrl = quiz.quiz_url || quiz.url || '';
+
+    return `
+      <article class="card mb-2">
+        <div class="flex justify-between items-center flex-wrap gap-1">
+          <h3 class="card-title">
+            ${escapeHtml(quiz.title || 'كويز')}
+          </h3>
+
+          <span class="badge ${badgeClass}">
+            ${escapeHtml(quizStatusLabel(status))}
+          </span>
+        </div>
+
+        ${
+          subjectName
+            ? `<p class="text-sm text-muted">${escapeHtml(subjectName)}</p>`
+            : ''
+        }
+
+        ${
+          startDate
+            ? `<p class="text-sm mt-1"><strong>الموعد:</strong> ${escapeHtml(getQuizDateText(startDate))}</p>`
+            : ''
+        }
+
+        ${
+          endDate
+            ? `<p class="text-sm mt-1"><strong>النهاية:</strong> ${escapeHtml(getQuizDateText(endDate))}</p>`
+            : ''
+        }
+
+        ${
+          quiz.duration_minutes
+            ? `<p class="text-sm mt-1">المدة: ${Number(quiz.duration_minutes)} دقيقة</p>`
+            : ''
+        }
+
+        ${
+          quiz.description
+            ? `<p class="text-sm text-muted mt-1">${escapeHtml(quiz.description)}</p>`
+            : ''
+        }
+
+        ${
+          topics
+            ? `<p class="text-sm mt-1"><strong>التعليمات / الموضوعات:</strong> ${escapeHtml(topics)}</p>`
+            : ''
+        }
+
+        ${
+          quizUrl && status === 'open'
+            ? `<a href="${escapeHtml(quizUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm mt-2">فتح الكويز</a>`
+            : ''
+        }
+      </article>
+    `;
+  }).join('');
+
+  initIcons();
+}
+
+async function init() {
+  try {
+    const result = await protectPage();
+    if (!result) return;
+
+    setActiveNav('quizzes');
+    initIcons();
+
+    document.querySelectorAll('#tabs .tab[data-status]').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#tabs .tab').forEach((item) => {
+          item.classList.remove('active');
+        });
+
+        tab.classList.add('active');
+        currentStatus = tab.dataset.status || 'upcoming';
+
+        renderQuizzes();
+      });
+    });
+
+    await loadQuizzes();
+  } catch (error) {
+    console.error('Quizzes page initialization error:', error);
+
+    const el = document.getElementById('quizzes-list');
+
+    if (el) {
+      showError(el, 'تعذر فتح صفحة الكويزات. حاول تسجيل الدخول مجددًا.');
+    }
   }
 }
 
