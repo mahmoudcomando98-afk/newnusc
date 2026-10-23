@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>إدارة الملفات | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo"><span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span><span>المحاضرات والملفات</span></a>
+      <button type="button" class="btn btn-sm btn-primary" id="add-btn">+ رفع ملف</button>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:24px">
+    <div class="container page-content">
+      <div id="form-panel" class="card mb-3 hidden">
+        <form id="mat-form">
+          <div class="form-group"><label class="form-label">العنوان *</label><input type="text" id="title" class="form-input" required /></div>
+          <div class="form-group"><label class="form-label">المادة</label><select id="subject_id" class="form-select"><option value="">— اختر —</option></select></div>
+          <div class="form-group"><label class="form-label">نوع الملف</label>
+            <select id="material_type" class="form-select"><option value="lecture">محاضرة</option><option value="notes">ملاحظات</option><option value="assignment">واجب</option><option value="exam">امتحان</option><option value="other">أخرى</option></select>
+          </div>
+          <div class="form-group"><label class="form-label">الملف *</label><input type="file" id="file" class="form-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,.jpg,.png,.webp" required /></div>
+          <div class="flex gap-1"><button type="submit" class="btn btn-primary">رفع</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
+        </form>
+      </div>
+      <div id="list"></div>
+    </div>
+  </main>
+  <script type="module">
+    import { supabase } from '../assets/js/supabase.js';
+    import { protectAdminPage } from '../assets/js/auth.js';
+    import { escapeHtml, formatFileSize, materialTypeLabel, showEmpty, showError, showToast, withLoading, initIcons } from '../assets/js/utils.js';
+    let profile = null;
+    async function init() {
+      const result = await protectAdminPage(); if (!result) return;
+      profile = result.profile; initIcons();
+      document.getElementById('add-btn').onclick = () => document.getElementById('form-panel').classList.remove('hidden');
+      document.getElementById('cancel-btn').onclick = () => document.getElementById('form-panel').classList.add('hidden');
+      document.getElementById('mat-form').onsubmit = save;
+      const { data: subjects } = await supabase.from('subjects').select('id, name').order('name');
+      const sel = document.getElementById('subject_id');
+      (subjects||[]).forEach(s => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; sel.appendChild(o); });
+      await load();
+    }
+    async function load() {
+      const el = document.getElementById('list');
+      try {
+        const { data, error } = await supabase.from('materials').select('id, title, file_name, file_size, material_type, subjects(name)').order('created_at', { ascending: false }).limit(50);
+        if (error) throw error;
+        if (!data?.length) { showEmpty(el, 'لا توجد ملفات'); return; }
+        el.innerHTML = data.map(m => `<div class="card mb-2"><div class="flex justify-between"><div><h3 class="card-title">${escapeHtml(m.title)}</h3><p class="text-sm text-muted">${materialTypeLabel(m.material_type)} ${m.file_size ? formatFileSize(m.file_size) : ''} ${m.subjects?.name||''}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${m.id}">حذف</button></div></div>`).join('');
+        el.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => { if(!confirm('حذف؟')) return; await supabase.from('materials').delete().eq('id', btn.dataset.del); await load(); });
+      } catch { showError(el, 'تعذر'); }
+    }
+    async function save(e) {
+      e.preventDefault();
+      const file = document.getElementById('file').files[0];
+      if (!file) { showToast('اختر ملفاً', 'error'); return; }
+      await withLoading(e.target.querySelector('[type=submit]'), async () => {
+        const path = `${Date.now()}_${file.name}`;
+        const { error: upErr } = await supabase.storage.from('materials').upload(path, file);
+        if (upErr) { showToast(upErr.message, 'error'); return; }
+        const { error } = await supabase.from('materials').insert({
+          title: document.getElementById('title').value.trim(),
+          subject_id: document.getElementById('subject_id').value || null,
+          material_type: document.getElementById('material_type').value,
+          file_name: file.name,
+          file_path: path,
+          file_type: file.type,
+          file_size: file.size,
+          is_published: true,
+          created_by: profile.id
+        });
+        if (error) { showToast(error.message, 'error'); return; }
+        showToast('تم الرفع', 'success');
+        document.getElementById('form-panel').classList.add('hidden');
+        e.target.reset(); await load();
+      })();
+    }
+    init();
+  </script>
+</body>
+</html>

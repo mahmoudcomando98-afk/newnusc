@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>إدارة المواد | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>إدارة المواد</span>
+      </a>
+      <button type="button" class="btn btn-sm btn-primary" id="add-btn">+ إضافة مادة</button>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:24px">
+    <div class="container page-content">
+      <div id="form-panel" class="card mb-3 hidden">
+        <h3 class="card-title mb-2" id="form-title">إضافة مادة</h3>
+        <form id="subject-form">
+          <input type="hidden" id="edit-id" />
+          <div class="form-group"><label class="form-label">اسم المادة *</label><input type="text" id="name" class="form-input" required /></div>
+          <div class="form-group"><label class="form-label">رمز المادة</label><input type="text" id="code" class="form-input" dir="ltr" /></div>
+          <div class="form-group"><label class="form-label">المحاضر</label><input type="text" id="instructor" class="form-input" /></div>
+          <div class="form-group"><label class="form-label">الوصف</label><textarea id="description" class="form-textarea"></textarea></div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" id="is_published" checked /><span>منشورة</span></label></div>
+          <div class="flex gap-1"><button type="submit" class="btn btn-primary">حفظ</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
+        </form>
+      </div>
+      <div id="subjects-list"><div class="skeleton-card"><div class="skeleton skeleton-title"></div></div></div>
+    </div>
+  </main>
+  <script type="module">
+    import { supabase } from '../assets/js/supabase.js';
+    import { protectAdminPage } from '../assets/js/auth.js';
+    import { escapeHtml, showEmpty, showError, showToast, withLoading, initIcons } from '../assets/js/utils.js';
+    let profile = null;
+    async function init() {
+      const result = await protectAdminPage();
+      if (!result) return;
+      profile = result.profile;
+      initIcons();
+      document.getElementById('add-btn').addEventListener('click', () => openForm());
+      document.getElementById('cancel-btn').addEventListener('click', () => closeForm());
+      document.getElementById('subject-form').addEventListener('submit', saveSubject);
+      await loadSubjects();
+    }
+    async function loadSubjects() {
+      const el = document.getElementById('subjects-list');
+      try {
+        const { data, error } = await supabase.from('subjects').select('id, name, code, instructor, description, is_published, sort_order').order('sort_order').order('name');
+        if (error) throw error;
+        if (!data?.length) { showEmpty(el, 'لا توجد مواد. اضغط «إضافة مادة» للبدء.'); return; }
+        el.innerHTML = data.map(s => `
+          <div class="card mb-2">
+            <div class="flex justify-between items-center flex-wrap gap-1">
+              <div>
+                <h3 class="card-title">${escapeHtml(s.name)}</h3>
+                <div class="card-meta">
+                  ${s.code ? `<span class="badge badge-primary">${escapeHtml(s.code)}</span>` : ''}
+                  ${s.instructor ? `<span>${escapeHtml(s.instructor)}</span>` : ''}
+                  <span class="badge ${s.is_published ? 'badge-success' : 'badge-warning'}">${s.is_published ? 'منشورة' : 'مسودة'}</span>
+                </div>
+              </div>
+              <div class="flex gap-1">
+                <button type="button" class="btn btn-sm btn-secondary" data-edit='${JSON.stringify(s).replace(/'/g,"&#39;")}'>تعديل</button>
+                <button type="button" class="btn btn-sm btn-danger" data-delete="${s.id}">حذف</button>
+              </div>
+            </div>
+          </div>`).join('');
+        el.querySelectorAll('[data-edit]').forEach(btn => {
+          btn.addEventListener('click', () => openForm(JSON.parse(btn.getAttribute('data-edit'))));
+        });
+        el.querySelectorAll('[data-delete]').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (!confirm('حذف المادة؟')) return;
+            await supabase.from('subjects').delete().eq('id', btn.dataset.delete);
+            showToast('تم الحذف', 'success');
+            await loadSubjects();
+          });
+        });
+      } catch { showError(el, 'تعذر التحميل'); }
+    }
+    function openForm(s = null) {
+      document.getElementById('form-panel').classList.remove('hidden');
+      document.getElementById('form-title').textContent = s ? 'تعديل المادة' : 'إضافة مادة';
+      document.getElementById('edit-id').value = s?.id || '';
+      document.getElementById('name').value = s?.name || '';
+      document.getElementById('code').value = s?.code || '';
+      document.getElementById('instructor').value = s?.instructor || '';
+      document.getElementById('description').value = s?.description || '';
+      document.getElementById('is_published').checked = s ? s.is_published : true;
+    }
+    function closeForm() { document.getElementById('form-panel').classList.add('hidden'); }
+    async function saveSubject(e) {
+      e.preventDefault();
+      const btn = e.target.querySelector('[type="submit"]');
+      const handler = withLoading(btn, async () => {
+        const id = document.getElementById('edit-id').value;
+        const payload = {
+          name: document.getElementById('name').value.trim(),
+          code: document.getElementById('code').value.trim() || null,
+          instructor: document.getElementById('instructor').value.trim() || null,
+          description: document.getElementById('description').value.trim() || null,
+          is_published: document.getElementById('is_published').checked,
+          created_by: profile.id
+        };
+        const { error } = id
+          ? await supabase.from('subjects').update(payload).eq('id', id)
+          : await supabase.from('subjects').insert(payload);
+        if (error) { showToast(error.message, 'error'); return; }
+        showToast('تم الحفظ', 'success');
+        closeForm();
+        await loadSubjects();
+      });
+      await handler();
+    }
+    init();
+  </script>
+</body>
+</html>

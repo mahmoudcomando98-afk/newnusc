@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>إدارة الإعلانات | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>الإعلانات</span>
+      </a>
+      <button type="button" class="btn btn-sm btn-primary" id="add-btn">+ إعلان</button>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:24px">
+    <div class="container page-content">
+      <div id="form-panel" class="card mb-3 hidden">
+        <form id="ann-form">
+          <div class="form-group"><label class="form-label">العنوان *</label><input type="text" id="title" class="form-input" required /></div>
+          <div class="form-group"><label class="form-label">المحتوى *</label><textarea id="content" class="form-textarea" required></textarea></div>
+          <div class="form-group"><label class="form-label">الأهمية</label>
+            <select id="importance" class="form-select"><option value="normal">عادي</option><option value="high">مهم</option><option value="urgent">عاجل</option><option value="low">منخفض</option></select>
+          </div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" id="is_pinned" /><span>مثبت</span></label></div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" id="is_published" checked /><span>منشور</span></label></div>
+          <div class="flex gap-1"><button type="submit" class="btn btn-primary">نشر</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
+        </form>
+      </div>
+      <div id="list"></div>
+    </div>
+  </main>
+  <script type="module">
+    import { supabase } from '../assets/js/supabase.js';
+    import { protectAdminPage } from '../assets/js/auth.js';
+    import { escapeHtml, timeAgo, showEmpty, showError, showToast, withLoading, initIcons } from '../assets/js/utils.js';
+    let profile = null;
+    async function init() {
+      const result = await protectAdminPage();
+      if (!result) return;
+      profile = result.profile;
+      initIcons();
+      document.getElementById('add-btn').onclick = () => document.getElementById('form-panel').classList.remove('hidden');
+      document.getElementById('cancel-btn').onclick = () => document.getElementById('form-panel').classList.add('hidden');
+      document.getElementById('ann-form').onsubmit = save;
+      await load();
+    }
+    async function load() {
+      const el = document.getElementById('list');
+      try {
+        const { data, error } = await supabase.from('announcements').select('id, title, content, importance, is_pinned, is_published, created_at').order('created_at', { ascending: false });
+        if (error) throw error;
+        if (!data?.length) { showEmpty(el, 'لا توجد إعلانات'); return; }
+        el.innerHTML = data.map(a => `<div class="card mb-2"><div class="flex justify-between flex-wrap gap-1"><div><h3 class="card-title">${a.is_pinned ? '📌 ' : ''}${escapeHtml(a.title)}</h3><p class="text-sm text-muted">${escapeHtml((a.content||'').slice(0,80))} · ${timeAgo(a.created_at)}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${a.id}">حذف</button></div></div>`).join('');
+        el.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => { if(!confirm('حذف؟')) return; await supabase.from('announcements').delete().eq('id', btn.dataset.del); showToast('تم', 'success'); await load(); });
+      } catch { showError(el, 'تعذر التحميل'); }
+    }
+    async function save(e) {
+      e.preventDefault();
+      const btn = e.target.querySelector('[type=submit]');
+      await withLoading(btn, async () => {
+        const { error } = await supabase.from('announcements').insert({
+          title: document.getElementById('title').value.trim(),
+          content: document.getElementById('content').value.trim(),
+          importance: document.getElementById('importance').value,
+          is_pinned: document.getElementById('is_pinned').checked,
+          is_published: document.getElementById('is_published').checked,
+          created_by: profile.id
+        });
+        if (error) { showToast(error.message, 'error'); return; }
+        showToast('تم النشر', 'success');
+        document.getElementById('form-panel').classList.add('hidden');
+        e.target.reset();
+        await load();
+      })();
+    }
+    init();
+  </script>
+</body>
+</html>

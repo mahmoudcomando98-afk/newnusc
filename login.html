@@ -3,9 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="تسجيل الدخول - NUSC Student Hub" />
   <title>تسجيل الدخول | NUSC Student Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/css/main.css" />
+  <style>
+    .auth-page {
+      background:
+        radial-gradient(900px 480px at 100% 0%, rgba(59,130,246,.35), transparent 55%),
+        radial-gradient(700px 400px at 0% 100%, rgba(245,158,11,.12), transparent 50%),
+        linear-gradient(160deg, #06101f 0%, #0b1f3a 50%, #123056 100%) !important;
+    }
+    .auth-card {
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 20px 50px rgba(0,0,0,.35);
+    }
+    .auth-logo .logo-icon {
+      background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+      box-shadow: 0 10px 30px rgba(59,130,246,.35);
+    }
+    .config-banner {
+      display: none; background: #fef3c7; color: #92400e; border: 1px solid #fcd34d;
+      border-radius: 10px; padding: 10px 12px; font-size: .85rem; margin-bottom: 14px; line-height: 1.5;
+    }
+    .config-banner.show { display: block; }
+  </style>
 </head>
 <body>
   <div class="auth-page">
@@ -13,8 +36,9 @@
       <div class="auth-logo">
         <div class="logo-icon">NS</div>
         <h1>NUSC Student Hub</h1>
-        <p>منصتك الجامعية لكل ما تحتاجه</p>
+        <p>مرحباً بعودتك — سجّل دخولك للمتابعة</p>
       </div>
+      <div id="config-banner" class="config-banner"></div>
       <form id="login-form" novalidate>
         <div class="form-group">
           <label class="form-label" for="email">البريد الإلكتروني</label>
@@ -24,19 +48,27 @@
           <label class="form-label" for="password">كلمة المرور</label>
           <input type="password" id="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="current-password" minlength="6" />
         </div>
-        <div class="form-group" style="text-align:left">
+        <div class="flex justify-between items-center mb-2">
           <a href="/forgot-password.html" class="text-sm">نسيت كلمة المرور؟</a>
         </div>
         <button type="submit" class="btn btn-primary btn-block">تسجيل الدخول</button>
       </form>
-      <div class="auth-footer">
+      <p class="auth-footer">
         ليس لديك حساب؟
-        <a href="/register.html">إنشاء حساب جديد</a>
-      </div>
+        <a href="/register.html"><strong>إنشاء حساب</strong></a>
+      </p>
     </div>
   </div>
   <script type="module">
     import { initLoginPage } from './assets/js/auth.js';
+    import { isSupabaseConfigured, getConfigError } from './assets/js/supabase.js';
+    import { initIcons } from './assets/js/utils.js';
+    initIcons();
+    if (!isSupabaseConfigured()) {
+      const banner = document.getElementById('config-banner');
+      banner.textContent = getConfigError() || 'إعدادات Supabase غير مكتملة.';
+      banner.classList.add('show');
+    }
     initLoginPage();
   </script>
 </body>
