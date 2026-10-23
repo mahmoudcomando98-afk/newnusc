@@ -133,7 +133,7 @@ DROP POLICY IF EXISTS "NUSC content managers manage announcements" ON public.ann
 CREATE POLICY "NUSC users read published announcements"
   ON public.announcements FOR SELECT TO authenticated
   USING (
-    (is_published = true AND (expires_at IS NULL OR expires_at > NOW()))
+    COALESCE(to_jsonb(announcements)->>'is_published', 'true') <> 'false'
     OR private.is_content_manager()
   );
 
