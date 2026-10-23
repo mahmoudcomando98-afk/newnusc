@@ -261,6 +261,7 @@ async function loadQuizzes() {
 }
 
 function safeHttpUrl(raw) {
+  if (raw && typeof raw === 'object') raw = raw.url || raw.href || '';
   if (typeof raw !== 'string' || !raw.trim()) return '';
   try {
     const url = new URL(raw.trim());
@@ -268,6 +269,15 @@ function safeHttpUrl(raw) {
   } catch {
     return '';
   }
+}
+
+function announcementJoinUrl(item) {
+  const storedUrl = item.link_url || item.session_url || item.section_url || item.meeting_url || item.join_url || item.external_url;
+  const directUrl = safeHttpUrl(storedUrl);
+  if (directUrl) return directUrl;
+  const text = String(item.content || item.body || '');
+  const match = text.match(/https?:\/\/[^\s<>"']+/i);
+  return match ? safeHttpUrl(match[0].replace(/[),.،؛]+$/, '')) : '';
 }
 
 async function loadAnnouncements() {
@@ -303,8 +313,8 @@ async function loadAnnouncements() {
             </div>
             ${subjectName ? `<div class="list-item-desc">${escapeHtml(subjectName)}</div>` : ''}
             <div class="list-item-desc">${escapeHtml((announcement.content || announcement.body || '').slice(0, 80))} · ${timeAgo(announcement.created_at)}</div>
-            ${safeHttpUrl(announcement.link_url)
-              ? `<a href="${escapeHtml(safeHttpUrl(announcement.link_url))}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary mt-1">${escapeHtml(announcement.link_label || 'دخول السيكشن أونلاين')}</a>`
+            ${announcementJoinUrl(announcement)
+              ? `<a href="${escapeHtml(announcementJoinUrl(announcement))}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary mt-1">${escapeHtml(announcement.link_label || 'دخول السيكشن أونلاين')}</a>`
               : announcement.link_status === 'coming_soon'
                 ? '<span class="badge badge-warning mt-1">رابط السيكشن قريبًا</span>'
                 : ''}
@@ -338,7 +348,7 @@ async function loadImportantNotice() {
     const time = document.getElementById('important-notice-time');
     if (time) time.textContent = level === 'urgent' ? 'تنبيه عاجل' : 'إعلان مهم من الإدارة';
     const noticeLink = banner.querySelector('.notice-open');
-    const safeNoticeUrl = safeHttpUrl(notice.link_url);
+    const safeNoticeUrl = announcementJoinUrl(notice);
     if (noticeLink) {
       noticeLink.href = safeNoticeUrl || '/notifications.html';
       noticeLink.textContent = safeNoticeUrl
