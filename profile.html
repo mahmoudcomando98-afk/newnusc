@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>الملف الشخصي | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/home.html" class="logo">
+        <span class="logo-icon">NS</span>
+        <span>حسابي</span>
+      </a>
+    </div>
+  </header>
+  <main class="page">
+    <div class="container page-content">
+      <div class="card mb-3" id="profile-card">
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-text"></div>
+      </div>
+      <div class="card mb-3">
+        <h3 class="card-title mb-2">تعديل البيانات</h3>
+        <form id="profile-form">
+          <div class="form-group">
+            <label class="form-label" for="full_name">الاسم الكامل</label>
+            <input type="text" id="full_name" name="full_name" class="form-input" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="student_id">الرقم الجامعي</label>
+            <input type="text" id="student_id" name="student_id" class="form-input" dir="ltr" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">البريد الإلكتروني</label>
+            <input type="email" id="email" class="form-input" disabled dir="ltr" />
+            <p class="form-hint">لا يمكن تغيير البريد من هنا</p>
+          </div>
+          <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+        </form>
+      </div>
+      <div class="card mb-3">
+        <h3 class="card-title mb-2">تغيير كلمة المرور</h3>
+        <form id="password-form">
+          <div class="form-group">
+            <label class="form-label" for="new_password">كلمة المرور الجديدة</label>
+            <input type="password" id="new_password" name="new_password" class="form-input" minlength="6" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="confirm_password">تأكيد كلمة المرور</label>
+            <input type="password" id="confirm_password" name="confirm_password" class="form-input" minlength="6" required />
+          </div>
+          <button type="submit" class="btn btn-secondary">تحديث كلمة المرور</button>
+        </form>
+      </div>
+      <div class="card mb-3">
+        <a href="/favorites.html" class="list-item" style="text-decoration:none;color:inherit;padding:8px 0">
+          <div class="list-item-icon" data-icon="star"></div>
+          <div class="list-item-body"><div class="list-item-title">المفضلة</div></div>
+        </a>
+        <a href="/faq.html" class="list-item" style="text-decoration:none;color:inherit;padding:8px 0">
+          <div class="list-item-icon" data-icon="alert"></div>
+          <div class="list-item-body"><div class="list-item-title">الأسئلة الشائعة</div></div>
+        </a>
+        <a href="/notifications.html" class="list-item" style="text-decoration:none;color:inherit;padding:8px 0">
+          <div class="list-item-icon" data-icon="bell"></div>
+          <div class="list-item-body"><div class="list-item-title">الإشعارات</div></div>
+        </a>
+        <div id="admin-link" class="hidden">
+          <a href="/admin/index.html" class="list-item" style="text-decoration:none;color:inherit;padding:8px 0">
+            <div class="list-item-icon" data-icon="settings"></div>
+            <div class="list-item-body"><div class="list-item-title">لوحة الإدارة</div></div>
+          </a>
+        </div>
+      </div>
+      <button type="button" class="btn btn-danger btn-block" id="logout-btn">تسجيل الخروج</button>
+    </div>
+  </main>
+  <nav class="bottom-nav">
+    <a href="/home.html"><span data-icon="home"></span>الرئيسية</a>
+    <a href="/subjects.html"><span data-icon="book"></span>المواد</a>
+    <a href="/quizzes.html"><span data-icon="clipboard"></span>الكويزات</a>
+    <a href="/schedule.html"><span data-icon="calendar"></span>الجدول</a>
+    <a href="/profile.html" class="active"><span data-icon="user"></span>حسابي</a>
+  </nav>
+  <script type="module" src="/assets/js/profile.js"></script>
+</body>
+</html>
