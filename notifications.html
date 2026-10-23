@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>الإشعارات | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/home.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>الإشعارات</span>
+      </a>
+      <button type="button" class="btn btn-sm btn-secondary" id="mark-all">تعيين الكل كمقروء</button>
+    </div>
+  </header>
+  <main class="page">
+    <div class="container page-content">
+      <div id="notif-list">
+        <div class="skeleton-card"><div class="skeleton skeleton-title"></div></div>
+      </div>
+    </div>
+  </main>
+  <nav class="bottom-nav">
+    <a href="/home.html"><span data-icon="home"></span>الرئيسية</a>
+    <a href="/subjects.html"><span data-icon="book"></span>المواد</a>
+    <a href="/quizzes.html"><span data-icon="clipboard"></span>الكويزات</a>
+    <a href="/schedule.html"><span data-icon="calendar"></span>الجدول</a>
+    <a href="/profile.html" class="active"><span data-icon="user"></span>حسابي</a>
+  </nav>
+  <script type="module">
+    import { supabase } from './assets/js/supabase.js';
+    import { protectPage } from './assets/js/auth.js';
+    import { escapeHtml, timeAgo, showEmpty, showError, showToast, initIcons } from './assets/js/utils.js';
+    let profile = null;
+    async function init() {
+      const result = await protectPage();
+      if (!result) return;
+      profile = result.profile;
+      initIcons();
+      document.getElementById('mark-all')?.addEventListener('click', markAll);
+      await load();
+    }
+    async function load() {
+      const el = document.getElementById('notif-list');
+      try {
+        const { data, error } = await supabase.from('notifications').select('id, title, body, type, link, created_at').or(`user_id.eq.${profile.id},is_global.eq.true`).order('created_at', { ascending: false }).limit(50);
+        if (error) throw error;
+        if (!data?.length) { showEmpty(el, 'لا توجد إشعارات'); return; }
+        const { data: reads } = await supabase.from('notification_reads').select('notification_id').eq('user_id', profile.id);
+        const readSet = new Set((reads || []).map(r => r.notification_id));
+        el.innerHTML = data.map(n => `
+          <div class="card mb-2" style="${readSet.has(n.id) ? 'opacity:0.7' : ''}" data-id="${n.id}">
+            <h3 class="card-title">${escapeHtml(n.title)}</h3>
+            ${n.body ? `<p class="text-sm text-muted">${escapeHtml(n.body)}</p>` : ''}
+            <div class="card-meta"><span>${timeAgo(n.created_at)}</span></div>
+            ${n.link ? `<a href="${escapeHtml(n.link)}" class="btn btn-sm btn-outline mt-1">عرض</a>` : ''}
+          </div>`).join('');
+        el.querySelectorAll('[data-id]').forEach(card => { card.addEventListener('click', () => markRead(card.dataset.id)); });
+      } catch (err) { showError(el, 'تعذر تحميل الإشعارات'); }
+    }
+    async function markRead(id) { try { await supabase.rpc('mark_notification_read', { p_notification_id: id }); } catch {} }
+    async function markAll() {
+      try { await supabase.rpc('mark_all_notifications_read'); showToast('تم تعيين الكل كمقروء', 'success'); await load(); }
+      catch { showToast('تعذر التحديث', 'error'); }
+    }
+    init();
+  </script>
+</body>
+</html>
