@@ -86,6 +86,8 @@ async function loadSubjects() {
       return;
     }
 
+    const count = document.getElementById('subjects-count');
+    if (count) count.textContent = String(allSubjects.length);
     renderSubjects(allSubjects);
   } catch (error) {
     console.error('Subjects loading error:', error);
@@ -130,6 +132,8 @@ function renderSubjects(subjects) {
     return;
   }
 
+  const count = document.getElementById('subjects-count');
+  if (count) count.textContent = String(subjects.length);
   el.innerHTML = subjects.map((subject) => `
     <article class="card subject-card">
       <h3 class="card-title">
