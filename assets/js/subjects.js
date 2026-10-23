@@ -64,9 +64,9 @@ async function loadSubjects() {
 
     if (error) throw error;
 
-    // is_active هو اسم عمود التفعيل بحسب تقرير قاعدة البيانات.
+    // Support both schema variants: some installations use is_active, others use is_published.
     allSubjects = (data || []).filter(
-      (subject) => subject.is_active !== false
+      (subject) => (subject.is_active ?? subject.is_published ?? true) !== false
     );
 
     allSubjects.sort((a, b) => {
