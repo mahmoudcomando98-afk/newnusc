@@ -18,10 +18,14 @@
       <div id="form-panel" class="card mb-3 hidden">
         <form id="quiz-form">
           <div class="form-group"><label class="form-label">العنوان *</label><input type="text" id="title" class="form-input" required /></div>
-          <div class="form-group"><label class="form-label">الموضوعات</label><input type="text" id="topics" class="form-input" /></div>
-          <div class="form-group"><label class="form-label">بداية</label><input type="datetime-local" id="start_at" class="form-input" dir="ltr" /></div>
-          <div class="form-group"><label class="form-label">نهاية</label><input type="datetime-local" id="end_at" class="form-input" dir="ltr" /></div>
-          <div class="form-group"><label class="form-label">رابط الكويز</label><input type="url" id="quiz_url" class="form-input" dir="ltr" /></div>
+          <div class="form-group"><label class="form-label">القواعد / التعليمات</label><textarea id="rules" class="form-textarea"></textarea></div>
+          <div class="form-group"><label class="form-label">المادة</label><select id="subject_id" class="form-select"><option value="">— اختر —</option></select></div>
+          <div class="form-group"><label class="form-label">الدرجة الكلية</label><input type="number" min="0" id="total_marks" class="form-input" /></div>
+          <div class="form-group"><label class="form-label">درجة النجاح</label><input type="number" min="0" id="passing_score" class="form-input" /></div>
+          <div class="form-group"><label class="form-label">المدة بالدقائق</label><input type="number" min="1" id="duration_minutes" class="form-input" /></div>
+          <div class="form-group"><label class="form-label">بداية</label><input type="datetime-local" id="quiz_date" class="form-input" dir="ltr" /></div>
+          
+          
           <div class="form-group"><label class="form-check"><input type="checkbox" id="is_published" checked /><span>منشور</span></label></div>
           <div class="flex gap-1"><button type="submit" class="btn btn-primary">حفظ</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
         </form>
@@ -37,6 +41,10 @@
     async function init() {
       const result = await protectAdminPage(); if (!result) return;
       profile = result.profile; initIcons();
+      const { data: subjects, error: subjectsError } = await supabase.from('subjects').select('id, name').order('name');
+      if (subjectsError) console.warn('Could not load subjects:', subjectsError.message);
+      const subjectSelect = document.getElementById('subject_id');
+      (subjects || []).forEach(subject => { const option = document.createElement('option'); option.value = subject.id; option.textContent = subject.name; subjectSelect.appendChild(option); });
       document.getElementById('add-btn').onclick = () => document.getElementById('form-panel').classList.remove('hidden');
       document.getElementById('cancel-btn').onclick = () => document.getElementById('form-panel').classList.add('hidden');
       document.getElementById('quiz-form').onsubmit = save;
@@ -45,10 +53,10 @@
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase.from('quizzes').select('id, title, start_at, end_at, status, is_published').order('start_at', { ascending: false });
+        const { data, error } = await supabase.from('quizzes').select('id, title, quiz_date, duration_minutes, is_published').order('quiz_date', { ascending: false });
         if (error) throw error;
         if (!data?.length) { showEmpty(el, 'لا توجد كويزات'); return; }
-        el.innerHTML = data.map(q => `<div class="card mb-2"><div class="flex justify-between"><div><h3 class="card-title">${escapeHtml(q.title)}</h3><p class="text-sm text-muted">${q.start_at ? formatDate(q.start_at,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${q.id}">حذف</button></div></div>`).join('');
+        el.innerHTML = data.map(q => `<div class="card mb-2"><div class="flex justify-between"><div><h3 class="card-title">${escapeHtml(q.title)}</h3><p class="text-sm text-muted">${q.quiz_date ? formatDate(q.quiz_date,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${q.id}">حذف</button></div></div>`).join('');
         el.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => { if(!confirm('حذف؟')) return; await supabase.from('quizzes').delete().eq('id', btn.dataset.del); await load(); });
       } catch { showError(el, 'تعذر'); }
     }
@@ -57,12 +65,13 @@
       await withLoading(e.target.querySelector('[type=submit]'), async () => {
         const { error } = await supabase.from('quizzes').insert({
           title: document.getElementById('title').value.trim(),
-          topics: document.getElementById('topics').value.trim() || null,
-          start_at: document.getElementById('start_at').value || null,
-          end_at: document.getElementById('end_at').value || null,
-          quiz_url: document.getElementById('quiz_url').value.trim() || null,
-          is_published: document.getElementById('is_published').checked,
-          created_by: profile.id
+          rules: document.getElementById('rules').value.trim() || null,
+          subject_id: document.getElementById('subject_id').value || null,
+          quiz_date: document.getElementById('quiz_date').value || null,
+          duration_minutes: document.getElementById('duration_minutes').value ? Number(document.getElementById('duration_minutes').value) : null,
+          total_marks: document.getElementById('total_marks').value ? Number(document.getElementById('total_marks').value) : null,
+          passing_score: document.getElementById('passing_score').value ? Number(document.getElementById('passing_score').value) : null,
+          is_published: document.getElementById('is_published').checked
         });
         if (error) { showToast(error.message, 'error'); return; }
         showToast('تم', 'success');
