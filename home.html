@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>الرئيسية | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <div class="offline-banner" id="offline-banner">لا يوجد اتصال بالإنترنت</div>
+  <header class="app-header">
+    <div class="container">
+      <a href="/home.html" class="logo">
+        <span class="logo-icon">NS</span>
+        <span>NUSC Student Hub</span>
+      </a>
+      <nav class="desktop-nav">
+        <a href="/home.html" data-nav="home" class="active">الرئيسية</a>
+        <a href="/subjects.html" data-nav="subjects">المواد</a>
+        <a href="/quizzes.html" data-nav="quizzes">الكويزات</a>
+        <a href="/schedule.html" data-nav="schedule">الجدول</a>
+        <a href="/announcements.html" data-nav="announcements">الإعلانات</a>
+      </nav>
+      <div class="header-actions">
+        <a href="/notifications.html" class="header-btn" title="الإشعارات" id="notif-btn">
+          <span data-icon="bell"></span>
+          <span class="badge hidden" id="notif-badge">0</span>
+        </a>
+        <button type="button" class="user-chip" id="user-chip" title="الملف الشخصي">
+          <span class="user-avatar" id="user-avatar">?</span>
+          <span id="user-name-short"></span>
+        </button>
+        <a href="/profile.html" class="header-btn mobile-only" title="حسابي">
+          <span data-icon="user"></span>
+        </a>
+      </div>
+    </div>
+  </header>
+  <main class="page">
+    <div class="container page-content">
+      <div class="welcome-banner" id="welcome-banner">
+        <h2 id="welcome-text">أهلاً بك</h2>
+        <p>مستعد ليوم دراسي جديد؟</p>
+      </div>
+      <div class="quick-links">
+        <a href="/subjects.html" class="quick-link"><span class="icon-wrap" data-icon="book"></span>المواد</a>
+        <a href="/quizzes.html" class="quick-link"><span class="icon-wrap" data-icon="clipboard"></span>الكويزات</a>
+        <a href="/schedule.html" class="quick-link"><span class="icon-wrap" data-icon="calendar"></span>الجدول</a>
+        <a href="/announcements.html" class="quick-link"><span class="icon-wrap" data-icon="megaphone"></span>الإعلانات</a>
+      </div>
+      <section class="section">
+        <div class="section-header"><h2>المواد الدراسية</h2><a href="/subjects.html">عرض الكل</a></div>
+        <div class="card-grid" id="subjects-list">
+          <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+        </div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>آخر المحاضرات</h2><a href="/subjects.html">المزيد</a></div>
+        <div class="card" id="lectures-list"><div class="skeleton skeleton-title"></div></div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>الكويزات القادمة</h2><a href="/quizzes.html">عرض الكل</a></div>
+        <div class="card" id="quizzes-list"><div class="skeleton skeleton-title"></div></div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>آخر الإعلانات</h2><a href="/announcements.html">عرض الكل</a></div>
+        <div class="card" id="announcements-list"><div class="skeleton skeleton-title"></div></div>
+      </section>
+      <section class="section">
+        <div class="section-header"><h2>أحدث الملفات</h2></div>
+        <div class="card" id="materials-list"><div class="skeleton skeleton-title"></div></div>
+      </section>
+    </div>
+  </main>
+  <nav class="bottom-nav">
+    <a href="/home.html" data-nav="home" class="active"><span data-icon="home"></span>الرئيسية</a>
+    <a href="/subjects.html" data-nav="subjects"><span data-icon="book"></span>المواد</a>
+    <a href="/quizzes.html" data-nav="quizzes"><span data-icon="clipboard"></span>الكويزات</a>
+    <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
+    <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
+  </nav>
+  <script type="module" src="/assets/js/home.js"></script>
+</body>
+</html>
