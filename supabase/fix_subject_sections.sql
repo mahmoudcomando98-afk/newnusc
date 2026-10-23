@@ -8,7 +8,10 @@ ALTER TABLE public.materials
   ADD COLUMN IF NOT EXISTS file_name TEXT,
   ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES public.profiles(id);
 
-UPDATE public.materials SET material_type = 'lecture' WHERE material_type IS NULL;
+UPDATE public.materials
+SET material_type = 'lecture'
+WHERE material_type IS NULL
+   OR material_type NOT IN ('lecture', 'section', 'notes', 'assignment', 'exam', 'other', 'pdf', 'slides');
 ALTER TABLE public.materials ALTER COLUMN material_type SET DEFAULT 'lecture';
 
 -- Remove only check constraints that constrain material_type, so older constraints
