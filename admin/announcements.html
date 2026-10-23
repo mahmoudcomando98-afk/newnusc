@@ -29,6 +29,22 @@
             </select>
           </div>
           <div class="form-group"><label class="form-label" for="content">محتوى الإعلان *</label><textarea id="content" class="form-textarea" required maxlength="10000"></textarea></div>
+          <div class="form-group">
+            <label class="form-label" for="link_url">رابط الدخول (اختياري)</label>
+            <input type="url" id="link_url" class="form-input" maxlength="2000" placeholder="https://..." inputmode="url" dir="ltr" />
+            <p class="text-sm text-muted mt-1">أضف رابط Zoom أو Google Meet أو أي رابط دخول للسيكشن. تقدر تسيبه فاضي وتضيفه بعدين من زر تعديل الإعلان.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="link_label">نص زر الرابط</label>
+            <input type="text" id="link_label" class="form-input" maxlength="60" placeholder="دخول السيكشن أونلاين" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="link_status">حالة الرابط عند عدم توفره</label>
+            <select id="link_status" class="form-select">
+              <option value="none">بدون رابط إضافي</option>
+              <option value="coming_soon">قريبًا — الرابط هيتضاف بعدين</option>
+            </select>
+          </div>
           <div class="form-group"><label class="form-label" for="importance">الأهمية</label>
             <select id="importance" class="form-select"><option value="normal">عادي</option><option value="high">مهم</option><option value="urgent">عاجل</option><option value="low">أهمية قليلة</option></select>
           </div>
@@ -47,14 +63,26 @@
 
     let subjectsById = new Map();
     let currentProfile = null;
+    let editingId = null;
+    const announcementsById = new Map();
 
     async function init() {
       const result = await protectAdminPage();
       if (!result) return;
       currentProfile = result.profile || null;
       initIcons();
-      document.getElementById('add-btn').addEventListener('click', () => document.getElementById('form-panel').classList.remove('hidden'));
-      document.getElementById('cancel-btn').addEventListener('click', () => document.getElementById('form-panel').classList.add('hidden'));
+      document.getElementById('add-btn').addEventListener('click', () => {
+        resetForm();
+        document.getElementById('form-panel').classList.remove('hidden');
+        document.getElementById('title').focus();
+      });
+      document.getElementById('cancel-btn').addEventListener('click', () => {
+        resetForm();
+        document.getElementById('form-panel').classList.add('hidden');
+      });
+      document.getElementById('link_url').addEventListener('input', () => {
+        document.getElementById('link_status').disabled = Boolean(document.getElementById('link_url').value.trim());
+      });
       document.getElementById('ann-form').addEventListener('submit', save);
       await loadSubjects();
       await load();
@@ -80,6 +108,8 @@
       try {
         const { data, error } = await supabase.from('announcements').select('*').order('created_at', { ascending: false }).limit(100);
         if (error) throw error;
+        announcementsById.clear();
+        (data || []).forEach((item) => announcementsById.set(String(item.id), item));
         if (!data?.length) { showEmpty(el, 'لسه مفيش إعلانات. اضغط «إعلان جديد» عشان تبدأ.'); return; }
         el.innerHTML = data.map((item) => {
           const subjectName = item.subject_id ? (subjectsById.get(item.subject_id) || 'إعلان لمادة') : 'كل المنصة';
@@ -91,14 +121,17 @@
                 <h3 class="card-title">${item.is_pinned ? '📌 ' : ''}${escapeHtml(item.title || 'إعلان')}</h3>
                 <p class="text-sm text-muted">${escapeHtml(subjectName)} · ${levelLabel} · ${timeAgo(item.created_at)}</p>
                 <p class="text-sm mt-1">${escapeHtml((item.content || item.body || '').slice(0, 160))}</p>
+                ${item.link_url ? '<p class="text-sm text-muted mt-1">🔗 رابط مضاف</p>' : item.link_status === 'coming_soon' ? '<p class="text-sm text-muted mt-1">⏳ الرابط قريبًا</p>' : ''}
               </div>
               <div class="flex gap-1 items-center">
                 <span class="badge ${item.is_published === false ? 'badge-warning' : 'badge-success'}">${item.is_published === false ? 'مسودة' : 'منشور'}</span>
-                <button type="button" class="btn btn-sm btn-danger" data-del="${item.id}">حذف</button>
+                <button type="button" class="btn btn-sm btn-secondary" data-edit="${escapeHtml(String(item.id))}">تعديل</button>
+                <button type="button" class="btn btn-sm btn-danger" data-del="${escapeHtml(String(item.id))}">حذف</button>
               </div>
             </div>
           </article>`;
         }).join('');
+        el.querySelectorAll('[data-edit]').forEach((button) => button.addEventListener('click', () => editAnnouncement(button.dataset.edit)));
         el.querySelectorAll('[data-del]').forEach((button) => button.addEventListener('click', async () => {
           if (!confirm('متأكد إنك عايز تحذف الإعلان ده؟')) return;
           const { error: deleteError } = await supabase.from('announcements').delete().eq('id', button.dataset.del);
@@ -112,6 +145,35 @@
       }
     }
 
+    function resetForm() {
+      editingId = null;
+      const form = document.getElementById('ann-form');
+      form.reset();
+      document.getElementById('is_published').checked = true;
+      document.getElementById('link_status').disabled = false;
+      form.querySelector('[type=submit]').textContent = 'نشر الإعلان';
+    }
+
+    function editAnnouncement(id) {
+      const item = announcementsById.get(String(id));
+      if (!item) { showToast('مش قادرين نفتح الإعلان للتعديل. حدّث الصفحة وجرب تاني.', 'error'); return; }
+      editingId = String(item.id);
+      document.getElementById('title').value = item.title || '';
+      document.getElementById('subject_id').value = item.subject_id || '';
+      document.getElementById('content').value = item.content || item.body || '';
+      document.getElementById('importance').value = item.importance || item.priority || 'normal';
+      document.getElementById('is_pinned').checked = item.is_pinned === true;
+      document.getElementById('is_published').checked = item.is_published !== false;
+      document.getElementById('link_url').value = item.link_url || '';
+      document.getElementById('link_label').value = item.link_label || 'دخول السيكشن أونلاين';
+      document.getElementById('link_status').value = item.link_status === 'coming_soon' ? 'coming_soon' : 'none';
+      document.getElementById('link_status').disabled = Boolean(item.link_url);
+      document.querySelector('#ann-form [type=submit]').textContent = 'حفظ التعديلات';
+      document.getElementById('form-panel').classList.remove('hidden');
+      document.getElementById('title').focus();
+      document.getElementById('form-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     function isMissingColumn(error, column) {
       const message = String(error?.message || '').toLowerCase();
       const details = String(error?.details || '').toLowerCase();
@@ -122,17 +184,15 @@
         combined.includes(`announcements.${column.toLowerCase()}`);
     }
 
-    async function insertAnnouncement(payload) {
+    async function persistAnnouncement(payload, announcementId = null) {
       const candidate = { ...payload };
-      // Select the inserted row so the UI only reports success after Postgres confirms persistence.
-      for (let attempt = 0; attempt < 6; attempt += 1) {
-        const result = await supabase.from('announcements')
-          .insert(candidate)
-          .select('id, title, subject_id')
-          .single();
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const query = announcementId
+          ? supabase.from('announcements').update(candidate).eq('id', announcementId)
+          : supabase.from('announcements').insert(candidate);
+        const result = await query.select('id, title, subject_id').single();
         if (!result.error) return result;
 
-        // Support deployments whose old schema used priority rather than importance.
         if (isMissingColumn(result.error, 'importance') && Object.hasOwn(candidate, 'importance')) {
           candidate.priority = candidate.importance;
           delete candidate.importance;
@@ -143,8 +203,17 @@
           continue;
         }
 
-        // These are optional metadata fields on older installs. Never drop subject_id,
-        // title, or content: a targeted announcement must not silently become global.
+        const linkColumns = ['link_url', 'link_label', 'link_status'];
+        const missingLink = linkColumns.find(column => Object.hasOwn(candidate, column) && isMissingColumn(result.error, column));
+        if (missingLink) {
+          const hasLinkFeature = Boolean(payload.link_url) || payload.link_status === 'coming_soon';
+          if (hasLinkFeature) {
+            return { data: null, error: { ...result.error, message: 'ميزة رابط السيكشن محتاجة تحديث قاعدة البيانات. شغّل ملف fix_announcements_and_branding.sql في Supabase SQL Editor.' } };
+          }
+          delete candidate[missingLink];
+          continue;
+        }
+
         const optionalColumns = ['is_pinned', 'is_published', 'created_by'];
         const missingOptional = optionalColumns.find(column =>
           Object.hasOwn(candidate, column) && isMissingColumn(result.error, column)
@@ -173,6 +242,20 @@
       event.preventDefault();
       const button = event.target.querySelector('[type=submit]');
       await withLoading(button, async () => {
+        const rawUrl = document.getElementById('link_url').value.trim();
+        let linkUrl = '';
+        if (rawUrl) {
+          try {
+            const parsed = new URL(rawUrl);
+            if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('protocol');
+            linkUrl = parsed.href;
+          } catch {
+            showToast('اكتب رابط صحيح يبدأ بـ https:// أو http://', 'error');
+            return;
+          }
+        }
+        const selectedLinkStatus = document.getElementById('link_status').value;
+        const linkStatus = linkUrl ? 'available' : selectedLinkStatus;
         const payload = {
           title: document.getElementById('title').value.trim(),
           content: document.getElementById('content').value.trim(),
@@ -180,18 +263,21 @@
           importance: document.getElementById('importance').value,
           is_pinned: document.getElementById('is_pinned').checked,
           is_published: document.getElementById('is_published').checked,
-          created_by: currentProfile?.id || null
+          created_by: currentProfile?.id || null,
+          link_url: linkUrl || null,
+          link_label: document.getElementById('link_label').value.trim() || 'دخول السيكشن أونلاين',
+          link_status: linkStatus
         };
-        const { data: savedAnnouncement, error } = await insertAnnouncement(payload);
+        const { data: savedAnnouncement, error } = await persistAnnouncement(payload, editingId);
         if (error || !savedAnnouncement?.id) {
-          console.error('Announcement insert was not confirmed:', error);
+          console.error('Announcement save was not confirmed:', error);
           showToast(announcementSaveError(error || { message: 'لم يتم تأكيد حفظ الإعلان.' }), 'error');
           return;
         }
         console.info('Announcement saved:', savedAnnouncement.id);
-        showToast('تم حفظ الإعلان بنجاح.', 'success');
+        showToast(editingId ? 'تم تحديث الإعلان بنجاح.' : 'تم حفظ الإعلان بنجاح.', 'success');
         document.getElementById('form-panel').classList.add('hidden');
-        event.target.reset();
+        resetForm();
         await load();
       });
     }
