@@ -55,6 +55,7 @@
     }
 
     function safeHttpUrl(raw) {
+      if (raw && typeof raw === 'object') raw = raw.url || raw.href || '';
       if (typeof raw !== 'string' || !raw.trim()) return '';
       try {
         const url = new URL(raw.trim());
@@ -62,6 +63,15 @@
       } catch {
         return '';
       }
+    }
+
+    function announcementJoinUrl(item) {
+      const storedUrl = item.link_url || item.session_url || item.section_url || item.meeting_url || item.join_url || item.external_url;
+      const directUrl = safeHttpUrl(storedUrl);
+      if (directUrl) return directUrl;
+      const text = String(item.content || item.body || '');
+      const match = text.match(/https?:\/\/[^\s<>"']+/i);
+      return match ? safeHttpUrl(match[0].replace(/[),.،؛]+$/, '')) : '';
     }
 
     async function init() {
@@ -124,8 +134,8 @@
             ${subjectName ? `<p class="text-sm text-muted">${escapeHtml(subjectName)}</p>` : ''}
             ${n.content ? `<p class="text-sm" style="white-space:pre-wrap">${escapeHtml(n.content)}</p>` : ''}
             <div class="card-meta"><span>${timeAgo(n.created_at)}</span>${n.is_pinned ? '<span class="badge badge-info">مثبّت</span>' : ''}</div>
-            ${safeHttpUrl(n.link_url)
-              ? `<a href="${escapeHtml(safeHttpUrl(n.link_url))}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary mt-1">${escapeHtml(n.link_label || 'دخول السيكشن أونلاين')}</a>`
+            ${announcementJoinUrl(n)
+              ? `<a href="${escapeHtml(announcementJoinUrl(n))}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary mt-1">${escapeHtml(n.link_label || 'دخول السيكشن أونلاين')}</a>`
               : n.link_status === 'coming_soon'
                 ? '<div class="mt-1"><span class="badge badge-warning">رابط السيكشن قريبًا</span></div>'
                 : '<a href="/announcements.html" class="btn btn-sm btn-outline mt-1">عرض الإعلانات</a>'}
