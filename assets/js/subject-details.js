@@ -73,8 +73,17 @@ async function loadTab(tab) {
     else if (tab === 'announcements') await loadAnnouncements(el);
   } catch (error) {
     console.error('Subject content load failed:', error);
-    showError(el, 'مش قادرين نحمّل المحتوى دلوقتي. جرّب تاني.');
+    showRetryState(el, tab, 'مش قادرين نحمّل المحتوى دلوقتي. اضغط إعادة المحاولة.');
   }
+}
+
+function showRetryState(el, tab, message) {
+  el.innerHTML = `
+    <div class="card text-center" role="status" style="padding:24px">
+      <p class="text-sm text-muted mb-2">${escapeHtml(message)}</p>
+      <button type="button" class="btn btn-primary" data-retry-content>إعادة المحاولة</button>
+    </div>`;
+  el.querySelector('[data-retry-content]')?.addEventListener('click', () => loadTab(tab));
 }
 
 async function loadSubjectMaterials() {
@@ -125,7 +134,8 @@ async function loadLectures(el) {
     loadSubjectMaterials().then((data) => ({ data, error: null }))
       .catch((error) => ({ data: [], error }))
   ]);
-  if (lecturesResult.error) throw lecturesResult.error;
+  // A failed lectures query should not hide usable files from the materials table.
+  if (lecturesResult.error) console.warn('Lecture records are temporarily unavailable:', lecturesResult.error);
   const lectures = (lecturesResult.data || [])
     .filter((item) => item.is_published !== false && item.is_active !== false)
     .sort((a, b) => {
@@ -140,7 +150,11 @@ async function loadLectures(el) {
   // Keep old material types visible so existing files do not disappear.
   const lectureFiles = materials.filter((m) => !['section', 'assignment'].includes(m.material_type));
   if (!lectures.length && !lectureFiles.length) {
-    showEmpty(el, 'لسه مفيش محاضرات أو ملفات للمادة دي.');
+    if (lecturesResult.error || materialsResult.error) {
+      showRetryState(el, 'lectures', 'تعذر الاتصال بمحتوى المحاضرات أو الملفات. جرّب مرة تانية.');
+    } else {
+      showEmpty(el, 'لسه مفيش محاضرات أو ملفات للمادة دي.');
+    }
     return;
   }
   const lectureHtml = lectures.map((lecture) => `
@@ -160,7 +174,10 @@ async function loadLectures(el) {
   const filesHtml = lectureFiles.length
     ? `<section class="section mt-2"><h3 class="mb-1">ملفات المحاضرات</h3><div class="card">${lectureFiles.map((file) => materialCard(file, 'محاضرات')).join('')}</div></section>`
     : '';
-  el.innerHTML = `${lectureHtml ? `<div class="card">${lectureHtml}</div>` : ''}${filesHtml}`;
+  const fallbackNotice = lecturesResult.error && lectureFiles.length
+    ? '<p class="text-sm text-muted mb-2">بنعرِض ملفات المادة المتاحة؛ سجل المحاضرات نفسه تعذر تحميله مؤقتًا.</p>'
+    : '';
+  el.innerHTML = `${fallbackNotice}${lectureHtml ? `<div class="card">${lectureHtml}</div>` : ''}${filesHtml}`;
   bindDownloads(el);
 }
 
