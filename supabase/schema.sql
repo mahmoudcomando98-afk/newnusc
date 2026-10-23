@@ -37,6 +37,29 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Users cannot grant themselves admin privileges or reactivate an account.
+CREATE OR REPLACE FUNCTION public.prevent_profile_privilege_escalation()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $profile_privileges$
+BEGIN
+  IF (NEW.role IS DISTINCT FROM OLD.role OR NEW.is_active IS DISTINCT FROM OLD.is_active)
+     AND NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Only an active admin can change account roles or access status.'
+      USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$profile_privileges$;
+
+DROP TRIGGER IF EXISTS protect_profile_privileges ON public.profiles;
+CREATE TRIGGER protect_profile_privileges
+  BEFORE UPDATE OF role, is_active ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.prevent_profile_privilege_escalation();
+
 -- subjects
 CREATE TABLE IF NOT EXISTS public.subjects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
