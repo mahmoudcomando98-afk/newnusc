@@ -94,7 +94,7 @@ async function loadMaterials(el, typeFilter) {
       <div class="list-item-icon" data-icon="file"></div>
       <div class="list-item-body">
         <div class="list-item-title">${escapeHtml(m.title)}</div>
-        <div class="list-item-desc">${materialTypeLabel(m.material_type)}${m.file_size ? ` \u00b7 ${formatFileSize(m.file_size)}` : ''} \u00b7 ${timeAgo(m.created_at)}</div>
+        <div class="list-item-desc">${escapeHtml(m.file_type || 'ملف')}${m.file_size ? ` \u00b7 ${formatFileSize(m.file_size)}` : ''} \u00b7 ${timeAgo(m.created_at)}</div>
       </div>
       <button type="button" class="btn btn-sm btn-secondary" data-download="${m.id}" data-path="${escapeHtml(m.file_path)}" title="تنزيل"><span data-icon="download"></span></button>
     </div>`).join('')}</div>`;
