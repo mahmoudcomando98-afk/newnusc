@@ -34,7 +34,25 @@
     import { supabase } from './assets/js/supabase.js';
     import { protectPage } from './assets/js/auth.js';
     import { escapeHtml, timeAgo, showEmpty, showError, showToast, initIcons } from './assets/js/utils.js';
+
     let profile = null;
+    let announcements = [];
+
+    function readKey() {
+      return 'nusc_read_announcements_' + (profile?.id || 'guest');
+    }
+    function getReadIds() {
+      try {
+        const value = JSON.parse(localStorage.getItem(readKey()) || '[]');
+        return new Set(Array.isArray(value) ? value : []);
+      } catch {
+        return new Set();
+      }
+    }
+    function saveReadIds(ids) {
+      try { localStorage.setItem(readKey(), JSON.stringify([...ids])); } catch {}
+    }
+
     async function init() {
       const result = await protectPage();
       if (!result) return;
@@ -43,29 +61,73 @@
       document.getElementById('mark-all')?.addEventListener('click', markAll);
       await load();
     }
+
     async function load() {
       const el = document.getElementById('notif-list');
       try {
-        const { data, error } = await supabase.from('notifications').select('id, title, body, type, link, created_at').or(`user_id.eq.${profile.id},is_global.eq.true`).order('created_at', { ascending: false }).limit(50);
+        // Announcements are the existing, published source of student-facing updates.
+        // This avoids depending on notification tables/RPCs that may not exist in this project.
+        const { data, error } = await supabase
+          .from('announcements')
+          .select('id, title, content, priority, is_pinned, created_at')
+          .eq('is_published', true)
+          .order('is_pinned', { ascending: false })
+          .order('created_at', { ascending: false })
+          .limit(50);
+
         if (error) throw error;
-        if (!data?.length) { showEmpty(el, 'لا توجد إشعارات'); return; }
-        const { data: reads } = await supabase.from('notification_reads').select('notification_id').eq('user_id', profile.id);
-        const readSet = new Set((reads || []).map(r => r.notification_id));
-        el.innerHTML = data.map(n => `
-          <div class="card mb-2" style="${readSet.has(n.id) ? 'opacity:0.7' : ''}" data-id="${n.id}">
-            <h3 class="card-title">${escapeHtml(n.title)}</h3>
-            ${n.body ? `<p class="text-sm text-muted">${escapeHtml(n.body)}</p>` : ''}
-            <div class="card-meta"><span>${timeAgo(n.created_at)}</span></div>
-            ${n.link ? `<a href="${escapeHtml(n.link)}" class="btn btn-sm btn-outline mt-1">عرض</a>` : ''}
-          </div>`).join('');
-        el.querySelectorAll('[data-id]').forEach(card => { card.addEventListener('click', () => markRead(card.dataset.id)); });
-      } catch (err) { showError(el, 'تعذر تحميل الإشعارات'); }
+        announcements = data || [];
+        if (!announcements.length) {
+          showEmpty(el, 'لا توجد إشعارات أو إعلانات جديدة حالياً');
+          return;
+        }
+
+        render();
+      } catch (err) {
+        console.error('[NUSC] notifications load failed:', err);
+        showError(el, 'تعذر تحميل الإشعارات. حاول تحديث الصفحة، وإذا استمرت المشكلة راجع اتصال قاعدة البيانات والصلاحيات.');
+      }
     }
-    async function markRead(id) { try { await supabase.rpc('mark_notification_read', { p_notification_id: id }); } catch {} }
-    async function markAll() {
-      try { await supabase.rpc('mark_all_notifications_read'); showToast('تم تعيين الكل كمقروء', 'success'); await load(); }
-      catch { showToast('تعذر التحديث', 'error'); }
+
+    function render() {
+      const el = document.getElementById('notif-list');
+      const readIds = getReadIds();
+      el.innerHTML = announcements.map(n => {
+        const isRead = readIds.has(String(n.id));
+        const priority = n.priority === 'urgent' || n.priority === 'high'
+          ? '<span class="badge badge-warning">مهم</span>'
+          : '';
+        return `
+          <article class="card mb-2" data-id="${escapeHtml(String(n.id))}" style="${isRead ? 'opacity:.72' : ''}">
+            <div class="flex items-center justify-between gap-1 mb-1">
+              <h3 class="card-title">${escapeHtml(n.title || 'إعلان جديد')}</h3>
+              <div class="flex items-center gap-1">${priority}${isRead ? '<span class="badge">مقروء</span>' : '<span class="badge badge-primary">جديد</span>'}</div>
+            </div>
+            ${n.content ? `<p class="text-sm">${escapeHtml(n.content)}</p>` : ''}
+            <div class="card-meta"><span>${timeAgo(n.created_at)}</span>${n.is_pinned ? '<span class="badge badge-info">مثبّت</span>' : ''}</div>
+            <a href="/announcements.html" class="btn btn-sm btn-outline mt-1">عرض الإعلانات</a>
+          </article>`;
+      }).join('');
+
+      el.querySelectorAll('[data-id]').forEach(card => {
+        card.addEventListener('click', event => {
+          if (event.target.closest('a')) return;
+          const ids = getReadIds();
+          ids.add(String(card.dataset.id));
+          saveReadIds(ids);
+          const title = card.querySelector('.card-title');
+          if (title) title.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          render();
+        });
+      });
     }
+
+    function markAll() {
+      saveReadIds(new Set([...getReadIds(), ...announcements.map(n => String(n.id))]));
+      render();
+      showToast('تم تعيين الكل كمقروء', 'success');
+    }
+
     init();
   </script>
 </body>
