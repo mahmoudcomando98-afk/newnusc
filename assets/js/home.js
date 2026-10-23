@@ -260,6 +260,16 @@ async function loadQuizzes() {
   }
 }
 
+function safeHttpUrl(raw) {
+  if (typeof raw !== 'string' || !raw.trim()) return '';
+  try {
+    const url = new URL(raw.trim());
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
 async function loadAnnouncements() {
   const el = document.getElementById('announcements-list');
   if (!el) return;
@@ -284,7 +294,7 @@ async function loadAnnouncements() {
       const level = announcement.importance || announcement.priority || 'normal';
       const subjectName = subjectNames[announcement.subject_id] || '';
       return `
-        <a href="/announcements.html" class="list-item announcement-item ${['urgent','high'].includes(level) ? 'announcement-important' : ''}" style="text-decoration:none;color:inherit">
+        <div class="list-item announcement-item ${['urgent','high'].includes(level) ? 'announcement-important' : ''}">
           <div class="list-item-icon" data-icon="megaphone"></div>
           <div class="list-item-body">
             <div class="list-item-title">
@@ -293,8 +303,14 @@ async function loadAnnouncements() {
             </div>
             ${subjectName ? `<div class="list-item-desc">${escapeHtml(subjectName)}</div>` : ''}
             <div class="list-item-desc">${escapeHtml((announcement.content || announcement.body || '').slice(0, 80))} · ${timeAgo(announcement.created_at)}</div>
+            ${safeHttpUrl(announcement.link_url)
+              ? `<a href="${escapeHtml(safeHttpUrl(announcement.link_url))}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary mt-1">${escapeHtml(announcement.link_label || 'دخول السيكشن أونلاين')}</a>`
+              : announcement.link_status === 'coming_soon'
+                ? '<span class="badge badge-warning mt-1">رابط السيكشن قريبًا</span>'
+                : ''}
+            <a href="/announcements.html" class="btn btn-sm btn-outline mt-1">عرض الإعلان</a>
           </div>
-        </a>`;
+        </div>`;
     }).join('');
     initIcons();
   } catch (error) {
@@ -321,6 +337,21 @@ async function loadImportantNotice() {
     document.getElementById('important-notice-content').textContent = (notice.content || notice.body || '').slice(0, 260);
     const time = document.getElementById('important-notice-time');
     if (time) time.textContent = level === 'urgent' ? 'تنبيه عاجل' : 'إعلان مهم من الإدارة';
+    const noticeLink = banner.querySelector('.notice-open');
+    const safeNoticeUrl = safeHttpUrl(notice.link_url);
+    if (noticeLink) {
+      noticeLink.href = safeNoticeUrl || '/notifications.html';
+      noticeLink.textContent = safeNoticeUrl
+        ? (notice.link_label || 'دخول السيكشن أونلاين')
+        : 'عرض الإشعارات ←';
+      if (safeNoticeUrl) {
+        noticeLink.target = '_blank';
+        noticeLink.rel = 'noopener noreferrer';
+      } else {
+        noticeLink.removeAttribute('target');
+        noticeLink.removeAttribute('rel');
+      }
+    }
     banner.classList.toggle('notice-urgent', level === 'urgent');
     banner.classList.remove('hidden');
   } catch (error) {
