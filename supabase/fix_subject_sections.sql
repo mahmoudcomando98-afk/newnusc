@@ -121,6 +121,23 @@ CREATE POLICY "NUSC content managers manage materials"
   USING (private.is_content_manager())
   WITH CHECK (private.is_content_manager());
 
+-- Authenticated students may create signed download links only for published materials.
+DROP POLICY IF EXISTS "NUSC users read published subject files" ON storage.objects;
+CREATE POLICY "NUSC users read published subject files"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'materials'
+    AND (
+      private.is_content_manager()
+      OR EXISTS (
+        SELECT 1
+        FROM public.materials m
+        WHERE m.file_path = name
+          AND COALESCE(to_jsonb(m)->>'is_published', 'true') <> 'false'
+      )
+    )
+  );
+
 -- Upload/delete in the materials bucket is restricted to content managers.
 DROP POLICY IF EXISTS "NUSC content managers upload subject files" ON storage.objects;
 CREATE POLICY "NUSC content managers upload subject files"
