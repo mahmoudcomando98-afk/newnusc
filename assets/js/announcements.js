@@ -16,6 +16,7 @@ import {
 } from './utils.js';
 
 function safeHttpUrl(raw) {
+  if (raw && typeof raw === 'object') raw = raw.url || raw.href || '';
   if (typeof raw !== 'string' || !raw.trim()) return '';
   try {
     const url = new URL(raw.trim());
@@ -23,6 +24,15 @@ function safeHttpUrl(raw) {
   } catch {
     return '';
   }
+}
+
+function announcementJoinUrl(item) {
+  const storedUrl = item.link_url || item.session_url || item.section_url || item.meeting_url || item.join_url || item.external_url;
+  const directUrl = safeHttpUrl(storedUrl);
+  if (directUrl) return directUrl;
+  const text = String(item.content || item.body || '');
+  const match = text.match(/https?:\/\/[^\s<>"']+/i);
+  return match ? safeHttpUrl(match[0].replace(/[),.،؛]+$/, '')) : '';
 }
 
 function getPriority(announcement) {
@@ -145,6 +155,7 @@ async function loadAnnouncements() {
       const createdText = announcement.created_at
         ? timeAgo(announcement.created_at)
         : '';
+      const joinUrl = announcementJoinUrl(announcement);
 
       return `
         <article class="card mb-2">
@@ -168,8 +179,8 @@ async function loadAnnouncements() {
           <p class="text-sm mt-2" style="white-space:pre-wrap">${escapeHtml(announcement.content || announcement.body || '')}</p>
 
           ${
-            safeHttpUrl(announcement.link_url)
-              ? `<div class="mt-2"><a href="${escapeHtml(safeHttpUrl(announcement.link_url))}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">${escapeHtml(announcement.link_label || 'دخول السيكشن أونلاين')}</a></div>`
+            joinUrl
+              ? `<div class="mt-2"><a href="${escapeHtml(joinUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">${escapeHtml(announcement.link_label || 'دخول السيكشن أونلاين')}</a></div>`
               : announcement.link_status === 'coming_soon'
                 ? '<div class="mt-2"><span class="badge badge-warning">رابط السيكشن قريبًا</span></div>'
                 : ''
