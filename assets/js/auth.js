@@ -219,12 +219,21 @@ export async function protectPage({ adminOnly = false } = {}) {
   const profile = await getProfile(session.user.id);
 
   if (adminOnly) {
-    const role = profile?.role;
+    // Fail closed: only a signed-in, active account explicitly assigned the
+    // admin role in public.profiles may see admin pages. Moderator/student
+    // roles and profile lookup failures are not admin access.
+    const isAuthorizedAdmin =
+      !!profile &&
+      profile.role === 'admin' &&
+      profile.is_active === true;
 
-    if (role !== 'admin' && role !== 'moderator') {
-      window.location.replace('/home.html');
+    if (!isAuthorizedAdmin) {
+      window.location.replace(session?.user ? '/home.html' : '/login.html');
       return null;
     }
+
+    // Admin page HTML is hidden by an early head script until this check passes.
+    document.documentElement.classList.remove('admin-auth-pending');
   }
 
   return {
