@@ -28,6 +28,24 @@ ALTER TABLE public.announcements ALTER COLUMN created_at SET DEFAULT NOW();
 CREATE INDEX IF NOT EXISTS announcements_subject_published_created_idx
   ON public.announcements (subject_id, is_published, created_at DESC);
 
+-- Ensure the policy helper recognizes the same admin/moderator roles as the UI.
+-- SECURITY DEFINER avoids an RLS recursion when checking the signed-in profile.
+CREATE OR REPLACE FUNCTION private.is_content_manager()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $content_manager$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid()
+      AND role IN ('admin', 'moderator')
+      AND COALESCE(is_active, true) = true
+  );
+$content_manager$;
+
 -- Ensure content-management checks work from the browser for authorized admins.
 GRANT USAGE ON SCHEMA private TO authenticated;
 GRANT EXECUTE ON FUNCTION private.is_content_manager() TO authenticated;
