@@ -1,3 +1,4 @@
+
 /**
  * NUSC Student Hub - Shared Utilities
  */
@@ -60,17 +61,27 @@ export function debounce(fn, wait = 300) {
 
 export function showToast(message, type = 'info', duration = 3500) {
   let container = document.getElementById('toast-container');
+
   if (!container) {
     container = document.createElement('div');
     container.id = 'toast-container';
-    container.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;width:90%;max-width:360px;pointer-events:none';
+    container.style.cssText =
+      'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;width:90%;max-width:360px;pointer-events:none';
     document.body.appendChild(container);
   }
+
   const toast = document.createElement('div');
-  const colors = { success: '#059669', error: '#dc2626', warning: '#d97706', info: '#2563eb' };
+  const colors = {
+    success: '#059669',
+    error: '#dc2626',
+    warning: '#d97706',
+    info: '#2563eb'
+  };
+
   toast.style.cssText = `background:${colors[type] || colors.info};color:#fff;padding:12px 16px;border-radius:10px;font-size:0.9rem;box-shadow:0 4px 12px rgba(0,0,0,.15);pointer-events:auto;text-align:center;width:100%`;
   toast.textContent = message;
   container.appendChild(toast);
+
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transition = 'opacity .3s';
@@ -80,6 +91,7 @@ export function showToast(message, type = 'info', duration = 3500) {
 
 export function showSkeleton(el, count = 3) {
   if (!el) return;
+
   el.innerHTML = Array.from({ length: count }, () =>
     '<div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text short"></div></div>'
   ).join('');
@@ -92,6 +104,7 @@ export function showEmpty(el, message = 'لا توجد بيانات') {
 
 export function showError(el, message = 'حدث خطأ') {
   if (!el) return;
+
   el.innerHTML = `<div class="empty-state"><p style="color:var(--danger)">${escapeHtml(message)}</p><button type="button" class="btn btn-sm btn-secondary mt-2" onclick="location.reload()">إعادة المحاولة</button></div>`;
 }
 
@@ -104,86 +117,146 @@ export function onConnectivityChange(cb) {
   window.addEventListener('offline', () => cb(false));
 }
 
-export const WEEKDAYS_AR = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+export const WEEKDAYS_AR = [
+  'الأحد',
+  'الاثنين',
+  'الثلاثاء',
+  'الأربعاء',
+  'الخميس',
+  'الجمعة',
+  'السبت'
+];
 
 export function materialTypeLabel(type) {
-  const map = { lecture: 'محاضرة', notes: 'ملاحظات', assignment: 'واجب', exam: 'امتحان', other: 'أخرى', pdf: 'PDF', slides: 'عرض' };
+  const map = {
+    lecture: 'محاضرة',
+    notes: 'ملاحظات',
+    assignment: 'واجب',
+    exam: 'امتحان',
+    other: 'أخرى',
+    pdf: 'PDF',
+    slides: 'عرض'
+  };
+
   return map[type] || type || '';
 }
 
 export function importanceLabel(level) {
-  const map = { urgent: 'عاجل', high: 'مهم', normal: 'عادي', low: 'منخفض' };
+  const map = {
+    urgent: 'عاجل',
+    high: 'مهم',
+    normal: 'عادي',
+    low: 'منخفض'
+  };
+
   return map[level] || level || '';
 }
 
 export function quizStatusLabel(status) {
-  const map = { upcoming: 'قادم', open: 'مفتوح', closed: 'منتهي' };
+  const map = {
+    upcoming: 'قادم',
+    open: 'مفتوح',
+    closed: 'منتهي'
+  };
+
   return map[status] || status || '';
 }
 
 export function computeQuizStatus(q) {
   if (!q) return 'closed';
+
   const now = Date.now();
   const start = q.start_at ? new Date(q.start_at).getTime() : 0;
   const end = q.end_at ? new Date(q.end_at).getTime() : Infinity;
+
   if (now < start) return 'upcoming';
   if (now > end) return 'closed';
+
   return 'open';
 }
 
 export function createCountdown(targetDate, el) {
   if (!el || !targetDate) return null;
+
   const target = new Date(targetDate).getTime();
+
   const tick = () => {
     const diff = target - Date.now();
-    if (diff <= 0) { el.textContent = 'بدأ'; return; }
+
+    if (diff <= 0) {
+      el.textContent = 'بدأ';
+      return;
+    }
+
     const d = Math.floor(diff / 86400000);
     const h = Math.floor((diff % 86400000) / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
     const s = Math.floor((diff % 60000) / 1000);
-    el.textContent = d > 0 ? `${d}ي ${h}س ${m}د` : `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+    el.textContent =
+      d > 0
+        ? `${d}ي ${h}س ${m}د`
+        : `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
+
   tick();
   return setInterval(tick, 1000);
 }
 
-export function withLoading(btn, asyncFn) {
-  return async (...args) => {
-    if (!btn) return asyncFn(...args);
-    const original = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>';
-    try {
-      return await asyncFn(...args);
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = original;
-    }
-  };
+/* =========================
+   Loading State - Fixed
+========================= */
+
+export async function withLoading(btn, asyncFn) {
+  if (typeof asyncFn !== 'function') {
+    throw new Error('تعذر تشغيل العملية المطلوبة');
+  }
+
+  if (!btn) {
+    return await asyncFn();
+  }
+
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    return await asyncFn();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
 }
 
 export async function requireAuth(redirectTo = '/login.html') {
   const { getSession } = await import('./supabase.js');
   const session = await getSession();
+
   if (!session) {
     window.location.href = redirectTo;
     return null;
   }
+
   return session;
 }
 
 export async function redirectIfAuthenticated(to = '/home.html') {
   const { getSession } = await import('./supabase.js');
   const session = await getSession();
-  if (session) window.location.href = to;
+
+  if (session) {
+    window.location.href = to;
+  }
 }
 
 export function setActiveNav(key) {
   document.querySelectorAll('[data-nav]').forEach((el) => {
     el.classList.toggle('active', el.dataset.nav === key);
   });
+
   document.querySelectorAll('.bottom-nav a').forEach((a) => {
     const href = a.getAttribute('href') || '';
+
     if (key === 'home' && href.includes('home')) a.classList.add('active');
     else if (key === 'subjects' && href.includes('subjects')) a.classList.add('active');
     else if (key === 'quizzes' && href.includes('quizzes')) a.classList.add('active');
@@ -212,6 +285,7 @@ const ICONS = {
 export function initIcons() {
   document.querySelectorAll('[data-icon]').forEach((el) => {
     const name = el.dataset.icon;
+
     if (ICONS[name] && !el.querySelector('svg')) {
       el.innerHTML = ICONS[name];
     }
