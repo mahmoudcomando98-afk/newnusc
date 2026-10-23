@@ -69,6 +69,17 @@ CREATE POLICY "NUSC content managers manage announcements"
   USING (private.is_content_manager())
   WITH CHECK (private.is_content_manager());
 
+-- Ensure platform_settings exists even on older installations that never ran schema.sql.
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL DEFAULT 'null'::jsonb,
+  description TEXT
+);
+
+INSERT INTO public.platform_settings (key, value, description)
+VALUES ('site_name', '"NUSC Student Hub"'::jsonb, 'اسم المنصة')
+ON CONFLICT (key) DO NOTHING;
+
 -- Save the public logo URL in platform_settings.
 ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
 GRANT SELECT ON public.platform_settings TO anon, authenticated;
