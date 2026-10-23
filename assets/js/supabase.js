@@ -1,3 +1,5 @@
+import './egyptian-ar.js';
+
 /**
  * NUSC Student Hub - Supabase Client
  * Fallback values are public publishable keys (safe for frontend with RLS)
