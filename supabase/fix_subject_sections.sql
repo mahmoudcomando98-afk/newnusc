@@ -52,7 +52,7 @@ GRANT USAGE ON SCHEMA private TO authenticated;
 GRANT EXECUTE ON FUNCTION private.is_content_manager() TO authenticated;
 
 -- Remove only content policies that reference legacy admin helper names.
-DO $
+DO $$
 DECLARE
   policy_row RECORD;
 BEGIN
@@ -66,7 +66,7 @@ BEGIN
     EXECUTE format('DROP POLICY %I ON %I.%I',
       policy_row.policyname, policy_row.schemaname, policy_row.tablename);
   END LOOP;
-END $;
+END $$;
 
 DROP POLICY IF EXISTS "Anyone authenticated can view published subjects" ON public.subjects;
 DROP POLICY IF EXISTS "Admins can manage subjects" ON public.subjects;
