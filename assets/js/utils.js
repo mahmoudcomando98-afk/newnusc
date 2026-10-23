@@ -162,6 +162,7 @@ export const WEEKDAYS_AR = [
 export function materialTypeLabel(type) {
   const map = {
     lecture: 'محاضرة',
+    section: 'سكشن',
     notes: 'ملاحظات',
     assignment: 'واجب',
     exam: 'امتحان',
