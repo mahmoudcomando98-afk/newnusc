@@ -110,20 +110,61 @@
       }
     }
 
-    function shouldTryPriority(error) {
+    function isMissingColumn(error, column) {
       const message = String(error?.message || '').toLowerCase();
-      return /importance|column.*not exist|schema cache|could not find.*column/.test(message) &&
-        (/42703|pgrst204|pgrst_schema_cache|column/i.test(String(error?.code || '') + ' ' + message));
+      const details = String(error?.details || '').toLowerCase();
+      const combined = message + ' ' + details;
+      return combined.includes(`could not find the '${column.toLowerCase()}' column`) ||
+        combined.includes(`column "${column.toLowerCase()}" does not exist`) ||
+        combined.includes(`column ${column.toLowerCase()} does not exist`) ||
+        combined.includes(`announcements.${column.toLowerCase()}`);
     }
 
     async function insertAnnouncement(payload) {
-      let result = await supabase.from('announcements').insert(payload);
-      if (result.error && shouldTryPriority(result.error)) {
-        const fallback = { ...payload, priority: payload.importance };
-        delete fallback.importance;
-        result = await supabase.from('announcements').insert(fallback);
+      const candidate = { ...payload };
+      // Select the inserted row so the UI only reports success after Postgres confirms persistence.
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const result = await supabase.from('announcements')
+          .insert(candidate)
+          .select('id, title, subject_id')
+          .single();
+        if (!result.error) return result;
+
+        // Support deployments whose old schema used priority rather than importance.
+        if (isMissingColumn(result.error, 'importance') && Object.hasOwn(candidate, 'importance')) {
+          candidate.priority = candidate.importance;
+          delete candidate.importance;
+          continue;
+        }
+        if (isMissingColumn(result.error, 'priority') && Object.hasOwn(candidate, 'priority')) {
+          delete candidate.priority;
+          continue;
+        }
+
+        // These are optional metadata fields on older installs. Never drop subject_id,
+        // title, or content: a targeted announcement must not silently become global.
+        const optionalColumns = ['is_pinned', 'is_published', 'created_by'];
+        const missingOptional = optionalColumns.find(column =>
+          Object.hasOwn(candidate, column) && isMissingColumn(result.error, column)
+        );
+        if (missingOptional) {
+          delete candidate[missingOptional];
+          continue;
+        }
+        return result;
       }
-      return result;
+      return { data: null, error: { message: 'تعذر حفظ الإعلان بسبب اختلاف أعمدة جدول الإعلانات.' } };
+    }
+
+    function announcementSaveError(error) {
+      const message = String(error?.message || '');
+      if (error?.code === '42501' || /row-level security|permission denied|not allowed/i.test(message)) {
+        return 'قاعدة البيانات رفضت الحفظ بسبب الصلاحيات. شغّل ملف fix_announcements_and_branding.sql في Supabase SQL Editor.';
+      }
+      if (/column|schema cache|42703|pgrst204/i.test(message)) {
+        return 'جدول الإعلانات محتاج تحديث. شغّل ملف fix_announcements_and_branding.sql في Supabase SQL Editor.';
+      }
+      return 'فشل حفظ الإعلان: ' + (message || 'خطأ غير معروف');
     }
 
     async function save(event) {
@@ -138,9 +179,14 @@
           is_pinned: document.getElementById('is_pinned').checked,
           is_published: document.getElementById('is_published').checked
         };
-        const { error } = await insertAnnouncement(payload);
-        if (error) { console.error('Announcement insert failed:', error); showToast(error.message, 'error'); return; }
-        showToast('الإعلان اتنشر.', 'success');
+        const { data: savedAnnouncement, error } = await insertAnnouncement(payload);
+        if (error || !savedAnnouncement?.id) {
+          console.error('Announcement insert was not confirmed:', error);
+          showToast(announcementSaveError(error || { message: 'لم يتم تأكيد حفظ الإعلان.' }), 'error');
+          return;
+        }
+        console.info('Announcement saved:', savedAnnouncement.id);
+        showToast('تم حفظ الإعلان بنجاح.', 'success');
         document.getElementById('form-panel').classList.add('hidden');
         event.target.reset();
         await load();
