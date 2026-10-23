@@ -341,27 +341,42 @@ async function loadMaterials() {
 }
 
 async function loadNotifCount() {
-  try {
-    const { data, error } = await supabase.rpc(
-      'get_unread_notifications_count'
-    );
+  const badge = document.getElementById('notif-badge');
+  if (!badge) return;
 
-    if (error) {
-      console.warn('[NUSC] Notification count:', error.message);
-      return;
+  try {
+    // Use the existing published announcements as student-facing notifications.
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('id')
+      .eq('is_published', true)
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) throw error;
+
+    let readIds = [];
+    try {
+      const stored = JSON.parse(localStorage.getItem(
+        'nusc_read_announcements_' + (profile?.id || 'guest')
+      ) || '[]');
+      readIds = Array.isArray(stored) ? stored.map(String) : [];
+    } catch {
+      readIds = [];
     }
 
-    const badge = document.getElementById('notif-badge');
-    if (!badge) return;
+    const readSet = new Set(readIds);
+    const unreadCount = (data || []).filter(item => !readSet.has(String(item.id))).length;
 
-    if (data > 0) {
-      badge.textContent = data > 99 ? '99+' : String(data);
+    if (unreadCount > 0) {
+      badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
       badge.classList.remove('hidden');
     } else {
       badge.classList.add('hidden');
     }
   } catch (error) {
     console.warn('[NUSC] loadNotifCount:', error);
+    badge.classList.add('hidden');
   }
 }
 
