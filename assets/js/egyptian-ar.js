@@ -59,6 +59,12 @@
     "خطوة بخطوة": "خطوة بخطوة",
     "بياناتك الأساسية فقط": "بياناتك الأساسية بس",
     "موادك في متناول إيدك": "موادك في متناول إيدك",
+    "جدول قواعد الكويزات غير موجود في قاعدة البيانات. شغّل ملف supabase/fix_quiz_rules.sql في SQL Editor داخل Supabase.": "جدول قواعد الكويزات مش موجود في قاعدة البيانات. شغّل ملف supabase/fix_quiz_rules.sql من محرّر SQL في Supabase.",
+    "صلاحيات قراءة قواعد الكويزات غير مفعّلة. راجع سياسات RLS لجدول quiz_rules في Supabase.": "صلاحيات قراءة قواعد الكويزات مش مفعّلة. راجع إعدادات صلاحيات الجدول في Supabase.",
+    "تعذر تحميل القواعد حاليًا. راجع اتصال قاعدة البيانات وصلاحيات قراءة جدول quiz_rules.": "مش قادرين نحمّل القواعد دلوقتي. راجع اتصال قاعدة البيانات وصلاحيات قراءة القواعد.",
+    "تعذر تحميل الإعلانات. راجع Console وسياسات القراءة في Supabase.": "مش قادرين نحمّل الإعلانات. راجع تفاصيل الخطأ وصلاحيات القراءة في Supabase.",
+    "تعذر تحميل الكويزات. تحقق من اتصال Supabase ومن جدول public.quizzes وسياسات القراءة.": "مش قادرين نحمّل الكويزات. راجع اتصال Supabase والجدول وصلاحيات القراءة.",
+    "تعذر تحميل الجدول. راجع أسماء الأعمدة وسياسات القراءة في Supabase.": "مش قادرين نحمّل الجدول. راجع أسماء الأعمدة وصلاحيات القراءة في Supabase.",
     "لا توجد إشعارات أو إعلانات جديدة حالياً": "مفيش إشعارات أو إعلانات جديدة دلوقتي.",
     "تعذر تحميل الإشعارات. حاول تحديث الصفحة، وإذا استمرت المشكلة راجع اتصال قاعدة البيانات والصلاحيات.": "مش قادرين نحمّل الإشعارات. حدّث الصفحة، ولو المشكلة مستمرة راجع اتصال قاعدة البيانات والصلاحيات.",
     "تعيين الكل كمقروء": "علّم الكل إنه اتقري",
@@ -215,11 +221,15 @@
   const skipped = 'script,style,noscript,textarea,code,pre';
 
   function translate(value) {
-    const trimmed = String(value ?? '').trim();
-    if (!Object.prototype.hasOwnProperty.call(textMap, trimmed)) return value;
-    const leading = String(value).match(/^\s*/)?.[0] || '';
-    const trailing = String(value).match(/\s*$/)?.[0] || '';
-    return leading + textMap[trimmed] + trailing;
+    const original = String(value ?? '');
+    const trimmed = original.trim();
+    const translated = Object.prototype.hasOwnProperty.call(textMap, trimmed)
+      ? textMap[trimmed]
+      : trimmed.replace(/NUSC Student Hub/g, 'منصة NUSC');
+    if (translated === trimmed) return value;
+    const leading = original.match(/^\s*/)?.[0] || '';
+    const trailing = original.match(/\s*$/)?.[0] || '';
+    return leading + translated + trailing;
   }
 
   function translateAttributes(el) {
