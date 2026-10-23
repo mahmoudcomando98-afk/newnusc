@@ -116,3 +116,8 @@ body.home-page .home-footer .footer-credit{order:10;flex:0 0 100%;width:100%;pos
 /* Remove the COMADO credit card/text completely across the site. */
 body:after{display:none!important;content:none!important;}
 .footer-credit{display:none!important;}
+
+
+/* HARD REMOVE: no COMADO credit badge or pseudo-element anywhere. */
+body::before, body::after, body:before, body:after { content: none !important; display: none !important; }
+.footer-credit, .home-footer .footer-credit { display: none !important; }
