@@ -39,8 +39,24 @@ ALTER TABLE public.announcements ALTER COLUMN updated_at SET DEFAULT NOW();
 CREATE INDEX IF NOT EXISTS announcements_subject_published_created_idx
   ON public.announcements (subject_id, is_published, created_at DESC);
 
--- Ensure the policy helper recognizes the same admin/moderator roles as the UI.
--- SECURITY DEFINER avoids an RLS recursion when checking the signed-in profile.
+-- Admin access is granted only to active profiles explicitly assigned role='admin'.
+-- Legacy policies may call is_admin_or_moderator(); keep that helper fail-closed too.
+CREATE OR REPLACE FUNCTION public.is_admin_or_moderator()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $admin_only$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid()
+      AND role = 'admin'
+      AND COALESCE(is_active, false) = true
+  );
+$admin_only$;
+
+-- SECURITY DEFINER avoids RLS recursion and uses the same strict admin-only rule.
 CREATE OR REPLACE FUNCTION private.is_content_manager()
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -52,8 +68,8 @@ AS $content_manager$
     SELECT 1
     FROM public.profiles
     WHERE id = auth.uid()
-      AND role IN ('admin', 'moderator')
-      AND COALESCE(is_active, true) = true
+      AND role = 'admin'
+      AND COALESCE(is_active, false) = true
   );
 $content_manager$;
 
