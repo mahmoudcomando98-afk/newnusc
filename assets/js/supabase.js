@@ -91,7 +91,7 @@ function createPlatformLogoImage(url, className, size) {
 }
 
 function applyPlatformLogo(url) {
-  if (typeof document === 'undefined' || !/^https?:\\/\\//i.test(url || '')) return;
+  if (typeof document === 'undefined' || !/^https?:\/\//i.test(url || '')) return;
 
   // Refresh image sources when an administrator changes the logo in the current session.
   document.querySelectorAll('.platform-brand-image, .platform-header-logo, .auth-brand-logo').forEach((img) => {
