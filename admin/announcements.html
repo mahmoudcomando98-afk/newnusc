@@ -51,7 +51,7 @@
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase.from('announcements').select('id, title, content, importance, is_pinned, is_published, created_at').order('created_at', { ascending: false });
+        const { data, error } = await supabase.from('announcements').select('id, title, content, priority, is_pinned, is_published, created_at').order('created_at', { ascending: false });
         if (error) throw error;
         if (!data?.length) { showEmpty(el, 'لا توجد إعلانات'); return; }
         el.innerHTML = data.map(a => `<div class="card mb-2"><div class="flex justify-between flex-wrap gap-1"><div><h3 class="card-title">${a.is_pinned ? '📌 ' : ''}${escapeHtml(a.title)}</h3><p class="text-sm text-muted">${escapeHtml((a.content||'').slice(0,80))} · ${timeAgo(a.created_at)}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${a.id}">حذف</button></div></div>`).join('');
@@ -65,7 +65,7 @@
         const { error } = await supabase.from('announcements').insert({
           title: document.getElementById('title').value.trim(),
           content: document.getElementById('content').value.trim(),
-          importance: document.getElementById('importance').value,
+          priority: document.getElementById('importance').value,
           is_pinned: document.getElementById('is_pinned').checked,
           is_published: document.getElementById('is_published').checked,
           created_by: profile.id
