@@ -211,31 +211,6 @@ async function enforceMaintenanceMode(enabled) {
   return true;
 }
 
-function beginMaintenanceCheck() {
-  if (typeof document === 'undefined') return;
-  document.documentElement.classList.add('nusc-maintenance-pending');
-  if (document.getElementById('nusc-maintenance-check-style')) return;
-  const style = document.createElement('style');
-  style.id = 'nusc-maintenance-check-style';
-  style.textContent = `
-    html.nusc-maintenance-pending body { visibility: hidden !important; }
-    /* Keep the page hidden until the maintenance check completes, but show no
-       loading message or spinner to avoid a distracting intermediate screen. */
-    html.nusc-maintenance-pending::before {
-      content: "";
-      position: fixed; inset: 0; z-index: 2147483647;
-      background: #fffef8;
-    }
-  `;
-  document.head.appendChild(style);
-}
-
-function finishMaintenanceCheck() {
-  if (typeof document !== 'undefined') {
-    document.documentElement.classList.remove('nusc-maintenance-pending');
-  }
-}
-
 let maintenanceMonitorStarted = false;
 function startMaintenanceMonitor() {
   if (maintenanceMonitorStarted || typeof window === 'undefined') return;
@@ -256,11 +231,10 @@ function startMaintenanceMonitor() {
       // A transient poll failure should not repeatedly interrupt a live session.
       console.warn('[NUSC] Maintenance status refresh failed:', error?.message || error);
     }
-  }, 8000);
+  }, 3000);
 }
 
 async function loadPlatformBranding() {
-  beginMaintenanceCheck();
   let redirected = false;
   try {
     const { data, error } = await supabase.from('platform_settings')
@@ -290,8 +264,6 @@ async function loadPlatformBranding() {
       redirected = true;
       window.location.replace('/maintenance.html?status=unavailable');
     }
-  } finally {
-    if (!redirected) finishMaintenanceCheck();
   }
 }
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
@@ -302,8 +274,18 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     if (url) applyPlatformLogo(url);
     if (name) applyPlatformName(name);
   });
-  // Lock the rendered UI before starting the asynchronous maintenance lookup.
-  beginMaintenanceCheck();
+
+  // React to changes made by the admin without introducing a separate loader page.
+  window.addEventListener('nusc:maintenance-updated', async (event) => {
+    const enabled = isMaintenanceEnabled(event.detail?.enabled);
+    const pathname = window.location.pathname.toLowerCase();
+    if (enabled) {
+      await enforceMaintenanceMode(true);
+    } else if (pathname === '/maintenance.html') {
+      window.location.replace('/home.html');
+    }
+  });
+  // Maintenance is checked immediately without a separate blank/loading screen.
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', loadPlatformBranding, { once: true });
   } else {
