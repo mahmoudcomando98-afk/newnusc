@@ -99,6 +99,8 @@ CREATE TABLE IF NOT EXISTS public.quizzes (
   start_at TIMESTAMPTZ,
   end_at TIMESTAMPTZ,
   duration_minutes INTEGER,
+  total_marks NUMERIC,
+  passing_score NUMERIC,
   quiz_url TEXT,
   status TEXT DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'open', 'closed')),
   is_published BOOLEAN NOT NULL DEFAULT true,

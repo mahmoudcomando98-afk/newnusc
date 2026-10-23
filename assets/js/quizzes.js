@@ -20,25 +20,24 @@ let quizzes = [];
 let currentStatus = 'upcoming';
 
 function getStartDate(quiz) {
-  return quiz.quiz_date || null;
+  return quiz.start_at || quiz.quiz_date || null;
 }
 
 function getQuizStatus(quiz) {
   const startValue = getStartDate(quiz);
-  if (!startValue) return 'upcoming';
-
+  const savedStatus = ['upcoming', 'open', 'closed'].includes(quiz.status) ? quiz.status : null;
+  if (!startValue) return savedStatus || 'upcoming';
   const start = new Date(startValue).getTime();
-  if (Number.isNaN(start)) return 'upcoming';
-
+  if (Number.isNaN(start)) return savedStatus || 'upcoming';
   const now = Date.now();
   if (now < start) return 'upcoming';
-
+  const explicitEnd = quiz.end_at ? new Date(quiz.end_at).getTime() : NaN;
+  if (!Number.isNaN(explicitEnd)) return now <= explicitEnd ? 'open' : 'closed';
   if (quiz.duration_minutes) {
     const end = start + Number(quiz.duration_minutes) * 60 * 1000;
     return now <= end ? 'open' : 'closed';
   }
-
-  return 'open';
+  return savedStatus === 'closed' ? 'closed' : 'open';
 }
 
 function getQuizDateText(value) {
@@ -53,6 +52,20 @@ function getQuizDateText(value) {
   });
 }
 
+function getQuizLoadErrorMessage(error) {
+  const code = String(error?.code || '');
+  const message = String(error?.message || '');
+  if (code === '42P01' || code === 'PGRST205' || /relation .*quizzes.* does not exist|could not find the table .*quizzes/i.test(message)) {
+    return 'جدول الكويزات غير موجود في قاعدة البيانات. راجع جدول public.quizzes في Supabase.';
+  }
+  if (code === '42703' || code === 'PGRST204' || /column .* does not exist|could not find the .*column/i.test(message)) {
+    return 'أعمدة جدول الكويزات غير متوافقة مع الصفحة. نفّذ ملف supabase/fix_quizzes_schema.sql من SQL Editor في Supabase.';
+  }
+  if (code === '42501' || /row-level security|permission denied|not allowed/i.test(message)) {
+    return 'صلاحيات قراءة الكويزات غير مفعّلة. راجع سياسات RLS لجدول public.quizzes في Supabase.';
+  }
+  return 'تعذر تحميل الكويزات. تحقق من اتصال Supabase ومن جدول public.quizzes وسياسات القراءة.';
+}
 async function loadQuizzes() {
   const el = document.getElementById('quizzes-list');
 
@@ -67,34 +80,43 @@ async function loadQuizzes() {
   try {
     const { data, error } = await supabase
       .from('quizzes')
-      .select('id, title, rules, quiz_date, duration_minutes, total_marks, passing_score, is_published, quiz_url, subjects(name)');
+      .select('id, title, description, topics, instructions, start_at, end_at, duration_minutes, total_marks, passing_score, is_published, quiz_url, subject_id, status');
 
     if (error) throw error;
 
-    // RLS في Supabase يجب أن يمنع الطلاب من قراءة الكويزات غير المنشورة.
-    // هذا الفلتر الإضافي يخفي المسودات إذا كان العمود موجودًا.
-    quizzes = (data || []).filter(
-      (quiz) => quiz.is_published !== false
-    );
+    const rawQuizzes = (data || []).filter((quiz) => quiz.is_published !== false);
+    const subjectIds = [...new Set(rawQuizzes.map((quiz) => quiz.subject_id).filter(Boolean))];
+    const subjectNames = new Map();
 
-    // ترتيب الكويزات حسب الموعد، مع دعم أسماء الأعمدة المختلفة.
+    if (subjectIds.length) {
+      const { data: subjects, error: subjectsError } = await supabase
+        .from('subjects')
+        .select('id, name')
+        .in('id', subjectIds);
+      if (subjectsError) {
+        console.warn('Could not load quiz subject names:', subjectsError.message);
+      } else {
+        (subjects || []).forEach((subject) => subjectNames.set(subject.id, subject.name));
+      }
+    }
+
+    quizzes = rawQuizzes.map((quiz) => ({
+      ...quiz,
+      subjects: { name: subjectNames.get(quiz.subject_id) || '' }
+    }));
+
     quizzes.sort((a, b) => {
       const aDate = getStartDate(a);
       const bDate = getStartDate(b);
-
       if (!aDate) return 1;
       if (!bDate) return -1;
-
       return new Date(aDate).getTime() - new Date(bDate).getTime();
     });
 
     renderQuizzes();
   } catch (error) {
-    console.error('Quizzes loading error:', error);
-    showError(
-      el,
-      'تعذر تحميل الكويزات. راجع Console وسياسات القراءة في Supabase.'
-    );
+    console.error('Quizzes loading error:', { code: error?.code, message: error?.message, details: error?.details, hint: error?.hint });
+    showError(el, getQuizLoadErrorMessage(error));
   }
 }
 
@@ -128,7 +150,8 @@ function renderQuizzes() {
           : 'badge-info';
 
     const startDate = getStartDate(quiz);
-    const topics = quiz.rules || '';
+    const topics = quiz.topics || '';
+    const instructions = quiz.instructions || quiz.rules || '';
 
     const subjectName =
       quiz.subjects?.name ||
@@ -174,9 +197,11 @@ function renderQuizzes() {
 
         ${
           topics
-            ? `<p class="text-sm mt-1"><strong>التعليمات / الموضوعات:</strong> ${escapeHtml(topics)}</p>`
+            ? `<p class="text-sm mt-1"><strong>الموضوعات:</strong> ${escapeHtml(topics)}</p>`
             : ''
         }
+
+        ${instructions ? `<p class="text-sm mt-1"><strong>التعليمات:</strong> ${escapeHtml(instructions)}</p>` : ''}
 
         ${quiz.total_marks != null ? `<p class="text-sm mt-1">الدرجة الكلية: ${Number(quiz.total_marks)}</p>` : ''}
         ${quiz.passing_score != null ? `<p class="text-sm mt-1">درجة النجاح: ${Number(quiz.passing_score)}</p>` : ''}

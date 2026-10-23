@@ -54,22 +54,25 @@
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase.from('quizzes').select('id, title, quiz_date, duration_minutes, is_published, quiz_url').order('quiz_date', { ascending: false });
+        const { data, error } = await supabase.from('quizzes').select('id, title, start_at, duration_minutes, is_published, quiz_url, total_marks, passing_score, subject_id').order('start_at', { ascending: false });
         if (error) throw error;
         if (!data?.length) { showEmpty(el, 'لا توجد كويزات'); return; }
-        el.innerHTML = data.map(q => `<div class="card mb-2"><div class="flex justify-between flex-wrap gap-1"><div><h3 class="card-title">${escapeHtml(q.title)}</h3><p class="text-sm text-muted">${q.quiz_date ? formatDate(q.quiz_date,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${q.id}">حذف</button></div>${q.quiz_url ? `<div class="mt-2"><p class="text-sm text-muted" dir="ltr" style="overflow-wrap:anywhere">${escapeHtml(q.quiz_url)}</p><div class="flex flex-wrap gap-1 mt-1"><button type="button" class="btn btn-sm btn-secondary" data-copy="${escapeHtml(q.quiz_url)}">نسخ رابط الامتحان</button><a class="btn btn-sm btn-outline" href="https://wa.me/?text=${encodeURIComponent((q.title || 'كويز') + ' - رابط الامتحان: ' + q.quiz_url)}" target="_blank" rel="noopener noreferrer">إرسال عبر واتساب</a><a class="btn btn-sm btn-outline" href="${escapeHtml(q.quiz_url)}" target="_blank" rel="noopener noreferrer">فتح الرابط</a></div></div>` : `<p class="text-sm text-muted mt-1">لم تتم إضافة رابط امتحان لهذا الكويز.</p>`}</div>`).join('');
+        el.innerHTML = data.map(q => `<div class="card mb-2"><div class="flex justify-between flex-wrap gap-1"><div><h3 class="card-title">${escapeHtml(q.title)}</h3><p class="text-sm text-muted">${q.start_at ? formatDate(q.start_at,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${q.id}">حذف</button></div>${q.quiz_url ? `<div class="mt-2"><p class="text-sm text-muted" dir="ltr" style="overflow-wrap:anywhere">${escapeHtml(q.quiz_url)}</p><div class="flex flex-wrap gap-1 mt-1"><button type="button" class="btn btn-sm btn-secondary" data-copy="${escapeHtml(q.quiz_url)}">نسخ رابط الامتحان</button><a class="btn btn-sm btn-outline" href="https://wa.me/?text=${encodeURIComponent((q.title || 'كويز') + ' - رابط الامتحان: ' + q.quiz_url)}" target="_blank" rel="noopener noreferrer">إرسال عبر واتساب</a><a class="btn btn-sm btn-outline" href="${escapeHtml(q.quiz_url)}" target="_blank" rel="noopener noreferrer">فتح الرابط</a></div></div>` : `<p class="text-sm text-muted mt-1">لم تتم إضافة رابط امتحان لهذا الكويز.</p>`}</div>`).join('');
         el.querySelectorAll('[data-copy]').forEach(btn => btn.onclick = async () => { try { await navigator.clipboard.writeText(btn.dataset.copy); showToast('تم نسخ رابط الامتحان', 'success'); } catch { window.prompt('انسخ رابط الامتحان:', btn.dataset.copy); } });
         el.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => { if(!confirm('حذف؟')) return; await supabase.from('quizzes').delete().eq('id', btn.dataset.del); await load(); });
-      } catch { showError(el, 'تعذر'); }
+      } catch (error) {
+        console.error('Admin quizzes loading error:', { code: error?.code, message: error?.message, details: error?.details, hint: error?.hint });
+        showError(el, 'تعذر تحميل الكويزات. تحقق من أعمدة جدول quizzes وسياسات القراءة في Supabase.');
+      }
     }
     async function save(e) {
       e.preventDefault();
       await withLoading(e.target.querySelector('[type=submit]'), async () => {
         const { error } = await supabase.from('quizzes').insert({
           title: document.getElementById('title').value.trim(),
-          rules: document.getElementById('rules').value.trim() || null,
+          instructions: document.getElementById('rules').value.trim() || null,
           subject_id: document.getElementById('subject_id').value || null,
-          quiz_date: document.getElementById('quiz_date').value || null,
+          start_at: document.getElementById('quiz_date').value ? new Date(document.getElementById('quiz_date').value).toISOString() : null,
           quiz_url: document.getElementById('quiz_url').value.trim() || null,
           duration_minutes: document.getElementById('duration_minutes').value ? Number(document.getElementById('duration_minutes').value) : null,
           total_marks: document.getElementById('total_marks').value ? Number(document.getElementById('total_marks').value) : null,

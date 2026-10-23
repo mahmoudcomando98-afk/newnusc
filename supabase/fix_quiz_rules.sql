@@ -35,15 +35,15 @@ ALTER TABLE public.quiz_rules
   ALTER COLUMN content SET NOT NULL;
 
 ALTER TABLE public.quiz_rules ENABLE ROW LEVEL SECURITY;
-GRANT SELECT ON public.quiz_rules TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.quiz_rules TO authenticated;
 
 DROP POLICY IF EXISTS "Anyone authenticated can view published quiz rules" ON public.quiz_rules;
 CREATE POLICY "Anyone authenticated can view published quiz rules"
   ON public.quiz_rules FOR SELECT TO authenticated
-  USING (is_published = true OR public.is_admin_or_moderator());
+  USING (is_published = true OR private.is_content_manager());
 
 DROP POLICY IF EXISTS "Admins can manage quiz rules" ON public.quiz_rules;
 CREATE POLICY "Admins can manage quiz rules"
   ON public.quiz_rules FOR ALL TO authenticated
-  USING (public.is_admin_or_moderator())
-  WITH CHECK (public.is_admin_or_moderator());
+  USING (private.is_content_manager())
+  WITH CHECK (private.is_content_manager());
