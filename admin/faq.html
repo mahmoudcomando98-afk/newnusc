@@ -97,7 +97,6 @@
           question: document.getElementById('question').value.trim(),
           answer: document.getElementById('answer').value.trim(),
           category: document.getElementById('category').value.trim() || 'عام',
-          created_by: profile.id,
           is_published: true
         };
         const { error } = await supabase.from('faq').insert(payload);
