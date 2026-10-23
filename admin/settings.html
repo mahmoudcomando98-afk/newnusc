@@ -143,17 +143,20 @@ WHERE email = 'your-admin@email.com';</pre>
       button.textContent = 'جاري حفظ الإعدادات…';
       status.textContent = '';
       try {
-        const { error } = await supabase.from('platform_settings').upsert([
-          { key: 'site_maintenance', value: enabled, description: 'تشغيل وضع الصيانة' },
-          { key: 'maintenance_message', value: message, description: 'رسالة وضع الصيانة' }
-        ], { onConflict: 'key' });
+        const { data, error } = await supabase.rpc('set_maintenance_mode', {
+          p_enabled: enabled,
+          p_message: message
+        });
         if (error) throw error;
+        if (!data || data.enabled !== enabled) {
+          throw new Error('تعذر تأكيد حفظ حالة الصيانة.');
+        }
 
         window.dispatchEvent(new CustomEvent('nusc:maintenance-updated', {
           detail: { enabled, message }
         }));
         status.textContent = enabled
-          ? 'تم حفظ وضع الصيانة. الطلاب هيتوجّهوا لصفحة الصيانة عند فتح المنصة.'
+          ? 'تم حفظ وضع الصيانة. صفحة الصيانة هتظهر للمستخدمين خلال ثوانٍ.'
           : 'تم إيقاف الصيانة؛ المنصة متاحة للطلاب.';
         showToast(enabled ? 'تم تشغيل وضع الصيانة.' : 'تم إيقاف وضع الصيانة.', 'success');
         await loadSettingsList();
