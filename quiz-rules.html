@@ -33,18 +33,74 @@
     import { supabase } from './assets/js/supabase.js';
     import { protectPage } from './assets/js/auth.js';
     import { escapeHtml, showEmpty, showError, initIcons } from './assets/js/utils.js';
+
+    function friendlyError(error) {
+      const message = String(error?.message || '');
+      const code = String(error?.code || '');
+      if (code === '42P01' || code === 'PGRST205' || /relation .*quiz_rules.* does not exist|could not find the table .*quiz_rules/i.test(message)) {
+        return 'جدول قواعد الكويزات غير موجود في قاعدة البيانات. شغّل ملف supabase/fix_quiz_rules.sql في SQL Editor داخل Supabase.';
+      }
+      if (code === '42501' || /row-level security|permission denied|not allowed/i.test(message)) {
+        return 'صلاحيات قراءة قواعد الكويزات غير مفعّلة. راجع سياسات RLS لجدول quiz_rules في Supabase.';
+      }
+      return 'تعذر تحميل القواعد حاليًا. راجع اتصال قاعدة البيانات وصلاحيات قراءة جدول quiz_rules.';
+    }
+
     async function init() {
-      const result = await protectPage();
-      if (!result) return;
-      initIcons();
       const el = document.getElementById('rules-list');
       try {
-        const { data, error } = await supabase.from('quiz_rules').select('id, title, content, is_general, subjects(name)').eq('is_published', true).order('is_general', { ascending: false }).order('sort_order');
+        const result = await protectPage();
+        if (!result) return;
+        initIcons();
+
+        // Avoid embedding subjects(name) in the query: it fails when the live
+        // database's foreign-key relationship cache is missing or stale.
+        const { data, error } = await supabase
+          .from('quiz_rules')
+          .select('id, title, content, is_general, subject_id, sort_order')
+          .eq('is_published', true)
+          .order('is_general', { ascending: false })
+          .order('sort_order', { ascending: true });
+
         if (error) throw error;
-        if (!data?.length) { showEmpty(el, 'لا توجد قواعد منشورة حالياً'); return; }
-        el.innerHTML = data.map(r => `<div class="card mb-2"><h3 class="card-title">${escapeHtml(r.title)}</h3>${r.is_general ? '<span class="badge badge-primary">قواعد عامة</span>' : ''}${r.subjects?.name ? `<span class="badge badge-info">${escapeHtml(r.subjects.name)}</span>` : ''}<p class="text-sm mt-2" style="white-space:pre-wrap">${escapeHtml(r.content)}</p></div>`).join('');
-      } catch (err) { showError(el, 'تعذر تحميل القواعد'); }
+        if (!data?.length) {
+          showEmpty(el, 'لا توجد قواعد منشورة حالياً');
+          return;
+        }
+
+        const subjectIds = [...new Set(data.map(rule => rule.subject_id).filter(Boolean))];
+        const subjectNames = new Map();
+        if (subjectIds.length) {
+          const { data: subjects, error: subjectError } = await supabase
+            .from('subjects')
+            .select('id, name')
+            .in('id', subjectIds);
+          if (subjectError) {
+            // Rules themselves remain useful even if subject labels cannot load.
+            console.warn('Could not load quiz rule subject labels:', subjectError.message);
+          } else {
+            (subjects || []).forEach(subject => subjectNames.set(subject.id, subject.name));
+          }
+        }
+
+        el.innerHTML = data.map(rule => {
+          const title = escapeHtml(rule.title || 'قاعدة');
+          const content = escapeHtml(rule.content || '');
+          const subjectName = subjectNames.get(rule.subject_id);
+          return `<article class="card mb-2">
+            <h3 class="card-title">${title}</h3>
+            ${rule.is_general ? '<span class="badge badge-primary">قواعد عامة</span>' : ''}
+            ${subjectName ? `<span class="badge badge-info">${escapeHtml(subjectName)}</span>` : ''}
+            <p class="text-sm mt-2" style="white-space:pre-wrap">${content}</p>
+          </article>`;
+        }).join('');
+        initIcons();
+      } catch (error) {
+        console.error('Quiz rules loading error:', error);
+        showError(el, friendlyError(error));
+      }
     }
+
     init();
   </script>
 </body>
