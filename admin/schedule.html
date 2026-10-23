@@ -49,26 +49,24 @@
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase.from('schedules').select('*').order('day_of_week').order('start_time');
+        const { data, error } = await supabase.from('schedule_items').select('*').order('day_of_week').order('start_time');
         if (error) throw error;
         if (!data?.length) { showEmpty(el, 'لا توجد مواعيد'); return; }
         el.innerHTML = data.map(s => `<div class="card mb-2"><div class="flex justify-between"><div><h3 class="card-title">${escapeHtml(s.title)}</h3><p class="text-sm text-muted">${s.day_of_week!=null?WEEKDAYS_AR[s.day_of_week]:''} ${s.start_time?formatTime(s.start_time):''} ${s.location||''}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${s.id}">حذف</button></div></div>`).join('');
-        el.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => { if(!confirm('حذف؟')) return; await supabase.from('schedules').delete().eq('id', btn.dataset.del); await load(); });
+        el.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => { if(!confirm('حذف؟')) return; await supabase.from('schedule_items').delete().eq('id', btn.dataset.del); await load(); });
       } catch { showError(el, 'تعذر'); }
     }
     async function save(e) {
       e.preventDefault();
       await withLoading(e.target.querySelector('[type=submit]'), async () => {
         const day = document.getElementById('day_of_week').value;
-        const { error } = await supabase.from('schedules').insert({
+        const { error } = await supabase.from('schedule_items').insert({
           title: document.getElementById('title').value.trim(),
-          event_type: document.getElementById('event_type').value,
           day_of_week: day !== '' ? parseInt(day) : null,
           start_time: document.getElementById('start_time').value || null,
           end_time: document.getElementById('end_time').value || null,
           location: document.getElementById('location').value.trim() || null,
-          is_published: true,
-          created_by: profile.id
+          is_active: true
         });
         if (error) { showToast(error.message, 'error'); return; }
         showToast('تم', 'success');
