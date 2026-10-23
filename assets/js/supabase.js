@@ -302,6 +302,8 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     if (url) applyPlatformLogo(url);
     if (name) applyPlatformName(name);
   });
+  // Lock the rendered UI before starting the asynchronous maintenance lookup.
+  beginMaintenanceCheck();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', loadPlatformBranding, { once: true });
   } else {
