@@ -46,3 +46,29 @@ html{font-size:14px}body{background:#fffef9;line-height:1.65;font-size:.92rem}.c
 @media(max-width:800px){.home-hero{grid-template-columns:minmax(0,1fr) 120px;padding:19px 20px 38px}.hero-mark{transform:scale(.82)}.dashboard-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}.home-lower-grid{gap:12px}.shortcut-card{padding:10px}.shortcut-text strong{font-size:.74rem}.shortcut-text small{font-size:.62rem}}
 @media(max-width:600px){.container{padding-left:14px;padding-right:14px}.home-hero{grid-template-columns:1fr;padding:19px 16px 40px;min-height:0}.hero-mark{position:absolute;left:-28px;top:2px;opacity:.22;transform:scale(.64);pointer-events:none}.home-hero h1{font-size:1.35rem;max-width:88%}.home-hero p{max-width:88%;font-size:.78rem}.hero-actions{gap:10px;margin-top:12px}.hero-bottom-line{padding:8px 16px;font-size:.62rem}.important-notice{grid-template-columns:auto minmax(0,1fr);gap:9px;padding:11px}.notice-symbol{width:32px;height:32px}.notice-open{grid-column:2;justify-self:start;padding:6px 8px}.dashboard-shortcuts{gap:8px;margin-bottom:19px}.shortcut-card{gap:7px;padding:9px}.shortcut-icon{width:30px;height:30px}.home-subject-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.home-subject-grid .subject-card{padding:12px;min-height:122px}.home-subject-grid .card-title{font-size:.8rem}.home-lower-grid{grid-template-columns:1fr;gap:0}.feed-panel{padding:5px 11px}.home-footer{flex-wrap:wrap;justify-content:center;text-align:center;gap:7px}.subjects-intro{padding:15px 13px}.subjects-count{min-width:72px;padding:8px 7px}.subjects-count strong{font-size:1.1rem}.subjects-intro h1{font-size:1.25rem}.subjects-intro p{font-size:.74rem}.subjects-toolbar{align-items:stretch;flex-direction:column;gap:7px}.toolbar-note{align-self:flex-start}.subjects-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.subjects-grid .subject-card{padding:11px;min-height:150px}.subjects-grid .subject-card h3{font-size:.82rem}.subjects-grid .card-meta{font-size:.65rem;gap:4px}.subjects-grid .subject-card p{font-size:.7rem}.subjects-grid .subject-card .btn{width:100%;padding:7px 5px;font-size:.68rem}}
 @media(max-width:350px){.subjects-grid,.home-subject-grid{grid-template-columns:1fr}}
+
+
+/* NUSC mobile header refresh + global COMADO credit */
+@media(max-width:899px){
+  .app-header{position:sticky;top:0;z-index:120;background:rgba(255,255,255,.97);border-bottom:1px solid #eadb83;box-shadow:0 5px 18px rgba(77,65,5,.09);backdrop-filter:blur(18px)}
+  .app-header .container{min-height:68px;padding:8px 14px;gap:10px}
+  .logo{gap:8px;font-size:1rem;font-weight:900}
+  .logo-icon{width:39px;height:39px;border-radius:13px;background:linear-gradient(145deg,#ffe978,#f2d447);color:#352d08;border:1px solid #e4c62e;box-shadow:0 4px 10px rgba(165,135,8,.16)}
+  .logo-word{letter-spacing:1px;color:#332f1d}
+  .header-actions{gap:7px;margin-inline-start:auto}
+  .header-btn{width:39px;height:39px;border-radius:13px;background:#fffdf2;border:1px solid #eee2a3;color:#5e500b;box-shadow:0 2px 7px rgba(70,60,15,.04)}
+  .header-btn:active{transform:scale(.96)}
+  .notification-header-btn .badge{top:-4px;left:-4px}
+  .app-header .mobile-only{display:flex}
+  .bottom-nav{height:64px;padding:4px 7px env(safe-area-inset-bottom);background:rgba(255,255,255,.98);border-top:1px solid #e9d976;box-shadow:0 -5px 18px rgba(77,65,5,.08)}
+  .bottom-nav a{font-size:.66rem;font-weight:700;gap:2px;border-radius:11px}
+  .bottom-nav a.active{color:#4e4106}
+  .bottom-nav a.active span[data-icon]{background:#fff0a1;border-radius:10px}
+  .page{padding-bottom:calc(var(--bottom-nav-h) + 35px)}
+  body:after{bottom:64px}
+}
+@media(min-width:900px){
+  body:after{bottom:8px}
+}
+body:after{content:"تم الصنع بواسطة COMADO";position:fixed;left:50%;transform:translateX(-50%);z-index:90;white-space:nowrap;padding:3px 12px;border:1px solid rgba(224,197,44,.48);border-radius:999px;background:rgba(255,253,239,.94);color:#78650d;font-size:10px;font-weight:800;letter-spacing:.3px;box-shadow:0 2px 8px rgba(70,60,15,.06);pointer-events:none}
+@media(prefers-reduced-motion:reduce){.app-header *,.bottom-nav *{transition:none!important}}
