@@ -37,6 +37,7 @@
 
     let profile = null;
     let announcements = [];
+    const subjectNames = new Map();
 
     function readKey() {
       return 'nusc_read_announcements_' + (profile?.id || 'guest');
@@ -69,7 +70,7 @@
         // This avoids depending on notification tables/RPCs that may not exist in this project.
         const { data, error } = await supabase
           .from('announcements')
-          .select('id, title, content, priority, is_pinned, created_at')
+          .select('*')
           .eq('is_published', true)
           .order('is_pinned', { ascending: false })
           .order('created_at', { ascending: false })
@@ -77,6 +78,11 @@
 
         if (error) throw error;
         announcements = data || [];
+        const subjectIds = [...new Set(announcements.map((item) => item.subject_id).filter(Boolean))];
+        if (subjectIds.length) {
+          const { data: subjects, error: subjectError } = await supabase.from('subjects').select('id, name').in('id', subjectIds);
+          if (!subjectError) (subjects || []).forEach((subject) => subjectNames.set(subject.id, subject.name));
+        }
         if (!announcements.length) {
           showEmpty(el, 'لا توجد إشعارات أو إعلانات جديدة حالياً');
           return;
@@ -94,15 +100,18 @@
       const readIds = getReadIds();
       el.innerHTML = announcements.map(n => {
         const isRead = readIds.has(String(n.id));
-        const priority = n.priority === 'urgent'
+        const level = n.priority || n.importance || 'normal';
+        const priority = level === 'urgent'
           ? '<span class="badge badge-urgent">عاجل</span>'
-          : n.priority === 'high' ? '<span class="badge badge-important">مهم</span>' : '';
+          : level === 'high' ? '<span class="badge badge-important">مهم</span>' : '';
+        const subjectName = subjectNames.get(n.subject_id) || '';
         return `
-          <article class="card mb-2 notification-card ${n.priority === 'urgent' ? 'notification-urgent' : ['high'].includes(n.priority) ? 'notification-important' : ''}" data-id="${escapeHtml(String(n.id))}" style="${isRead ? 'opacity:.78' : ''}">
+          <article class="card mb-2 notification-card ${level === 'urgent' ? 'notification-urgent' : ['high'].includes(level) ? 'notification-important' : ''}" data-id="${escapeHtml(String(n.id))}" style="${isRead ? 'opacity:.78' : ''}">
             <div class="flex items-center justify-between gap-1 mb-1">
               <h3 class="card-title">${escapeHtml(n.title || 'إعلان جديد')}</h3>
               <div class="flex items-center gap-1">${priority}${isRead ? '<span class="badge">مقروء</span>' : '<span class="badge badge-primary">جديد</span>'}</div>
             </div>
+            ${subjectName ? `<p class="text-sm text-muted">${escapeHtml(subjectName)}</p>` : ''}
             ${n.content ? `<p class="text-sm">${escapeHtml(n.content)}</p>` : ''}
             <div class="card-meta"><span>${timeAgo(n.created_at)}</span>${n.is_pinned ? '<span class="badge badge-info">مثبّت</span>' : ''}</div>
             <a href="/announcements.html" class="btn btn-sm btn-outline mt-1">عرض الإعلانات</a>
