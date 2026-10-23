@@ -71,6 +71,42 @@ function normalizePlatformLogo(value) {
   return '';
 }
 
+function normalizePlatformName(value) {
+  if (typeof value === 'string') return value.trim();
+  if (value && typeof value === 'object') return String(value.name || '').trim();
+  return '';
+}
+
+function applyPlatformName(name) {
+  if (typeof document === 'undefined' || typeof name !== 'string') return;
+  const platformName = name.trim();
+  if (platformName.length < 2 || platformName.length > 60) return;
+
+  // Login and registration brand labels.
+  document.querySelectorAll('.auth-brand').forEach((brand) => {
+    const label = Array.from(brand.children).find((child) =>
+      child.tagName === 'SPAN' &&
+      !child.classList.contains('auth-brand-dot') &&
+      !child.classList.contains('auth-brand-logo')
+    );
+    if (label) label.textContent = platformName;
+  });
+
+  // Main navigation, footer, and welcome heading.
+  document.querySelectorAll('.logo-word, .footer-brand').forEach((el) => {
+    el.textContent = platformName;
+  });
+  const welcome = document.getElementById('welcome-text');
+  if (welcome) welcome.textContent = 'أهلاً بك في ' + platformName;
+
+  // Keep the page-specific title, only replacing the platform suffix.
+  if (document.title === 'NUSC' || document.title === 'NUSC Student Hub') {
+    document.title = platformName;
+  } else {
+    document.title = document.title.replace(/\|\s*NUSC(?:\s+Student Hub)?\s*$/i, '| ' + platformName);
+  }
+}
+
 function createPlatformLogoImage(url, className, size) {
   const img = document.createElement('img');
   img.src = url;
@@ -129,28 +165,34 @@ function applyPlatformLogo(url) {
   });
 }
 
-async function loadPlatformLogo() {
+async function loadPlatformBranding() {
   try {
     const { data, error } = await supabase.from('platform_settings')
-      .select('value').eq('key', 'platform_logo_url').maybeSingle();
+      .select('key, value').in('key', ['platform_logo_url', 'site_name']);
     if (error) throw error;
-    applyPlatformLogo(normalizePlatformLogo(data?.value));
+    const settings = new Map((data || []).map((item) => [item.key, item.value]));
+    const logoUrl = normalizePlatformLogo(settings.get('platform_logo_url'));
+    const platformName = normalizePlatformName(settings.get('site_name'));
+    applyPlatformLogo(logoUrl);
+    if (platformName) applyPlatformName(platformName);
   } catch (error) {
-    // A missing setting should never stop authentication or other pages from loading.
-    console.warn('[NUSC] Could not load platform logo:', error?.message || error);
+    // Missing branding settings should never stop authentication or other pages from loading.
+    console.warn('[NUSC] Could not load platform branding:', error?.message || error);
   }
 }
 
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-  window.NUSCBranding = { apply: applyPlatformLogo };
+  window.NUSCBranding = { apply: applyPlatformLogo, applyName: applyPlatformName };
   window.addEventListener('nusc:branding-updated', (event) => {
     const url = normalizePlatformLogo(event.detail?.url);
-    applyPlatformLogo(url);
+    const name = normalizePlatformName(event.detail?.name);
+    if (url) applyPlatformLogo(url);
+    if (name) applyPlatformName(name);
   });
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadPlatformLogo, { once: true });
+    document.addEventListener('DOMContentLoaded', loadPlatformBranding, { once: true });
   } else {
-    loadPlatformLogo();
+    loadPlatformBranding();
   }
 }
 
