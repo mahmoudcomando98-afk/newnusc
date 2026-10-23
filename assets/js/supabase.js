@@ -189,7 +189,7 @@ function isMaintenanceEnabled(value) {
 function isMaintenanceExemptPath(pathname) {
   // The maintenance page must always remain available. Login is the sole public
   // entry point needed for the real administrator to sign in and reopen the site.
-  return pathname === '/maintenance.html' || pathname === '/login.html';
+  return pathname === '/maintenance-mode.html' || pathname === '/login.html';
 }
 
 async function enforceMaintenanceMode(enabled) {
@@ -197,7 +197,7 @@ async function enforceMaintenanceMode(enabled) {
   const pathname = window.location.pathname.toLowerCase();
 
   // The maintenance notice is the only public app page allowed during downtime.
-  if (pathname === '/maintenance.html') return false;
+  if (pathname === '/maintenance-mode.html') return false;
   if (!enabled) return false;
 
   // Admin accounts stay available so the real administrator can disable maintenance.
@@ -207,7 +207,7 @@ async function enforceMaintenanceMode(enabled) {
   // who signs in is redirected back to the maintenance page on the next route.
   if (isMaintenanceExemptPath(pathname)) return false;
 
-  window.location.replace('/maintenance.html');
+  window.location.replace('/maintenance-mode.html');
   return true;
 }
 
@@ -219,7 +219,7 @@ function startMaintenanceMonitor() {
   // Also lock already-open tabs shortly after an admin switches maintenance on.
   window.setInterval(async () => {
     const pathname = window.location.pathname.toLowerCase();
-    if (pathname === '/maintenance.html' || pathname === '/login.html') return;
+    if (pathname === '/maintenance-mode.html' || pathname === '/login.html') return;
     try {
       const { data, error } = await supabase.from('platform_settings')
         .select('value').eq('key', 'site_maintenance').maybeSingle();
@@ -260,9 +260,9 @@ async function loadPlatformBranding() {
 
     // Fail closed on app pages if maintenance status cannot be verified. The
     // maintenance notice remains readable and explains that a retry may help.
-    if (typeof window !== 'undefined' && pathname !== '/maintenance.html' && pathname !== '/login.html') {
+    if (typeof window !== 'undefined' && pathname !== '/maintenance-mode.html' && pathname !== '/login.html') {
       redirected = true;
-      window.location.replace('/maintenance.html?status=unavailable');
+      window.location.replace('/maintenance-mode.html?status=unavailable');
     }
   }
 }
@@ -281,7 +281,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     const pathname = window.location.pathname.toLowerCase();
     if (enabled) {
       await enforceMaintenanceMode(true);
-    } else if (pathname === '/maintenance.html') {
+    } else if (pathname === '/maintenance-mode.html') {
       window.location.replace('/home.html');
     }
   });
