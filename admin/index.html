@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>لوحة الإدارة | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo">
+        <span class="logo-icon">NS</span>
+        <span>لوحة الإدارة</span>
+      </a>
+      <a href="/home.html" class="btn btn-sm btn-secondary">العودة للمنصة</a>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:24px">
+    <div class="container page-content">
+      <h1 class="mb-2" style="font-size:1.4rem">مرحباً بك في لوحة الإدارة</h1>
+      <p class="text-muted mb-3">إدارة محتوى NUSC Student Hub</p>
+      <div class="card-grid" id="stats">
+        <div class="card"><div class="skeleton skeleton-title"></div></div>
+        <div class="card"><div class="skeleton skeleton-title"></div></div>
+        <div class="card"><div class="skeleton skeleton-title"></div></div>
+      </div>
+      <div class="section mt-3">
+        <h2 class="mb-2">الأقسام</h2>
+        <div class="card-grid">
+          <a href="/admin/subjects.html" class="card" style="text-decoration:none;color:inherit">
+            <h3 class="card-title">المواد الدراسية</h3>
+            <p class="text-sm text-muted">إضافة وتعديل وحذف المواد</p>
+          </a>
+          <a href="/admin/materials.html" class="card" style="text-decoration:none;color:inherit">
+            <h3 class="card-title">المحاضرات والملفات</h3>
+            <p class="text-sm text-muted">رفع وإدارة الماتيريال</p>
+          </a>
+          <a href="/admin/quizzes.html" class="card" style="text-decoration:none;color:inherit">
+            <h3 class="card-title">الكويزات</h3>
+            <p class="text-sm text-muted">إدارة الكويزات والقواعد</p>
+          </a>
+          <a href="/admin/schedule.html" class="card" style="text-decoration:none;color:inherit">
+            <h3 class="card-title">الجدول الدراسي</h3>
+            <p class="text-sm text-muted">المواعيد والمحاضرات</p>
+          </a>
+          <a href="/admin/announcements.html" class="card" style="text-decoration:none;color:inherit">
+            <h3 class="card-title">الإعلانات</h3>
+            <p class="text-sm text-muted">نشر وتثبيت الإعلانات</p>
+          </a>
+          <a href="/admin/students.html" class="card" style="text-decoration:none;color:inherit">
+            <h3 class="card-title">الطلاب</h3>
+            <p class="text-sm text-muted">عرض الحسابات المسجلة</p>
+          </a>
+          <a href="/admin/faq.html" class="card" style="text-decoration:none;color:inherit">
+            <h3 class="card-title">الأسئلة الشائعة</h3>
+            <p class="text-sm text-muted">إدارة الأسئلة والإجابات</p>
+          </a>
+          <a href="/admin/settings.html" class="card" style="text-decoration:none;color:inherit">
+            <h3 class="card-title">إعدادات المنصة</h3>
+            <p class="text-sm text-muted">الإعدادات العامة</p>
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script type="module">
+    import { supabase } from '../assets/js/supabase.js';
+    import { protectAdminPage } from '../assets/js/auth.js';
+    import { escapeHtml, showError } from '../assets/js/utils.js';
+    async function init() {
+      const result = await protectAdminPage();
+      if (!result) return;
+      const el = document.getElementById('stats');
+      try {
+        const [students, subjects, quizzes, announcements] = await Promise.all([
+          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'student'),
+          supabase.from('subjects').select('id', { count: 'exact', head: true }),
+          supabase.from('quizzes').select('id', { count: 'exact', head: true }),
+          supabase.from('announcements').select('id', { count: 'exact', head: true }).eq('is_published', true)
+        ]);
+        el.innerHTML = `
+          <div class="card text-center"><p class="text-muted text-sm">الطلاب</p><p style="font-size:1.75rem;font-weight:700;color:var(--primary)">${students.count ?? 0}</p></div>
+          <div class="card text-center"><p class="text-muted text-sm">المواد</p><p style="font-size:1.75rem;font-weight:700;color:var(--primary)">${subjects.count ?? 0}</p></div>
+          <div class="card text-center"><p class="text-muted text-sm">الكويزات</p><p style="font-size:1.75rem;font-weight:700;color:var(--primary)">${quizzes.count ?? 0}</p></div>
+          <div class="card text-center"><p class="text-muted text-sm">الإعلانات</p><p style="font-size:1.75rem;font-weight:700;color:var(--primary)">${announcements.count ?? 0}</p></div>
+        `;
+      } catch (err) {
+        showError(el, 'تعذر تحميل الإحصائيات');
+      }
+    }
+    init();
+  </script>
+</body>
+</html>
