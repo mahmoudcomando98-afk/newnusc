@@ -3,17 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#25271f" />
   <title>الرئيسية | MUSC</title>
   <link rel="stylesheet" href="/assets/css/main.css" />
 </head>
-<body>
+<body class="home-page">
   <div class="offline-banner" id="offline-banner">لا يوجد اتصال بالإنترنت</div>
   <header class="app-header">
     <div class="container">
-      <a href="/home.html" class="logo">
-        <span class="logo-icon">M</span>
-        <span>MUSC</span>
-      </a>
+      <a href="/home.html" class="logo"><span class="logo-icon">M</span><span class="logo-word">MUSC</span></a>
       <nav class="desktop-nav">
         <a href="/home.html" data-nav="home" class="active">الرئيسية</a>
         <a href="/subjects.html" data-nav="subjects">المواد</a>
@@ -22,54 +20,74 @@
         <a href="/announcements.html" data-nav="announcements">الإعلانات</a>
       </nav>
       <div class="header-actions">
-        <a href="/notifications.html" class="header-btn" title="الإشعارات" id="notif-btn">
-          <span data-icon="bell"></span>
-          <span class="badge hidden" id="notif-badge">0</span>
+        <a href="/notifications.html" class="header-btn notification-header-btn" title="الإشعارات" aria-label="الإشعارات" id="notif-btn">
+          <span data-icon="bell"></span><span class="badge hidden" id="notif-badge">0</span>
         </a>
         <button type="button" class="user-chip" id="user-chip" title="الملف الشخصي">
-          <span class="user-avatar" id="user-avatar">?</span>
-          <span id="user-name-short"></span>
+          <span class="user-avatar" id="user-avatar">؟</span><span id="user-name-short"></span>
         </button>
-        <a href="/profile.html" class="header-btn mobile-only" title="حسابي">
-          <span data-icon="user"></span>
-        </a>
+        <a href="/profile.html" class="header-btn mobile-only" title="حسابي"><span data-icon="user"></span></a>
       </div>
     </div>
   </header>
   <main class="page">
-    <div class="container page-content">
-      <div class="welcome-banner" id="welcome-banner">
-        <h2 id="welcome-text">أهلاً بك</h2>
-        <p>مستعد ليوم دراسي جديد؟</p>
-      </div>
-      <div class="quick-links">
-        <a href="/subjects.html" class="quick-link"><span class="icon-wrap" data-icon="book"></span>المواد</a>
-        <a href="/quizzes.html" class="quick-link"><span class="icon-wrap" data-icon="clipboard"></span>الكويزات</a>
-        <a href="/schedule.html" class="quick-link"><span class="icon-wrap" data-icon="calendar"></span>الجدول</a>
-        <a href="/announcements.html" class="quick-link"><span class="icon-wrap" data-icon="megaphone"></span>الإعلانات</a>
-      </div>
-      <section class="section">
-        <div class="section-header"><h2>المواد الدراسية</h2><a href="/subjects.html">عرض الكل</a></div>
-        <div class="card-grid" id="subjects-list">
-          <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+    <div class="container page-content home-content">
+      <section class="home-hero">
+        <div class="hero-copy">
+          <span class="hero-eyebrow"><span class="hero-dot"></span> كلية الحاسبات والمعلومات</span>
+          <h1 id="welcome-text">أهلاً بك في MUSC</h1>
+          <p>كل ما تحتاجه ليومك الدراسي، في مكان واحد ومنظم.</p>
+          <div class="hero-actions">
+            <a href="/subjects.html" class="btn btn-gold"><span data-icon="book"></span> استكشف المواد</a>
+            <a href="/schedule.html" class="hero-secondary-link"><span data-icon="calendar"></span> عرض الجدول</a>
+          </div>
         </div>
+        <div class="hero-mark" aria-hidden="true">
+          <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
+          <div class="hero-monogram">M<span>USC</span></div>
+          <span class="hero-spark spark-one">✦</span><span class="hero-spark spark-two">✧</span>
+        </div>
+        <div class="hero-bottom-line"><span>منصتك الأكاديمية</span><span>تعلم · نظّم · تقدّم</span></div>
       </section>
-      <section class="section">
-        <div class="section-header"><h2>آخر المحاضرات</h2><a href="/subjects.html">المزيد</a></div>
-        <div class="card" id="lectures-list"><div class="skeleton skeleton-title"></div></div>
+
+      <section id="important-notice" class="important-notice hidden" aria-live="polite">
+        <div class="notice-symbol"><span data-icon="bell-ring"></span></div>
+        <div class="notice-copy"><span class="notice-kicker">تنبيه مهم من إدارة المنصة</span><h2 id="important-notice-title"></h2><p id="important-notice-content"></p><span id="important-notice-time" class="notice-time"></span></div>
+        <a href="/notifications.html" class="notice-open">عرض الإشعارات <span aria-hidden="true">←</span></a>
       </section>
-      <section class="section">
-        <div class="section-header"><h2>الكويزات القادمة</h2><a href="/quizzes.html">عرض الكل</a></div>
-        <div class="card" id="quizzes-list"><div class="skeleton skeleton-title"></div></div>
+
+      <section class="dashboard-shortcuts" aria-label="اختصارات المنصة">
+        <a href="/subjects.html" class="shortcut-card shortcut-subjects"><span class="shortcut-icon" data-icon="book-open"></span><span class="shortcut-text"><strong>المواد الدراسية</strong><small>المحاضرات والملفات</small></span><span class="shortcut-arrow">←</span></a>
+        <a href="/quizzes.html" class="shortcut-card"><span class="shortcut-icon" data-icon="clipboard-check"></span><span class="shortcut-text"><strong>الكويزات</strong><small>تابع اختباراتك</small></span><span class="shortcut-arrow">←</span></a>
+        <a href="/schedule.html" class="shortcut-card"><span class="shortcut-icon" data-icon="calendar-days"></span><span class="shortcut-text"><strong>الجدول الدراسي</strong><small>رتّب يومك</small></span><span class="shortcut-arrow">←</span></a>
+        <a href="/notifications.html" class="shortcut-card"><span class="shortcut-icon" data-icon="bell"></span><span class="shortcut-text"><strong>الإشعارات</strong><small>آخر تنبيهات الإدارة</small></span><span class="shortcut-arrow">←</span></a>
       </section>
-      <section class="section">
-        <div class="section-header"><h2>آخر الإعلانات</h2><a href="/announcements.html">عرض الكل</a></div>
-        <div class="card" id="announcements-list"><div class="skeleton skeleton-title"></div></div>
+
+      <section class="section home-section">
+        <div class="section-header"><div><span class="section-kicker">ابدأ من هنا</span><h2>المواد الدراسية</h2><p class="section-subtitle">موادك في كروت واضحة وسهلة الوصول.</p></div><a href="/subjects.html" class="section-more">كل المواد <span>←</span></a></div>
+        <div class="card-grid home-subject-grid" id="subjects-list"><div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div></div>
       </section>
-      <section class="section">
-        <div class="section-header"><h2>أحدث الملفات</h2></div>
-        <div class="card" id="materials-list"><div class="skeleton skeleton-title"></div></div>
+
+      <div class="home-lower-grid">
+        <section class="section home-section">
+          <div class="section-header"><div><span class="section-kicker">تابع تقدمك</span><h2>آخر المحاضرات</h2></div><a href="/subjects.html" class="section-more">المزيد <span>←</span></a></div>
+          <div class="feed-panel" id="lectures-list"><div class="skeleton skeleton-title"></div></div>
+        </section>
+        <section class="section home-section">
+          <div class="section-header"><div><span class="section-kicker">استعد مبكرًا</span><h2>الكويزات القادمة</h2></div><a href="/quizzes.html" class="section-more">كل الكويزات <span>←</span></a></div>
+          <div class="feed-panel" id="quizzes-list"><div class="skeleton skeleton-title"></div></div>
+        </section>
+      </div>
+
+      <section class="section home-section">
+        <div class="section-header"><div><span class="section-kicker">من إدارة المنصة</span><h2>آخر الإعلانات</h2></div><a href="/announcements.html" class="section-more">كل الإعلانات <span>←</span></a></div>
+        <div class="feed-panel announcements-feed" id="announcements-list"><div class="skeleton skeleton-title"></div></div>
       </section>
+      <section class="section home-section">
+        <div class="section-header"><div><span class="section-kicker">مكتبتك الأكاديمية</span><h2>أحدث الملفات</h2></div><a href="/subjects.html" class="section-more">استكشف المواد <span>←</span></a></div>
+        <div class="feed-panel" id="materials-list"><div class="skeleton skeleton-title"></div></div>
+      </section>
+      <footer class="home-footer"><span class="footer-brand">MUSC</span><span>كلية الحاسبات والمعلومات</span><span>مساحتك الأكاديمية في مكان واحد</span></footer>
     </div>
   </main>
   <nav class="bottom-nav">
