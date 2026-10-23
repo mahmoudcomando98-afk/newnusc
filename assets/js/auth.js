@@ -4,13 +4,50 @@
  */
 
 import { supabase, getSession, getProfile } from './supabase.js';
+
 import {
   showToast,
-  escapeHtml,
   withLoading,
-  redirectIfAuthenticated,
-  requireAuth
+  redirectIfAuthenticated
 } from './utils.js';
+
+
+/* =========================
+   Helpers
+========================= */
+
+function getErrorMessage(error, fallback = 'حدث خطأ، حاول مرة أخرى') {
+  const message = String(error?.message || '').toLowerCase();
+
+  if (
+    error?.status === 429 ||
+    message.includes('rate limit') ||
+    message.includes('too many requests') ||
+    message.includes('email rate limit')
+  ) {
+    return 'تم تجاوز حد المحاولات أو رسائل البريد مؤقتًا. انتظر قليلًا قبل المحاولة مجددًا.';
+  }
+
+  if (
+    message.includes('already registered') ||
+    message.includes('already been registered')
+  ) {
+    return 'هذا البريد مسجل بالفعل. جرّب تسجيل الدخول أو استعادة كلمة المرور.';
+  }
+
+  if (
+    message.includes('invalid login credentials') ||
+    message.includes('invalid login')
+  ) {
+    return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+  }
+
+  if (message.includes('email not confirmed')) {
+    return 'يرجى تأكيد البريد الإلكتروني قبل تسجيل الدخول.';
+  }
+
+  return error?.message || fallback;
+}
 
 
 /* =========================
@@ -24,51 +61,51 @@ export async function register({
   studentId = null
 }) {
   if (!fullName?.trim() || !email?.trim() || !password) {
-    throw new Error('يرجى تعبئة جميع الحقول المطلوبة');
+    throw new Error('يرجى تعبئة جميع الحقول المطلوبة.');
   }
 
   if (password.length < 6) {
-    throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+    throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
   }
 
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedName = fullName.trim();
+  const normalizedStudentId = studentId?.trim() || null;
+
   const { data, error } = await supabase.auth.signUp({
-    email: email.trim().toLowerCase(),
+    email: normalizedEmail,
     password,
     options: {
+      emailRedirectTo: `${window.location.origin}/login.html`,
       data: {
-        full_name: fullName.trim(),
-        student_id: studentId?.trim() || null
+        full_name: normalizedName,
+        student_id: normalizedStudentId
       }
     }
   });
 
   if (error) {
-    if (
-      error.message.includes('already registered') ||
-      error.message.includes('already been registered')
-    ) {
-      throw new Error(
-        'هذا البريد الإلكتروني مسجل مسبقاً. يمكنك تسجيل الدخول أو استعادة كلمة المرور.'
-      );
-    }
-
-    throw new Error(error.message || 'فشل إنشاء الحساب');
+    throw new Error(getErrorMessage(error, 'فشل إنشاء الحساب.'));
   }
 
-  const session = data.session;
-  const user = data.user;
+  const user = data?.user;
+  const session = data?.session;
 
   if (!user) {
     throw new Error('لم يتم إنشاء الحساب. حاول مرة أخرى.');
   }
 
-  try {
+  /*
+   * عادةً يتم إنشاء سجل profiles من خلال Database Trigger.
+   * لا نغيّر role أو أي صلاحيات من جهة المتصفح.
+   */
+  if (session) {
     const { error: profileError } = await supabase
       .from('profiles')
       .update({
-        full_name: fullName.trim(),
-        student_id: studentId?.trim() || null,
-        email: email.trim().toLowerCase()
+        full_name: normalizedName,
+        student_id: normalizedStudentId,
+        email: normalizedEmail
       })
       .eq('id', user.id);
 
@@ -78,8 +115,6 @@ export async function register({
         profileError.message
       );
     }
-  } catch (e) {
-    console.warn('Profile update after signup:', e);
   }
 
   return {
@@ -96,7 +131,7 @@ export async function register({
 
 export async function login({ email, password }) {
   if (!email?.trim() || !password) {
-    throw new Error('يرجى إدخال البريد وكلمة المرور');
+    throw new Error('يرجى إدخال البريد الإلكتروني وكلمة المرور.');
   }
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -105,18 +140,25 @@ export async function login({ email, password }) {
   });
 
   if (error) {
-    if (error.message.includes('Invalid login')) {
-      throw new Error('البريد أو كلمة المرور غير صحيحة');
-    }
-
-    if (error.message.includes('Email not confirmed')) {
-      throw new Error('يرجى تأكيد البريد الإلكتروني أولاً');
-    }
-
-    throw new Error(error.message || 'فشل تسجيل الدخول');
+    throw new Error(getErrorMessage(error, 'فشل تسجيل الدخول.'));
   }
 
   return data;
+}
+
+
+/* =========================
+   Logout
+========================= */
+
+export async function logout() {
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    throw new Error(getErrorMessage(error, 'فشل تسجيل الخروج.'));
+  }
+
+  window.location.replace('/login.html');
 }
 
 
@@ -126,7 +168,7 @@ export async function login({ email, password }) {
 
 export async function requestPasswordReset(email) {
   if (!email?.trim()) {
-    throw new Error('أدخل البريد الإلكتروني');
+    throw new Error('أدخل البريد الإلكتروني.');
   }
 
   const redirectTo =
@@ -139,7 +181,7 @@ export async function requestPasswordReset(email) {
 
   if (error) {
     throw new Error(
-      error.message || 'فشل إرسال رابط استعادة كلمة المرور'
+      getErrorMessage(error, 'فشل إرسال رابط استعادة كلمة المرور.')
     );
   }
 }
@@ -147,7 +189,7 @@ export async function requestPasswordReset(email) {
 
 export async function updatePassword(newPassword) {
   if (!newPassword || newPassword.length < 6) {
-    throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+    throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
   }
 
   const { error } = await supabase.auth.updateUser({
@@ -155,7 +197,9 @@ export async function updatePassword(newPassword) {
   });
 
   if (error) {
-    throw new Error(error.message || 'فشل تحديث كلمة المرور');
+    throw new Error(
+      getErrorMessage(error, 'فشل تحديث كلمة المرور.')
+    );
   }
 }
 
@@ -191,10 +235,6 @@ export async function protectPage({ adminOnly = false } = {}) {
 }
 
 
-/* =========================
-   Admin Page Protection
-========================= */
-
 export async function protectAdminPage() {
   return await protectPage({ adminOnly: true });
 }
@@ -215,19 +255,17 @@ export function initLoginPage() {
 
     const email = form.email.value;
     const password = form.password.value;
-
     const btn = form.querySelector('button[type="submit"]');
 
     try {
       await withLoading(btn, async () => {
         await login({ email, password });
 
-        showToast('تم تسجيل الدخول بنجاح', 'success');
-
+        showToast('تم تسجيل الدخول بنجاح.', 'success');
         window.location.href = '/home.html';
       });
     } catch (err) {
-      showToast(err.message || 'حدث خطأ', 'error');
+      showToast(getErrorMessage(err, 'تعذر تسجيل الدخول.'), 'error');
     }
   });
 }
@@ -247,15 +285,35 @@ export function initRegisterPage() {
     e.preventDefault();
 
     const fullName =
-      form.fullName?.value || form.full_name?.value;
+      form.elements.full_name?.value ||
+      form.elements.fullName?.value ||
+      '';
 
-    const email = form.email.value;
-    const password = form.password.value;
+    const email = form.elements.email?.value || '';
+    const password = form.elements.password?.value || '';
+
+    const confirmPassword =
+      form.elements.password_confirm?.value ||
+      form.elements.confirm_password?.value ||
+      form.elements.confirm?.value ||
+      '';
 
     const studentId =
-      form.studentId?.value ||
-      form.student_id?.value ||
+      form.elements.student_id?.value ||
+      form.elements.studentId?.value ||
       null;
+
+    if (confirmPassword && password !== confirmPassword) {
+      showToast('كلمتا المرور غير متطابقتين.', 'error');
+      return;
+    }
+
+    const terms = form.elements.terms;
+
+    if (terms && !terms.checked) {
+      showToast('يجب الموافقة على الشروط والأحكام.', 'error');
+      return;
+    }
 
     const btn = form.querySelector('button[type="submit"]');
 
@@ -270,16 +328,17 @@ export function initRegisterPage() {
 
         if (result.needsEmailConfirmation) {
           showToast(
-            'تم إنشاء الحساب. تحقق من بريدك لتأكيد الحساب.',
-            'success'
+            'تم إنشاء الحساب. تحقق من بريدك الإلكتروني لتأكيده قبل تسجيل الدخول.',
+            'success',
+            6000
           );
         } else {
-          showToast('تم إنشاء الحساب بنجاح', 'success');
+          showToast('تم إنشاء الحساب بنجاح.', 'success');
           window.location.href = '/home.html';
         }
       });
     } catch (err) {
-      showToast(err.message || 'حدث خطأ', 'error');
+      showToast(getErrorMessage(err, 'تعذر إنشاء الحساب.'), 'error');
     }
   });
 }
@@ -296,7 +355,7 @@ export function initForgotPasswordPage() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const email = form.email.value;
+    const email = form.elements.email?.value || '';
     const btn = form.querySelector('button[type="submit"]');
 
     try {
@@ -304,12 +363,15 @@ export function initForgotPasswordPage() {
         await requestPasswordReset(email);
 
         showToast(
-          'إن كان البريد مسجلاً ستصلك رسالة استعادة',
+          'إذا كان البريد مسجلًا، فستصلك رسالة لاستعادة كلمة المرور.',
           'success'
         );
       });
     } catch (err) {
-      showToast(err.message || 'حدث خطأ', 'error');
+      showToast(
+        getErrorMessage(err, 'تعذر إرسال رابط الاستعادة.'),
+        'error'
+      );
     }
   });
 }
@@ -326,14 +388,16 @@ export function initResetPasswordPage() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const password = form.password.value;
+    const password = form.elements.password?.value || '';
 
-    const confirm =
-      form.confirm?.value ||
-      form.password_confirm?.value;
+    const confirmPassword =
+      form.elements.password_confirm?.value ||
+      form.elements.confirm?.value ||
+      form.elements.confirm_password?.value ||
+      '';
 
-    if (confirm && password !== confirm) {
-      showToast('كلمتا المرور غير متطابقتين', 'error');
+    if (confirmPassword && password !== confirmPassword) {
+      showToast('كلمتا المرور غير متطابقتين.', 'error');
       return;
     }
 
@@ -343,12 +407,14 @@ export function initResetPasswordPage() {
       await withLoading(btn, async () => {
         await updatePassword(password);
 
-        showToast('تم تحديث كلمة المرور', 'success');
-
+        showToast('تم تحديث كلمة المرور بنجاح.', 'success');
         window.location.href = '/login.html';
       });
     } catch (err) {
-      showToast(err.message || 'حدث خطأ', 'error');
+      showToast(
+        getErrorMessage(err, 'تعذر تحديث كلمة المرور.'),
+        'error'
+      );
     }
   });
 }
@@ -361,6 +427,9 @@ export function initResetPasswordPage() {
 export default {
   register,
   login,
+  logout,
+  requestPasswordReset,
+  updatePassword,
   protectPage,
   protectAdminPage,
   initLoginPage,
