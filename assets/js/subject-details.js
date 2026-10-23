@@ -6,7 +6,7 @@ import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
 import {
   escapeHtml, formatDate, timeAgo, showEmpty, showError, initIcons,
-  formatFileSize, materialTypeLabel, showToast
+  formatFileSize, showToast
 } from './utils.js';
 
 const params = new URLSearchParams(window.location.search);
@@ -42,7 +42,7 @@ function setupTabs() {
 async function loadSubject() {
   const el = document.getElementById('subject-header');
   try {
-    const { data, error } = await supabase.from('subjects').select('id, name, code, instructor, description').eq('id', subjectId).eq('is_published', true).single();
+    const { data, error } = await supabase.from('subjects').select('id, name, code, instructor, description').eq('id', subjectId).eq('is_active', true).single();
     if (error || !data) { showError(el, 'المادة غير موجودة أو غير منشورة'); return; }
     subject = data;
     document.getElementById('page-title').textContent = data.name;
@@ -69,7 +69,7 @@ async function loadTab(tab) {
 }
 
 async function loadLectures(el) {
-  const { data, error } = await supabase.from('lectures').select('id, title, lecture_number, description, lecture_date, created_at').eq('subject_id', subjectId).eq('is_published', true).order('lecture_number', { ascending: true, nullsFirst: false }).order('created_at');
+  const { data, error } = await supabase.from('lectures').select('id, title, lecture_number, description, published_at, created_at').eq('subject_id', subjectId).eq('is_published', true).order('lecture_number', { ascending: true, nullsFirst: false }).order('created_at');
   if (error) throw error;
   if (!data?.length) { showEmpty(el, 'لا توجد محاضرات لهذه المادة بعد'); return; }
   el.innerHTML = `<div class="card">${data.map((l) => `
@@ -77,15 +77,15 @@ async function loadLectures(el) {
       <div class="list-item-icon" data-icon="file"></div>
       <div class="list-item-body">
         <div class="list-item-title">${l.lecture_number ? `<span class="badge badge-primary" style="margin-left:6px">${l.lecture_number}</span>` : ''}${escapeHtml(l.title)}</div>
-        <div class="list-item-desc">${l.lecture_date ? formatDate(l.lecture_date) : timeAgo(l.created_at)}${l.description ? ` \u00b7 ${escapeHtml(l.description.slice(0, 60))}` : ''}</div>
+        <div class="list-item-desc">${l.published_at ? formatDate(l.published_at) : timeAgo(l.created_at)}${l.description ? ` \u00b7 ${escapeHtml(l.description.slice(0, 60))}` : ''}</div>
       </div>
     </a>`).join('')}</div>`;
   initIcons();
 }
 
 async function loadMaterials(el, typeFilter) {
-  let query = supabase.from('materials').select('id, title, file_name, file_type, file_size, material_type, created_at, file_path').eq('subject_id', subjectId).eq('is_published', true).order('created_at', { ascending: false });
-  if (typeFilter) query = query.eq('material_type', typeFilter);
+  if (typeFilter === 'assignment') { showEmpty(el, 'لا يوجد حقل في قاعدة البيانات الحالية يميّز الواجبات عن الملفات الأخرى.'); return; }
+  const query = supabase.from('materials').select('id, title, file_type, file_size, created_at, file_path').eq('subject_id', subjectId).eq('is_published', true).order('created_at', { ascending: false });
   const { data, error } = await query;
   if (error) throw error;
   if (!data?.length) { showEmpty(el, typeFilter === 'assignment' ? 'لا توجد واجبات حالياً' : 'لا توجد ملفات لهذه المادة'); return; }
@@ -105,7 +105,7 @@ async function loadMaterials(el, typeFilter) {
 }
 
 async function loadAnnouncements(el) {
-  const { data, error } = await supabase.from('announcements').select('id, title, content, importance, created_at').eq('subject_id', subjectId).eq('is_published', true).or('expires_at.is.null,expires_at.gt.now()').order('created_at', { ascending: false });
+  const { data, error } = await supabase.from('announcements').select('id, title, content, priority, created_at').eq('subject_id', subjectId).eq('is_published', true).order('created_at', { ascending: false });
   if (error) throw error;
   if (!data?.length) { showEmpty(el, 'لا توجد إعلانات خاصة بهذه المادة'); return; }
   el.innerHTML = `<div class="card">${data.map((a) => `
