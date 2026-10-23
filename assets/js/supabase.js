@@ -165,19 +165,57 @@ function applyPlatformLogo(url) {
   });
 }
 
+function normalizeSettingBoolean(value) {
+  return value === true || value === 'true' || value === 1 || value === '1';
+}
+
+async function isActiveContentManager() {
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) return false;
+    const { data: profile, error } = await supabase.from('profiles')
+      .select('role, is_active').eq('id', user.id).maybeSingle();
+    if (error) return false;
+    return ['admin', 'moderator'].includes(profile?.role) && profile?.is_active !== false;
+  } catch {
+    return false;
+  }
+}
+
+async function enforceMaintenanceMode(enabled) {
+  if (!enabled || typeof window === 'undefined') return;
+  const pathname = window.location.pathname.toLowerCase();
+
+  // Keep the admin console and account recovery available so the team can turn maintenance off.
+  const safePaths = ['/admin', '/login.html', '/forgot-password.html', '/reset-password.html', '/maintenance.html'];
+  if (safePaths.some((path) => pathname === path || pathname.startsWith(path + '/'))) return;
+
+  if (await isActiveContentManager()) return;
+
+  if (pathname !== '/maintenance.html') {
+    window.location.replace('/maintenance.html');
+  }
+}
+
 async function loadPlatformBranding() {
   try {
     const { data, error } = await supabase.from('platform_settings')
-      .select('key, value').in('key', ['platform_logo_url', 'site_name']);
+      .select('key, value').in('key', [
+        'platform_logo_url',
+        'site_name',
+        'site_maintenance',
+        'maintenance_message'
+      ]);
     if (error) throw error;
     const settings = new Map((data || []).map((item) => [item.key, item.value]));
     const logoUrl = normalizePlatformLogo(settings.get('platform_logo_url'));
     const platformName = normalizePlatformName(settings.get('site_name'));
     applyPlatformLogo(logoUrl);
     if (platformName) applyPlatformName(platformName);
+    await enforceMaintenanceMode(normalizeSettingBoolean(settings.get('site_maintenance')));
   } catch (error) {
     // Missing branding settings should never stop authentication or other pages from loading.
-    console.warn('[NUSC] Could not load platform branding:', error?.message || error);
+    console.warn('[NUSC] Could not load platform branding or maintenance mode:', error?.message || error);
   }
 }
 
