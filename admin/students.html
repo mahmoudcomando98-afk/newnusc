@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>إدارة الطلاب | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>الطلاب المسجلون</span>
+      </a>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:24px">
+    <div class="container page-content">
+      <p class="text-muted mb-2 text-sm">ملاحظة: التسجيل مفتوح ولا يتطلب موافقة الإدارة. يمكنك فقط عرض الحسابات.</p>
+      <div id="list">
+        <div class="skeleton-card"><div class="skeleton skeleton-title"></div></div>
+      </div>
+    </div>
+  </main>
+  <script type="module">
+    import { supabase } from '../assets/js/supabase.js';
+    import { protectAdminPage } from '../assets/js/auth.js';
+    import { escapeHtml, formatDate, showEmpty, showError, initIcons } from '../assets/js/utils.js';
+    async function init() {
+      const result = await protectAdminPage();
+      if (!result) return;
+      initIcons();
+      const el = document.getElementById('list');
+      try {
+        const { data, error } = await supabase.from('profiles').select('id, full_name, email, student_id, role, is_active, created_at').order('created_at', { ascending: false }).limit(200);
+        if (error) throw error;
+        if (!data?.length) { showEmpty(el, 'لا يوجد طلاب مسجلون بعد'); return; }
+        el.innerHTML = `<div class="card">${data.map(p => `
+          <div class="list-item"><div class="list-item-body">
+            <div class="list-item-title">${escapeHtml(p.full_name || '—')}</div>
+            <div class="list-item-desc">${escapeHtml(p.email)}${p.student_id ? ' · ' + escapeHtml(p.student_id) : ''} · <span class="badge ${p.role === 'admin' ? 'badge-danger' : 'badge-primary'}">${p.role}</span> · ${formatDate(p.created_at)}</div>
+          </div></div>`).join('')}</div>`;
+      } catch { showError(el, 'تعذر تحميل القائمة'); }
+    }
+    init();
+  </script>
+</body>
+</html>

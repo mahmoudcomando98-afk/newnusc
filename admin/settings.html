@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>إعدادات المنصة | NUSC Student Hub</title>
+  <link rel="stylesheet" href="/assets/css/main.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>إعدادات المنصة</span>
+      </a>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:24px">
+    <div class="container page-content">
+      <div class="card mb-3">
+        <h3 class="card-title mb-2">معلومات عامة</h3>
+        <p class="text-sm text-muted mb-2">يمكن تعديل الإعدادات من هنا أو مباشرة من جدول platform_settings في Supabase.</p>
+        <div id="settings-list"><div class="skeleton skeleton-text"></div></div>
+      </div>
+      <div class="card">
+        <h3 class="card-title mb-2">إنشاء حساب مدير</h3>
+        <p class="text-sm text-muted mb-2">لإنشاء مدير: سجّل حساباً عادياً من الواجهة، ثم نفّذ في SQL Editor:</p>
+        <pre style="background:var(--bg);padding:12px;border-radius:8px;font-size:0.8rem;overflow:auto;direction:ltr;text-align:left">UPDATE public.profiles
+SET role = 'admin'
+WHERE email = 'your-admin@email.com';</pre>
+        <p class="text-sm text-muted mt-2">لا تمنح صلاحية المدير لأي حساب جديد تلقائياً.</p>
+      </div>
+    </div>
+  </main>
+  <script type="module">
+    import { supabase } from '../assets/js/supabase.js';
+    import { protectAdminPage } from '../assets/js/auth.js';
+    import { escapeHtml, showError, initIcons } from '../assets/js/utils.js';
+    async function init() {
+      const result = await protectAdminPage();
+      if (!result) return;
+      initIcons();
+      const el = document.getElementById('settings-list');
+      try {
+        const { data, error } = await supabase.from('platform_settings').select('key, value, description');
+        if (error) throw error;
+        el.innerHTML = (data || []).map(s => `<div class="list-item"><div class="list-item-body"><div class="list-item-title">${escapeHtml(s.key)}</div><div class="list-item-desc">${escapeHtml(s.description || '')} · ${escapeHtml(JSON.stringify(s.value))}</div></div></div>`).join('') || '<p class="text-muted">لا توجد إعدادات</p>';
+      } catch { showError(el, 'تعذر التحميل'); }
+    }
+    init();
+  </script>
+</body>
+</html>
