@@ -50,23 +50,35 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit = 2097152;
 
 DROP POLICY IF EXISTS "Authenticated users can read materials" ON storage.objects;
-CREATE POLICY "Authenticated users can read materials"
-  ON storage.objects FOR SELECT
-  USING (bucket_id = 'materials' AND auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can read published materials"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'materials'
+    AND (
+      public.is_admin_or_moderator()
+      OR EXISTS (
+        SELECT 1
+        FROM public.materials AS m
+        WHERE m.file_path = storage.objects.name
+          AND m.is_published = true
+      )
+    )
+  );
 
 DROP POLICY IF EXISTS "Admins can upload materials" ON storage.objects;
 CREATE POLICY "Admins can upload materials"
-  ON storage.objects FOR INSERT
+  ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'materials' AND public.is_admin_or_moderator());
 
 DROP POLICY IF EXISTS "Admins can update materials" ON storage.objects;
 CREATE POLICY "Admins can update materials"
-  ON storage.objects FOR UPDATE
-  USING (bucket_id = 'materials' AND public.is_admin_or_moderator());
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'materials' AND public.is_admin_or_moderator())
+  WITH CHECK (bucket_id = 'materials' AND public.is_admin_or_moderator());
 
 DROP POLICY IF EXISTS "Admins can delete materials" ON storage.objects;
 CREATE POLICY "Admins can delete materials"
-  ON storage.objects FOR DELETE
+  ON storage.objects FOR DELETE TO authenticated
   USING (bucket_id = 'materials' AND public.is_admin_or_moderator());
 
 DROP POLICY IF EXISTS "Anyone can view avatars" ON storage.objects;
@@ -76,7 +88,7 @@ CREATE POLICY "Anyone can view avatars"
 
 DROP POLICY IF EXISTS "Users can upload own avatar" ON storage.objects;
 CREATE POLICY "Users can upload own avatar"
-  ON storage.objects FOR INSERT
+  ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
 
 DROP POLICY IF EXISTS "Users can update own avatar" ON storage.objects;
@@ -86,5 +98,5 @@ CREATE POLICY "Users can update own avatar"
 
 DROP POLICY IF EXISTS "Users can delete own avatar" ON storage.objects;
 CREATE POLICY "Users can delete own avatar"
-  ON storage.objects FOR DELETE
+  ON storage.objects FOR DELETE TO authenticated
   USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
