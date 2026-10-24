@@ -42,6 +42,12 @@ BEGIN
 END;
 $unread_count$;
 
+-- Admin helper functions return only the current caller's authorization state.
+REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.is_admin_or_moderator() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.is_admin_or_moderator() TO authenticated, service_role;
+
 -- SECURITY DEFINER RPCs must not be callable by anonymous/public clients.
 REVOKE ALL ON FUNCTION public.get_unread_notifications_count(UUID) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.mark_notification_read(UUID) FROM PUBLIC, anon;
