@@ -353,3 +353,39 @@
     scroll-behavior: auto !important;
   }
 }
+
+
+/* Authentication pages: quieter surfaces and consistent interaction states. */
+.auth-layout {
+  border-radius: 22px;
+  box-shadow: 0 12px 36px rgba(43, 65, 50, .07);
+  backdrop-filter: none;
+}
+.auth-main { background: #fff; }
+.auth-page::before, .auth-page::after { opacity: .55; }
+.auth-input { border-radius: 10px !important; }
+.auth-submit {
+  border-radius: 10px;
+  box-shadow: none !important;
+}
+.auth-submit:hover:not(:disabled) {
+  box-shadow: 0 3px 9px rgba(49, 95, 80, .15) !important;
+  transform: none;
+}
+.auth-aside { background: #edf2e9; }
+.auth-preview {
+  border-radius: 13px;
+  box-shadow: 0 4px 14px rgba(65, 92, 70, .045);
+  backdrop-filter: none;
+}
+.auth-heading h1 { letter-spacing: -.02em; }
+@media (max-width: 820px) {
+  .auth-layout { box-shadow: 0 8px 24px rgba(43, 65, 50, .06); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-page *, .auth-page *::before, .auth-page *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
