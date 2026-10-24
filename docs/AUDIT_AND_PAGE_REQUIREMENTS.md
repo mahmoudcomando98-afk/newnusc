@@ -12,12 +12,16 @@ NUSC is a static multi-page HTML/CSS/JavaScript application built with Vite. Sup
 - Added a repeatable static audit command and wired it into CI before the production build.
 - Removed no business logic solely on the basis of names or guesses; dead-code removal requires reference analysis and behavior tests.
 
+### Dependency audit
+- Upgraded Vite from 5.4.21 to 8.3.5 and regenerated the lockfile after CI reported a High Vite advisory and Moderate esbuild advisory. The current CI dependency audit reports no known package vulnerabilities.
+- CI now runs on Node 22 to match the current Supabase SDK engine requirement.
+
 ### Risks that still require runtime/database verification
 - `signInWithPassword` is called through the Supabase SDK. The SDK uses the Auth token endpoint with POST; the observed GET risk was the HTML form's implicit default when JavaScript is unavailable, not the SDK sign-in call itself.
 - The app calls Supabase directly from the browser. Every table, RPC, and Storage operation must be reviewed against the live schema and RLS policies.
 - SQL files in `supabase/` are migrations/scripts, not proof of the live database state. This audit does not execute SQL or modify the live Supabase project.
 - Profile fields, publication flags, RPC signatures, and Storage object paths must be tested against the actual deployed schema before merge.
-- `maintenance.html` and `maintenance-mode.html` currently duplicate each other. Both are retained for compatibility until all references and deployment routing are verified.
+- `maintenance.html` is retained as a small compatibility redirect to `maintenance-mode.html`, avoiding two copies of the same maintenance page.
 - A successful Vite build checks bundling, not sign-in behavior, RLS isolation, or all page workflows.
 
 ## Page requirements and acceptance criteria
