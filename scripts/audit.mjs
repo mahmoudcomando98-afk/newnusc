@@ -6,7 +6,7 @@ const errors = [];
 const warnings = [];
 const ignoredDirs = new Set(['.git', 'node_modules', 'dist', '.vercel']);
 const sourceExtensions = new Set(['.html', '.js', '.mjs', '.ts', '.css']);
-const forbiddenProjectRef = /keaoerzmdxthrgpqnwvs/i;
+const forbiddenProjectRef = /keaoerzmdxthrgpqnwvs/i;\nconst hardcodedSupabaseUrl = /https:\\/\\/[a-z0-9-]+\\.supabase\\.co/i;\nconst hardcodedPublishableKey = /sb_publishable_[a-z0-9_-]{20,}/i;\nconst hardcodedJwt = /eyJ[a-zA-Z0-9_-]{20,}\\.[a-zA-Z0-9_-]{10,}\\.[a-zA-Z0-9_-]{10,}/;
 const authForms = new Map([
   ['login.html', 'login-form'],
   ['register.html', 'register-form'],
