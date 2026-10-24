@@ -11,10 +11,12 @@ SET search_path = public
 AS $$
   SELECT COUNT(*)::INTEGER
   FROM public.notifications n
-  WHERE (n.user_id = p_user_id OR n.is_global = true)
+  WHERE auth.uid() IS NOT NULL
+    AND (n.user_id = CASE WHEN public.is_admin() THEN COALESCE(p_user_id, auth.uid()) ELSE auth.uid() END OR n.is_global = true)
     AND NOT EXISTS (
       SELECT 1 FROM public.notification_reads nr
-      WHERE nr.notification_id = n.id AND nr.user_id = p_user_id
+      WHERE nr.notification_id = n.id
+        AND nr.user_id = CASE WHEN public.is_admin() THEN COALESCE(p_user_id, auth.uid()) ELSE auth.uid() END
     );
 $$;
 
@@ -25,8 +27,15 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
+  END IF;
+
   INSERT INTO public.notification_reads (notification_id, user_id)
-  VALUES (p_notification_id, auth.uid())
+  SELECT n.id, auth.uid()
+  FROM public.notifications n
+  WHERE n.id = p_notification_id
+    AND (n.user_id = auth.uid() OR n.is_global = true)
   ON CONFLICT (notification_id, user_id) DO NOTHING;
 END;
 $$;
@@ -38,6 +47,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
+  END IF;
+
   INSERT INTO public.notification_reads (notification_id, user_id)
   SELECT n.id, auth.uid()
   FROM public.notifications n
@@ -57,8 +70,12 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
+  END IF;
+
   UPDATE public.materials
-  SET download_count = download_count + 1
+  SET download_count = COALESCE(download_count, 0) + 1
   WHERE id = p_material_id AND is_published = true;
 END;
 $$;
@@ -70,8 +87,12 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
+  END IF;
+
   UPDATE public.materials
-  SET view_count = view_count + 1
+  SET view_count = COALESCE(view_count, 0) + 1
   WHERE id = p_material_id AND is_published = true;
 END;
 $$;
@@ -94,6 +115,14 @@ STABLE
 SET search_path = public
 AS $$
 BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.' USING ERRCODE = '42501';
+  END IF;
+  IF NULLIF(BTRIM(p_query), '') IS NULL THEN
+    RETURN;
+  END IF;
+  p_limit := GREATEST(1, LEAST(COALESCE(p_limit, 20), 50));
+
   RETURN QUERY
   (
     SELECT 'subject'::TEXT, s.id, s.name, s.description, NULL::TEXT, s.created_at
@@ -140,3 +169,19 @@ BEGIN
   );
 END;
 $$;
+
+
+-- SECURITY DEFINER helpers are not intended for anonymous/public callers.
+REVOKE ALL ON FUNCTION public.get_unread_notifications_count(UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.mark_notification_read(UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.mark_all_notifications_read() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.increment_download_count(UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.increment_view_count(UUID) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.search_content(TEXT, INTEGER) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.get_unread_notifications_count(UUID) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.mark_notification_read(UUID) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.mark_all_notifications_read() TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.increment_download_count(UUID) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.increment_view_count(UUID) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.search_content(TEXT, INTEGER) TO authenticated, service_role;

@@ -1,11 +1,14 @@
 import { defineConfig, loadEnv } from 'vite';
-import { resolve } from 'path';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+const projectRoot = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), ['VITE_', 'NEXT_PUBLIC_']);
+  const env = loadEnv(mode, projectRoot, ['VITE_', 'NEXT_PUBLIC_']);
 
   return {
-    root: '.',
+    root: projectRoot,
     publicDir: 'public',
     envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
     define: {
@@ -25,32 +28,36 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       rollupOptions: {
         input: {
-          main: resolve(__dirname, 'index.html'),
-          login: resolve(__dirname, 'login.html'),
-          register: resolve(__dirname, 'register.html'),
-          'forgot-password': resolve(__dirname, 'forgot-password.html'),
-          'reset-password': resolve(__dirname, 'reset-password.html'),
-          home: resolve(__dirname, 'home.html'),
-          subjects: resolve(__dirname, 'subjects.html'),
-          'subject-details': resolve(__dirname, 'subject-details.html'),
-          'lecture-details': resolve(__dirname, 'lecture-details.html'),
-          quizzes: resolve(__dirname, 'quizzes.html'),
-          'quiz-rules': resolve(__dirname, 'quiz-rules.html'),
-          schedule: resolve(__dirname, 'schedule.html'),
-          announcements: resolve(__dirname, 'announcements.html'),
-          notifications: resolve(__dirname, 'notifications.html'),
-          favorites: resolve(__dirname, 'favorites.html'),
-          faq: resolve(__dirname, 'faq.html'),
-          profile: resolve(__dirname, 'profile.html'),
-          'admin-index': resolve(__dirname, 'admin/index.html'),
-          'admin-students': resolve(__dirname, 'admin/students.html'),
-          'admin-subjects': resolve(__dirname, 'admin/subjects.html'),
-          'admin-materials': resolve(__dirname, 'admin/materials.html'),
-          'admin-quizzes': resolve(__dirname, 'admin/quizzes.html'),
-          'admin-schedule': resolve(__dirname, 'admin/schedule.html'),
-          'admin-announcements': resolve(__dirname, 'admin/announcements.html'),
-          'admin-faq': resolve(__dirname, 'admin/faq.html'),
-          'admin-settings': resolve(__dirname, 'admin/settings.html')
+          main: resolve(projectRoot, 'index.html'),
+          '404': resolve(projectRoot, '404.html'),
+          '500': resolve(projectRoot, '500.html'),
+          login: resolve(projectRoot, 'login.html'),
+          register: resolve(projectRoot, 'register.html'),
+          'forgot-password': resolve(projectRoot, 'forgot-password.html'),
+          'reset-password': resolve(projectRoot, 'reset-password.html'),
+          home: resolve(projectRoot, 'home.html'),
+          subjects: resolve(projectRoot, 'subjects.html'),
+          'subject-details': resolve(projectRoot, 'subject-details.html'),
+          'lecture-details': resolve(projectRoot, 'lecture-details.html'),
+          quizzes: resolve(projectRoot, 'quizzes.html'),
+          'quiz-rules': resolve(projectRoot, 'quiz-rules.html'),
+          schedule: resolve(projectRoot, 'schedule.html'),
+          announcements: resolve(projectRoot, 'announcements.html'),
+          notifications: resolve(projectRoot, 'notifications.html'),
+          favorites: resolve(projectRoot, 'favorites.html'),
+          faq: resolve(projectRoot, 'faq.html'),
+          profile: resolve(projectRoot, 'profile.html'),
+          'maintenance-mode': resolve(projectRoot, 'maintenance-mode.html'),
+          maintenance: resolve(projectRoot, 'maintenance.html'),
+          'admin-index': resolve(projectRoot, 'admin/index.html'),
+          'admin-students': resolve(projectRoot, 'admin/students.html'),
+          'admin-subjects': resolve(projectRoot, 'admin/subjects.html'),
+          'admin-materials': resolve(projectRoot, 'admin/materials.html'),
+          'admin-quizzes': resolve(projectRoot, 'admin/quizzes.html'),
+          'admin-schedule': resolve(projectRoot, 'admin/schedule.html'),
+          'admin-announcements': resolve(projectRoot, 'admin/announcements.html'),
+          'admin-faq': resolve(projectRoot, 'admin/faq.html'),
+          'admin-settings': resolve(projectRoot, 'admin/settings.html')
         }
       }
     },

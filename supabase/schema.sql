@@ -15,12 +15,12 @@ $$;
 
 -- Kept for compatibility with legacy policies, but this project uses strict admin-only access.
 CREATE OR REPLACE FUNCTION public.is_admin_or_moderator()
-RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.profiles
     WHERE id = auth.uid() AND role = 'admin' AND is_active = true
   );
-$;
+$$;
 
 -- profiles
 CREATE TABLE IF NOT EXISTS public.profiles (

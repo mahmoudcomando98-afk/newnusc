@@ -15,6 +15,8 @@ VALUES (
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/zip',
     'application/x-rar-compressed',
     'image/jpeg',
@@ -30,6 +32,8 @@ ON CONFLICT (id) DO UPDATE SET
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/zip',
     'application/x-rar-compressed',
     'image/jpeg',
@@ -49,24 +53,72 @@ ON CONFLICT (id) DO UPDATE SET
   public = true,
   file_size_limit = 2097152;
 
+-- Public platform branding assets (the admin settings page uses this bucket).
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'platform-assets',
+  'platform-assets',
+  true,
+  4194304,
+  ARRAY['image/png', 'image/jpeg', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 4194304,
+  allowed_mime_types = ARRAY['image/png', 'image/jpeg', 'image/webp'];
+
+DROP POLICY IF EXISTS "Anyone can view platform assets" ON storage.objects;
+CREATE POLICY "Anyone can view platform assets"
+  ON storage.objects FOR SELECT TO anon, authenticated
+  USING (bucket_id = 'platform-assets');
+
+DROP POLICY IF EXISTS "Admins can upload platform assets" ON storage.objects;
+CREATE POLICY "Admins can upload platform assets"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'platform-assets' AND public.is_admin());
+
+DROP POLICY IF EXISTS "Admins can update platform assets" ON storage.objects;
+CREATE POLICY "Admins can update platform assets"
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'platform-assets' AND public.is_admin())
+  WITH CHECK (bucket_id = 'platform-assets' AND public.is_admin());
+
+DROP POLICY IF EXISTS "Admins can delete platform assets" ON storage.objects;
+CREATE POLICY "Admins can delete platform assets"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'platform-assets' AND public.is_admin());
+
 DROP POLICY IF EXISTS "Authenticated users can read materials" ON storage.objects;
-CREATE POLICY "Authenticated users can read materials"
-  ON storage.objects FOR SELECT
-  USING (bucket_id = 'materials' AND auth.role() = 'authenticated');
+DROP POLICY IF EXISTS "Authenticated users can read published materials" ON storage.objects;
+CREATE POLICY "Authenticated users can read published materials"
+  ON storage.objects FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'materials'
+    AND (
+      public.is_admin_or_moderator()
+      OR EXISTS (
+        SELECT 1
+        FROM public.materials AS m
+        WHERE m.file_path = storage.objects.name
+          AND m.is_published = true
+      )
+    )
+  );
 
 DROP POLICY IF EXISTS "Admins can upload materials" ON storage.objects;
 CREATE POLICY "Admins can upload materials"
-  ON storage.objects FOR INSERT
+  ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'materials' AND public.is_admin_or_moderator());
 
 DROP POLICY IF EXISTS "Admins can update materials" ON storage.objects;
 CREATE POLICY "Admins can update materials"
-  ON storage.objects FOR UPDATE
-  USING (bucket_id = 'materials' AND public.is_admin_or_moderator());
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'materials' AND public.is_admin_or_moderator())
+  WITH CHECK (bucket_id = 'materials' AND public.is_admin_or_moderator());
 
 DROP POLICY IF EXISTS "Admins can delete materials" ON storage.objects;
 CREATE POLICY "Admins can delete materials"
-  ON storage.objects FOR DELETE
+  ON storage.objects FOR DELETE TO authenticated
   USING (bucket_id = 'materials' AND public.is_admin_or_moderator());
 
 DROP POLICY IF EXISTS "Anyone can view avatars" ON storage.objects;
@@ -76,15 +128,16 @@ CREATE POLICY "Anyone can view avatars"
 
 DROP POLICY IF EXISTS "Users can upload own avatar" ON storage.objects;
 CREATE POLICY "Users can upload own avatar"
-  ON storage.objects FOR INSERT
+  ON storage.objects FOR INSERT TO authenticated
   WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
 
 DROP POLICY IF EXISTS "Users can update own avatar" ON storage.objects;
 CREATE POLICY "Users can update own avatar"
-  ON storage.objects FOR UPDATE
-  USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1])
+  WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
 
 DROP POLICY IF EXISTS "Users can delete own avatar" ON storage.objects;
 CREATE POLICY "Users can delete own avatar"
-  ON storage.objects FOR DELETE
+  ON storage.objects FOR DELETE TO authenticated
   USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
