@@ -62,10 +62,6 @@ CREATE POLICY "Admins can manage materials" ON public.materials FOR ALL
 
 -- quizzes
 DROP POLICY IF EXISTS "Anyone authenticated can view published quizzes" ON public.quizzes;
-CREATE POLICY "Anyone authenticated can view published quizzes" ON public.quizzes FOR ALL
-  USING (public.is_admin_or_moderator()) WITH CHECK (public.is_admin_or_moderator());
-
-DROP POLICY IF EXISTS "Anyone authenticated can view published quizzes" ON public.quizzes;
 CREATE POLICY "Anyone authenticated can view published quizzes" ON public.quizzes FOR SELECT
   USING (is_published = true OR public.is_admin_or_moderator());
 
