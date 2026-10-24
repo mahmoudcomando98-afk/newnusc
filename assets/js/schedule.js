@@ -1,6 +1,7 @@
 /**
  * NUSC Student Hub - Schedule Page
- * Reads from public.schedules (schema.sql)
+ * Works with #schedule-content or legacy #schedule-root.
+ * Reads public.schedules (fallback: schedule_items).
  */
 
 import { supabase } from './supabase.js';
@@ -28,13 +29,62 @@ const typeLabels = {
   other: 'أخرى'
 };
 
+/** Ensure mount exists even if HTML is an old build with only #schedule-root */
+function ensureScheduleMount() {
+  let el = document.getElementById('schedule-content');
+  if (el) return el;
+
+  const pageContent =
+    document.getElementById('schedule-root') ||
+    document.querySelector('.page-content') ||
+    document.querySelector('main .container');
+
+  if (!pageContent) return null;
+
+  // Build UI into legacy root / page content
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="tabs" id="view-tabs" role="tablist" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button type="button" class="tab active" data-view="list" role="tab">قائمة</button>
+      <button type="button" class="tab" data-view="week" role="tab">حسب اليوم</button>
+    </div>
+    <div id="schedule-content" aria-live="polite"></div>
+  `;
+
+  if (pageContent.id === 'schedule-root') {
+    pageContent.innerHTML = '';
+    pageContent.appendChild(wrap);
+  } else if (!document.getElementById('view-tabs')) {
+    const header = pageContent.querySelector('.section-header');
+    if (header && header.nextSibling) {
+      header.parentNode.insertBefore(wrap, header.nextSibling);
+    } else {
+      pageContent.appendChild(wrap);
+    }
+  }
+
+  el = document.getElementById('schedule-content');
+  return el;
+}
+
+function bindViewTabs() {
+  document.querySelectorAll('#view-tabs .tab[data-view]').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#view-tabs .tab').forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentView = tab.dataset.view || 'list';
+      render();
+    });
+  });
+}
+
 function getEventDay(event) {
   if (event.day_of_week !== null && event.day_of_week !== undefined && event.day_of_week !== '') {
     const day = Number(event.day_of_week);
     if (Number.isInteger(day) && day >= 0 && day <= 6) return day;
   }
   if (event.event_date) {
-    const date = new Date(event.event_date + 'T12:00:00');
+    const date = new Date(String(event.event_date).slice(0, 10) + 'T12:00:00');
     if (!Number.isNaN(date.getTime())) return date.getDay();
   }
   return null;
@@ -91,7 +141,10 @@ function eventCard(event) {
 
 function renderList(el) {
   if (!events.length) {
-    showEmpty(el, 'لا توجد مواعيد في الجدول حاليًا');
+    showEmpty(
+      el,
+      'لا توجد مواعيد في الجدول. لو أنت أدمن: أضف مواعيد من إدارة الجدول.'
+    );
     return;
   }
   el.innerHTML = sortEvents(events).map(eventCard).join('');
@@ -113,11 +166,10 @@ function renderWeek(el) {
   el.innerHTML = byDay
     .map((dayEvents, dayIndex) => {
       if (!dayEvents.length) return '';
-      const sorted = sortEvents(dayEvents);
       return `
         <section class="card mb-2">
           <h3 class="card-title">${escapeHtml(WEEKDAYS_AR[dayIndex] || '')}</h3>
-          ${sorted
+          ${sortEvents(dayEvents)
             .map(
               (event) => `
             <div class="list-item">
@@ -130,7 +182,6 @@ function renderWeek(el) {
                   ${getEventTime(event) ? ` · ${escapeHtml(getEventTime(event))}` : ''}
                   ${event.location ? ` · ${escapeHtml(event.location)}` : ''}
                 </div>
-                ${event.notes ? `<p class="text-sm text-muted mt-1">${escapeHtml(event.notes)}</p>` : ''}
               </div>
             </div>`
             )
@@ -143,16 +194,51 @@ function renderWeek(el) {
 }
 
 function render() {
-  const el = document.getElementById('schedule-content');
+  const el = ensureScheduleMount();
   if (!el) return;
   if (currentView === 'week') renderWeek(el);
   else renderList(el);
 }
 
+async function fetchScheduleRows() {
+  // Primary: schema table
+  let res = await supabase
+    .from('schedules')
+    .select(
+      'id, title, event_type, day_of_week, event_date, start_time, end_time, location, notes, subject_id, is_published'
+    )
+    .order('day_of_week', { ascending: true, nullsFirst: false })
+    .order('start_time', { ascending: true, nullsFirst: false });
+
+  if (!res.error && res.data) {
+    return (res.data || []).filter((r) => r.is_published !== false);
+  }
+
+  // Column mismatch — try without is_published
+  if (res.error && /column|42703|PGRST204/i.test(String(res.error.message || '') + String(res.error.code || ''))) {
+    res = await supabase
+      .from('schedules')
+      .select(
+        'id, title, event_type, day_of_week, event_date, start_time, end_time, location, notes, subject_id'
+      )
+      .order('day_of_week', { ascending: true, nullsFirst: false })
+      .order('start_time', { ascending: true, nullsFirst: false });
+    if (!res.error) return res.data || [];
+  }
+
+  // Legacy table name
+  const legacy = await supabase.from('schedule_items').select('*');
+  if (!legacy.error) {
+    return (legacy.data || []).filter((r) => r.is_active !== false && r.is_published !== false);
+  }
+
+  throw res.error || legacy.error || new Error('تعذر قراءة الجدول');
+}
+
 async function loadSchedule() {
-  const el = document.getElementById('schedule-content');
+  const el = ensureScheduleMount();
   if (!el) {
-    console.error('Missing #schedule-content');
+    console.error('[NUSC] No schedule mount point');
     return;
   }
 
@@ -160,42 +246,10 @@ async function loadSchedule() {
     '<div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>';
 
   try {
-    // Schema table is public.schedules (not schedule_items)
-    let query = supabase
-      .from('schedules')
-      .select('id, title, event_type, day_of_week, event_date, start_time, end_time, location, notes, subject_id, is_published')
-      .eq('is_published', true)
-      .order('day_of_week', { ascending: true, nullsFirst: false })
-      .order('start_time', { ascending: true, nullsFirst: false });
+    const rows = await fetchScheduleRows();
 
-    let { data, error } = await query;
-
-    // Fallback if is_published column missing on older DBs
-    if (error && /is_published|column/i.test(String(error.message || ''))) {
-      const retry = await supabase
-        .from('schedules')
-        .select('id, title, event_type, day_of_week, event_date, start_time, end_time, location, notes, subject_id')
-        .order('day_of_week', { ascending: true, nullsFirst: false })
-        .order('start_time', { ascending: true, nullsFirst: false });
-      data = retry.data;
-      error = retry.error;
-    }
-
-    // Last resort: legacy table name some installs used
-    if (error && /relation|does not exist|PGRST/i.test(String(error.message || '') + String(error.code || ''))) {
-      const legacy = await supabase.from('schedule_items').select('*');
-      if (!legacy.error) {
-        data = legacy.data;
-        error = null;
-      }
-    }
-
-    if (error) throw error;
-
-    const rows = data || [];
     let subjectNames = {};
     const subjectIds = [...new Set(rows.map((r) => r.subject_id).filter(Boolean))];
-
     if (subjectIds.length) {
       const { data: subjects } = await supabase
         .from('subjects')
@@ -212,11 +266,14 @@ async function loadSchedule() {
     render();
   } catch (err) {
     console.error('[NUSC] loadSchedule:', err);
-    const msg = String(err?.message || '');
-    if (/relation|does not exist|PGRST205/i.test(msg)) {
-      showError(el, 'جدول المواعيد غير موجود في قاعدة البيانات. تأكد من إنشاء جدول public.schedules.');
-    } else if (/permission|RLS|42501/i.test(msg)) {
-      showError(el, 'لا توجد صلاحية لقراءة الجدول. راجع سياسات RLS لجدول schedules.');
+    const msg = String(err?.message || err?.code || '');
+    if (/relation|does not exist|PGRST205|42P01/i.test(msg)) {
+      showError(
+        el,
+        'جدول المواعيد غير موجود. نفّذ supabase/schema.sql في Supabase (جدول public.schedules).'
+      );
+    } else if (/permission|RLS|42501|not allowed/i.test(msg)) {
+      showError(el, 'مفيش صلاحية لقراءة الجدول. راجع سياسات RLS لـ schedules.');
     } else {
       showError(el, 'تعذر تحميل الجدول. حاول مرة أخرى.');
     }
@@ -229,21 +286,13 @@ async function init() {
     if (!result) return;
 
     setActiveNav('schedule');
+    ensureScheduleMount();
+    bindViewTabs();
     initIcons();
-
-    document.querySelectorAll('#view-tabs .tab[data-view]').forEach((tab) => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('#view-tabs .tab').forEach((t) => t.classList.remove('active'));
-        tab.classList.add('active');
-        currentView = tab.dataset.view || 'list';
-        render();
-      });
-    });
-
     await loadSchedule();
   } catch (error) {
     console.error('Schedule init:', error);
-    const el = document.getElementById('schedule-content');
+    const el = ensureScheduleMount();
     if (el) showError(el, 'تعذر فتح الجدول. حاول تسجيل الدخول مجددًا.');
   }
 }

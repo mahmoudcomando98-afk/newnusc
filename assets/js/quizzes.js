@@ -1,6 +1,6 @@
-
 /**
  * NUSC Student Hub - Quizzes Page
+ * Injects filter tabs if HTML is an old build; defaults to showing all quizzes.
  */
 
 import { supabase } from './supabase.js';
@@ -18,7 +18,7 @@ import {
 } from './utils.js';
 
 let quizzes = [];
-let currentStatus = 'upcoming';
+let currentStatus = 'all';
 
 function getStartDate(quiz) {
   return quiz.start_at || quiz.quiz_date || null;
@@ -52,19 +52,34 @@ function getQuizDateText(value) {
   });
 }
 
-function getQuizLoadErrorMessage(error) {
-  const code = String(error?.code || '');
-  const message = String(error?.message || '');
-  if (code === '42P01' || code === 'PGRST205' || /relation .*quizzes.* does not exist|could not find the table .*quizzes/i.test(message)) {
-    return 'جدول الكويزات غير موجود في قاعدة البيانات. راجع جدول public.quizzes في Supabase.';
-  }
-  if (code === '42703' || code === 'PGRST204' || /column .* does not exist|could not find the .*column/i.test(message)) {
-    return 'أعمدة جدول الكويزات غير متوافقة مع الصفحة. نفّذ ملفات supabase/fix_*.sql من SQL Editor في Supabase.';
-  }
-  if (code === '42501' || /row-level security|permission denied|not allowed/i.test(message)) {
-    return 'صلاحيات قراءة الكويزات غير مفعّلة. راجع سياسات RLS لجدول public.quizzes.';
-  }
-  return 'تعذر تحميل الكويزات. تحقق من اتصال Supabase.';
+function ensureTabs() {
+  if (document.getElementById('tabs')) return;
+  const list = document.getElementById('quizzes-list');
+  if (!list || !list.parentNode) return;
+
+  const tabs = document.createElement('div');
+  tabs.id = 'tabs';
+  tabs.className = 'tabs';
+  tabs.setAttribute('role', 'tablist');
+  tabs.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px';
+  tabs.innerHTML = `
+    <button type="button" class="tab" data-status="upcoming" role="tab">قادمة</button>
+    <button type="button" class="tab" data-status="open" role="tab">مفتوحة</button>
+    <button type="button" class="tab" data-status="closed" role="tab">منتهية</button>
+    <button type="button" class="tab active" data-status="all" role="tab">الكل</button>
+  `;
+  list.parentNode.insertBefore(tabs, list);
+}
+
+function bindTabs() {
+  document.querySelectorAll('#tabs .tab[data-status]').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#tabs .tab').forEach((item) => item.classList.remove('active'));
+      tab.classList.add('active');
+      currentStatus = tab.dataset.status || 'all';
+      renderQuizzes();
+    });
+  });
 }
 
 function ensureSolutionModal() {
@@ -98,7 +113,6 @@ async function showSolutionImage(path) {
     modal.classList.remove('hidden');
     const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 3600);
     if (error || !data?.signedUrl) {
-      // try public URL
       const { data: pub } = supabase.storage.from('materials').getPublicUrl(path);
       if (pub?.publicUrl) img.src = pub.publicUrl;
       else {
@@ -128,23 +142,24 @@ function renderQuizzes() {
       upcoming: 'لا توجد كويزات قادمة حاليًا',
       open: 'لا توجد كويزات مفتوحة الآن',
       closed: 'لا توجد كويزات منتهية',
-      all: 'لا توجد كويزات منشورة'
+      all: 'لا توجد كويزات منشورة. لو أنت أدمن: أضف كويز من لوحة التحكم.'
     };
     showEmpty(el, messages[currentStatus] || 'لا توجد كويزات');
     return;
   }
 
-  el.innerHTML = filtered.map((quiz) => {
-    const status = getQuizStatus(quiz);
-    const badgeClass =
-      status === 'open' ? 'badge-success' : status === 'closed' ? 'badge-danger' : 'badge-info';
-    const startDate = getStartDate(quiz);
-    const topics = quiz.topics || '';
-    const instructions = quiz.instructions || quiz.rules || '';
-    const subjectName = quiz.subjects?.name || quiz.subject_name || '';
-    const hasSolution = !!quiz.solution_image_path;
+  el.innerHTML = filtered
+    .map((quiz) => {
+      const status = getQuizStatus(quiz);
+      const badgeClass =
+        status === 'open' ? 'badge-success' : status === 'closed' ? 'badge-danger' : 'badge-info';
+      const startDate = getStartDate(quiz);
+      const topics = quiz.topics || '';
+      const instructions = quiz.instructions || quiz.rules || '';
+      const subjectName = quiz.subjects?.name || quiz.subject_name || '';
+      const hasSolution = !!quiz.solution_image_path;
 
-    return `
+      return `
       <article class="card quiz-card mb-2">
         <div class="flex justify-between items-center flex-wrap gap-1">
           <h3 class="card-title" style="margin:0">${escapeHtml(quiz.title || 'كويز')}</h3>
@@ -156,14 +171,13 @@ function renderQuizzes() {
         ${quiz.description ? `<p class="text-sm text-muted mt-1">${escapeHtml(quiz.description)}</p>` : ''}
         ${topics ? `<p class="text-sm mt-1"><strong>الموضوعات:</strong> ${escapeHtml(topics)}</p>` : ''}
         ${instructions ? `<p class="text-sm mt-1"><strong>التعليمات:</strong> ${escapeHtml(instructions)}</p>` : ''}
-        ${quiz.total_marks != null ? `<p class="text-sm mt-1">الدرجة الكلية: ${Number(quiz.total_marks)}</p>` : ''}
-        ${quiz.passing_score != null ? `<p class="text-sm mt-1">درجة النجاح: ${Number(quiz.passing_score)}</p>` : ''}
         <div class="mt-2 flex flex-wrap gap-1">
           ${quiz.quiz_url ? `<a class="btn btn-primary" href="${escapeHtml(quiz.quiz_url)}" target="_blank" rel="noopener noreferrer">فتح الامتحان</a>` : ''}
           ${hasSolution ? `<button type="button" class="btn btn-secondary" data-solution="${escapeHtml(quiz.solution_image_path)}">عرض الحل</button>` : ''}
         </div>
       </article>`;
-  }).join('');
+    })
+    .join('');
 
   el.querySelectorAll('[data-solution]').forEach((btn) => {
     btn.addEventListener('click', () => showSolutionImage(btn.dataset.solution));
@@ -185,14 +199,23 @@ async function loadQuizzes() {
 
     const full = await supabase
       .from('quizzes')
-      .select('id, title, description, topics, instructions, start_at, end_at, duration_minutes, total_marks, passing_score, is_published, quiz_url, subject_id, status, solution_image_path, quiz_date, rules');
+      .select(
+        'id, title, description, topics, instructions, start_at, end_at, duration_minutes, total_marks, passing_score, is_published, quiz_url, subject_id, status, solution_image_path, quiz_date, rules'
+      );
     data = full.data;
     error = full.error;
 
-    if (error && /solution_image_path|column .* does not exist|PGRST204|42703/i.test(String(error.message || '') + String(error.code || ''))) {
+    if (
+      error &&
+      /solution_image_path|quiz_date|column .* does not exist|PGRST204|42703/i.test(
+        String(error.message || '') + String(error.code || '')
+      )
+    ) {
       const basic = await supabase
         .from('quizzes')
-        .select('id, title, description, start_at, end_at, duration_minutes, is_published, quiz_url, subject_id, status, quiz_date, rules');
+        .select(
+          'id, title, description, start_at, end_at, duration_minutes, is_published, quiz_url, subject_id, status, rules'
+        );
       data = basic.data;
       error = basic.error;
     }
@@ -216,7 +239,15 @@ async function loadQuizzes() {
     renderQuizzes();
   } catch (error) {
     console.error('[NUSC] loadQuizzes:', error);
-    showError(el, getQuizLoadErrorMessage(error));
+    const code = String(error?.code || '');
+    const message = String(error?.message || '');
+    let msg = 'تعذر تحميل الكويزات.';
+    if (/relation|does not exist|PGRST205|42P01/i.test(message + code)) {
+      msg = 'جدول الكويزات غير موجود في Supabase (public.quizzes).';
+    } else if (/permission|RLS|42501/i.test(message + code)) {
+      msg = 'مفيش صلاحية لقراءة الكويزات. راجع RLS.';
+    }
+    showError(el, msg);
   }
 }
 
@@ -226,17 +257,9 @@ async function init() {
     if (!result) return;
 
     setActiveNav('quizzes');
+    ensureTabs();
+    bindTabs();
     initIcons();
-
-    document.querySelectorAll('#tabs .tab[data-status]').forEach((tab) => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('#tabs .tab').forEach((item) => item.classList.remove('active'));
-        tab.classList.add('active');
-        currentStatus = tab.dataset.status || 'upcoming';
-        renderQuizzes();
-      });
-    });
-
     await loadQuizzes();
   } catch (error) {
     console.error('Quizzes init:', error);
