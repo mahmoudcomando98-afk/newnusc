@@ -48,6 +48,14 @@ REVOKE ALL ON FUNCTION public.is_admin_or_moderator() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.is_admin_or_moderator() TO authenticated, service_role;
 
+-- Allow the public login/register pages to load only non-sensitive branding.
+-- The restrictive maintenance policy still hides the logo while maintenance is on.
+GRANT SELECT ON public.platform_settings TO anon, authenticated;
+DROP POLICY IF EXISTS "Public branding settings" ON public.platform_settings;
+CREATE POLICY "Public branding settings"
+  ON public.platform_settings FOR SELECT TO anon
+  USING (key IN ('site_name', 'platform_logo_url'));
+
 -- SECURITY DEFINER RPCs must not be callable by anonymous/public clients.
 REVOKE ALL ON FUNCTION public.get_unread_notifications_count(UUID) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.mark_notification_read(UUID) FROM PUBLIC, anon;
