@@ -3,6 +3,53 @@
 -- Run AFTER maintenance_lockdown.sql.
 -- ============================================================
 
+CREATE OR REPLACE FUNCTION public.mark_notification_read(p_notification_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, private
+AS $mark_read$
+DECLARE
+  caller_id UUID := auth.uid();
+  can_read_notification BOOLEAN := false;
+BEGIN
+  IF caller_id IS NULL OR NOT private.is_platform_open_or_admin() THEN
+    RETURN;
+  END IF;
+
+  IF to_regclass('public.notifications') IS NULL
+     OR to_regclass('public.notification_reads') IS NULL THEN
+    RETURN;
+  END IF;
+
+  -- Non-admin users may only mark their own or global notifications as read.
+  IF NOT public.is_admin() THEN
+    EXECUTE $query$
+      SELECT EXISTS (
+        SELECT 1
+        FROM public.notifications n
+        WHERE n.id = $1
+          AND (
+            n.user_id = $2
+            OR COALESCE(to_jsonb(n)->>'is_global', 'false') = 'true'
+            OR ((to_jsonb(n)->>'is_global') IS NULL AND n.user_id IS NULL)
+          )
+      )
+    $query$ INTO can_read_notification USING p_notification_id, caller_id;
+
+    IF NOT can_read_notification THEN
+      RETURN;
+    END IF;
+  END IF;
+
+  EXECUTE $query$
+    INSERT INTO public.notification_reads (notification_id, user_id)
+    VALUES ($1, $2)
+    ON CONFLICT (notification_id, user_id) DO NOTHING
+  $query$ USING p_notification_id, caller_id;
+END;
+$mark_read$;
+
 CREATE OR REPLACE FUNCTION public.get_unread_notifications_count(p_user_id UUID DEFAULT auth.uid())
 RETURNS INTEGER
 LANGUAGE plpgsql
