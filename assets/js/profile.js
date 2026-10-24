@@ -26,7 +26,7 @@ async function init() {
   renderProfile();
   setupForms();
 
-  if (profile.role === 'admin' || profile.role === 'moderator') {
+  if (profile.role === 'admin' && profile.is_active === true) {
     document.getElementById('admin-link')?.classList.remove('hidden');
   }
 
