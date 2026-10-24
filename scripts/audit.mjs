@@ -56,6 +56,7 @@ for (const [relative, formId] of authForms) {
 
 for (const full of files) {
   const relative = path.relative(root, full).replaceAll(path.sep, '/');
+  if (relative === 'scripts/audit.mjs') continue;
   const source = await readFile(full, 'utf8');
   if (forbiddenProjectRef.test(source)) {
     errors.push('Removed Supabase project reference found in frontend source: ' + relative);
