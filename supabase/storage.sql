@@ -53,6 +53,41 @@ ON CONFLICT (id) DO UPDATE SET
   public = true,
   file_size_limit = 2097152;
 
+-- Public platform branding assets (the admin settings page uses this bucket).
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'platform-assets',
+  'platform-assets',
+  true,
+  4194304,
+  ARRAY['image/png', 'image/jpeg', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 4194304,
+  allowed_mime_types = ARRAY['image/png', 'image/jpeg', 'image/webp'];
+
+DROP POLICY IF EXISTS "Anyone can view platform assets" ON storage.objects;
+CREATE POLICY "Anyone can view platform assets"
+  ON storage.objects FOR SELECT TO anon, authenticated
+  USING (bucket_id = 'platform-assets');
+
+DROP POLICY IF EXISTS "Admins can upload platform assets" ON storage.objects;
+CREATE POLICY "Admins can upload platform assets"
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'platform-assets' AND public.is_admin());
+
+DROP POLICY IF EXISTS "Admins can update platform assets" ON storage.objects;
+CREATE POLICY "Admins can update platform assets"
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'platform-assets' AND public.is_admin())
+  WITH CHECK (bucket_id = 'platform-assets' AND public.is_admin());
+
+DROP POLICY IF EXISTS "Admins can delete platform assets" ON storage.objects;
+CREATE POLICY "Admins can delete platform assets"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'platform-assets' AND public.is_admin());
+
 DROP POLICY IF EXISTS "Authenticated users can read materials" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated users can read published materials" ON storage.objects;
 CREATE POLICY "Authenticated users can read published materials"
