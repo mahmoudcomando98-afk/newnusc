@@ -26,6 +26,8 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: resolve(__dirname, 'index.html'),
+          '404': resolve(__dirname, '404.html'),
+          '500': resolve(__dirname, '500.html'),
           login: resolve(__dirname, 'login.html'),
           register: resolve(__dirname, 'register.html'),
           'forgot-password': resolve(__dirname, 'forgot-password.html'),
@@ -42,6 +44,8 @@ export default defineConfig(({ mode }) => {
           favorites: resolve(__dirname, 'favorites.html'),
           faq: resolve(__dirname, 'faq.html'),
           profile: resolve(__dirname, 'profile.html'),
+          'maintenance-mode': resolve(__dirname, 'maintenance-mode.html'),
+          maintenance: resolve(__dirname, 'maintenance.html'),
           'admin-index': resolve(__dirname, 'admin/index.html'),
           'admin-students': resolve(__dirname, 'admin/students.html'),
           'admin-subjects': resolve(__dirname, 'admin/subjects.html'),
