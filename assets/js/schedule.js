@@ -1,7 +1,7 @@
 /**
  * NUSC Student Hub - Schedule Page
+ * Live DB uses schedule_items; schema.sql uses schedules — support both.
  * Works with #schedule-content or legacy #schedule-root.
- * Reads public.schedules (fallback: schedule_items).
  */
 
 import { supabase } from './supabase.js';
@@ -29,7 +29,6 @@ const typeLabels = {
   other: 'أخرى'
 };
 
-/** Ensure mount exists even if HTML is an old build with only #schedule-root */
 function ensureScheduleMount() {
   let el = document.getElementById('schedule-content');
   if (el) return el;
@@ -41,7 +40,6 @@ function ensureScheduleMount() {
 
   if (!pageContent) return null;
 
-  // Build UI into legacy root / page content
   const wrap = document.createElement('div');
   wrap.innerHTML = `
     <div class="tabs" id="view-tabs" role="tablist" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
@@ -56,15 +54,11 @@ function ensureScheduleMount() {
     pageContent.appendChild(wrap);
   } else if (!document.getElementById('view-tabs')) {
     const header = pageContent.querySelector('.section-header');
-    if (header && header.nextSibling) {
-      header.parentNode.insertBefore(wrap, header.nextSibling);
-    } else {
-      pageContent.appendChild(wrap);
-    }
+    if (header && header.nextSibling) header.parentNode.insertBefore(wrap, header.nextSibling);
+    else pageContent.appendChild(wrap);
   }
 
-  el = document.getElementById('schedule-content');
-  return el;
+  return document.getElementById('schedule-content');
 }
 
 function bindViewTabs() {
@@ -113,11 +107,16 @@ function sortEvents(list) {
   });
 }
 
+function isVisibleRow(r) {
+  if (r.is_published === false) return false;
+  if (r.is_active === false) return false;
+  return true;
+}
+
 function eventCard(event) {
   const day = getEventDay(event);
   const date = event.event_date || null;
   const subjectName = event.subject_name || '';
-
   return `
     <article class="card schedule-card mb-2">
       <div class="list-item" style="align-items:flex-start">
@@ -135,16 +134,12 @@ function eventCard(event) {
           ${event.notes ? `<p class="text-sm text-muted mt-1">${escapeHtml(event.notes)}</p>` : ''}
         </div>
       </div>
-    </article>
-  `;
+    </article>`;
 }
 
 function renderList(el) {
   if (!events.length) {
-    showEmpty(
-      el,
-      'لا توجد مواعيد في الجدول. لو أنت أدمن: أضف مواعيد من إدارة الجدول.'
-    );
+    showEmpty(el, 'لا توجد مواعيد. من حساب الأدمن: إدارة الجدول ← أضف موعد.');
     return;
   }
   el.innerHTML = sortEvents(events).map(eventCard).join('');
@@ -157,39 +152,20 @@ function renderWeek(el) {
     const day = getEventDay(event);
     if (day !== null) byDay[day].push(event);
   });
-
   if (!byDay.some((d) => d.length)) {
     showEmpty(el, 'لا توجد مواعيد مرتبطة بأيام الأسبوع');
     return;
   }
-
   el.innerHTML = byDay
     .map((dayEvents, dayIndex) => {
       if (!dayEvents.length) return '';
-      return `
-        <section class="card mb-2">
-          <h3 class="card-title">${escapeHtml(WEEKDAYS_AR[dayIndex] || '')}</h3>
-          ${sortEvents(dayEvents)
-            .map(
-              (event) => `
-            <div class="list-item">
-              <div class="list-item-icon" data-icon="calendar"></div>
-              <div class="list-item-body">
-                <div class="list-item-title">${escapeHtml(event.title || 'موعد دراسي')}</div>
-                <div class="list-item-desc">
-                  ${escapeHtml(getEventType(event))}
-                  ${event.subject_name ? ` · ${escapeHtml(event.subject_name)}` : ''}
-                  ${getEventTime(event) ? ` · ${escapeHtml(getEventTime(event))}` : ''}
-                  ${event.location ? ` · ${escapeHtml(event.location)}` : ''}
-                </div>
-              </div>
-            </div>`
-            )
-            .join('')}
-        </section>`;
+      return `<section class="card mb-2"><h3 class="card-title">${escapeHtml(WEEKDAYS_AR[dayIndex] || '')}</h3>${sortEvents(dayEvents)
+        .map(
+          (event) => `<div class="list-item"><div class="list-item-icon" data-icon="calendar"></div><div class="list-item-body"><div class="list-item-title">${escapeHtml(event.title || 'موعد')}</div><div class="list-item-desc">${escapeHtml(getEventType(event))}${event.subject_name ? ` · ${escapeHtml(event.subject_name)}` : ''}${getEventTime(event) ? ` · ${escapeHtml(getEventTime(event))}` : ''}${event.location ? ` · ${escapeHtml(event.location)}` : ''}</div></div></div>`
+        )
+        .join('')}</section>`;
     })
     .join('');
-
   initIcons();
 }
 
@@ -200,47 +176,26 @@ function render() {
   else renderList(el);
 }
 
+async function tryTable(name) {
+  const { data, error } = await supabase.from(name).select('*');
+  if (error) return { data: null, error };
+  return { data: (data || []).filter(isVisibleRow), error: null };
+}
+
 async function fetchScheduleRows() {
-  // Primary: schema table
-  let res = await supabase
-    .from('schedules')
-    .select(
-      'id, title, event_type, day_of_week, event_date, start_time, end_time, location, notes, subject_id, is_published'
-    )
-    .order('day_of_week', { ascending: true, nullsFirst: false })
-    .order('start_time', { ascending: true, nullsFirst: false });
+  // Production DB currently has schedule_items (schedules table may not exist)
+  let result = await tryTable('schedule_items');
+  if (!result.error) return result.data || [];
 
-  if (!res.error && res.data) {
-    return (res.data || []).filter((r) => r.is_published !== false);
-  }
+  result = await tryTable('schedules');
+  if (!result.error) return result.data || [];
 
-  // Column mismatch — try without is_published
-  if (res.error && /column|42703|PGRST204/i.test(String(res.error.message || '') + String(res.error.code || ''))) {
-    res = await supabase
-      .from('schedules')
-      .select(
-        'id, title, event_type, day_of_week, event_date, start_time, end_time, location, notes, subject_id'
-      )
-      .order('day_of_week', { ascending: true, nullsFirst: false })
-      .order('start_time', { ascending: true, nullsFirst: false });
-    if (!res.error) return res.data || [];
-  }
-
-  // Legacy table name
-  const legacy = await supabase.from('schedule_items').select('*');
-  if (!legacy.error) {
-    return (legacy.data || []).filter((r) => r.is_active !== false && r.is_published !== false);
-  }
-
-  throw res.error || legacy.error || new Error('تعذر قراءة الجدول');
+  throw result.error || new Error('تعذر قراءة الجدول');
 }
 
 async function loadSchedule() {
   const el = ensureScheduleMount();
-  if (!el) {
-    console.error('[NUSC] No schedule mount point');
-    return;
-  }
+  if (!el) return;
 
   el.innerHTML =
     '<div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>';
@@ -251,10 +206,7 @@ async function loadSchedule() {
     let subjectNames = {};
     const subjectIds = [...new Set(rows.map((r) => r.subject_id).filter(Boolean))];
     if (subjectIds.length) {
-      const { data: subjects } = await supabase
-        .from('subjects')
-        .select('id, name')
-        .in('id', subjectIds);
+      const { data: subjects } = await supabase.from('subjects').select('id, name').in('id', subjectIds);
       subjectNames = Object.fromEntries((subjects || []).map((s) => [s.id, s.name]));
     }
 
@@ -268,12 +220,12 @@ async function loadSchedule() {
     console.error('[NUSC] loadSchedule:', err);
     const msg = String(err?.message || err?.code || '');
     if (/relation|does not exist|PGRST205|42P01/i.test(msg)) {
+      showError(el, 'مفيش جدول مواعيد في قاعدة البيانات. أنشئ schedule_items أو schedules في Supabase.');
+    } else if (/permission|RLS|42501|denied/i.test(msg)) {
       showError(
         el,
-        'جدول المواعيد غير موجود. نفّذ supabase/schema.sql في Supabase (جدول public.schedules).'
+        'مفيش صلاحية قراءة الجدول. نفّذ supabase/fix_schedule_grants.sql في SQL Editor.'
       );
-    } else if (/permission|RLS|42501|not allowed/i.test(msg)) {
-      showError(el, 'مفيش صلاحية لقراءة الجدول. راجع سياسات RLS لـ schedules.');
     } else {
       showError(el, 'تعذر تحميل الجدول. حاول مرة أخرى.');
     }
@@ -284,7 +236,6 @@ async function init() {
   try {
     const result = await protectPage();
     if (!result) return;
-
     setActiveNav('schedule');
     ensureScheduleMount();
     bindViewTabs();
@@ -293,7 +244,7 @@ async function init() {
   } catch (error) {
     console.error('Schedule init:', error);
     const el = ensureScheduleMount();
-    if (el) showError(el, 'تعذر فتح الجدول. حاول تسجيل الدخول مجددًا.');
+    if (el) showError(el, 'تعذر فتح الجدول. سجّل الدخول مرة أخرى.');
   }
 }
 
