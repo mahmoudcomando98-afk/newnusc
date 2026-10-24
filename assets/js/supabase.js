@@ -2,7 +2,7 @@ import './egyptian-ar.js';
 
 /**
  * NUSC Student Hub - Supabase Client
- * Fallback values are public publishable keys (safe for frontend with RLS)
+ * Configuration must come from environment variables; never silently connect to another project.
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -28,29 +28,30 @@ function normalizeUrl(url) {
     .replace(/\/+$/, '');
 }
 
-const FALLBACK_URL = 'https://keaoerzmdxthrgpqnwvs.supabase.co';
-const FALLBACK_KEY = 'sb_publishable_p2OZlGraQC5gjj8ckVZjbg_ROIabqkD';
+const rawUrl = pickEnv(
+  'VITE_SUPABASE_URL',
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'VITE_SUPABASE_PROJECT_URL'
+);
 
-const rawUrl =
-  pickEnv(
-    'VITE_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'VITE_SUPABASE_PROJECT_URL'
-  ) || FALLBACK_URL;
+const supabaseKey = pickEnv(
+  'VITE_SUPABASE_PUBLISHABLE_KEY',
+  'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
+  'VITE_SUPABASE_ANON_KEY',
+  'NEXT_PUBLIC_SUPABASE_ANON_KEY'
+);
 
-const supabaseKey =
-  pickEnv(
-    'VITE_SUPABASE_PUBLISHABLE_KEY',
-    'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
-    'VITE_SUPABASE_ANON_KEY',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY'
-  ) || FALLBACK_KEY;
+const supabaseConfigured = Boolean(rawUrl && supabaseKey);
+// A harmless placeholder keeps module initialization from crashing when .env is
+// missing. Requests are blocked by getConfigError() instead of going to a real project.
+const supabaseUrl = normalizeUrl(rawUrl || 'https://configuration-missing.supabase.co');
+const clientKey = supabaseKey || 'configuration-missing-publishable-key';
 
-const supabaseUrl = normalizeUrl(rawUrl);
+if (!supabaseConfigured) {
+  console.error('[NUSC] Supabase is not configured. Set the VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY environment variables.');
+}
 
-console.info('[NUSC] Supabase connected:', supabaseUrl);
-
-export const supabase = createClient(supabaseUrl, supabaseKey, {
+export const supabase = createClient(supabaseUrl, clientKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -295,10 +296,9 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 
 export function isSupabaseConfigured() {
   return Boolean(
-    supabaseUrl &&
-      supabaseKey &&
-      supabaseUrl.includes('supabase.co') &&
-      supabaseKey.length > 20
+    supabaseConfigured &&
+      /^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(supabaseUrl) &&
+      clientKey.length > 20
   );
 }
 
@@ -371,8 +371,8 @@ export async function isAdmin() {
   const profile = await getProfile();
   return (
     !!profile &&
-    (profile.role === 'admin' || profile.role === 'moderator') &&
-    profile.is_active !== false
+    profile.role === 'admin' &&
+    profile.is_active === true
   );
 }
 
