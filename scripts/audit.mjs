@@ -6,7 +6,6 @@ const errors = [];
 const ignoredDirs = new Set(['.git', 'node_modules', 'dist', '.vercel']);
 const sourceExtensions = new Set(['.html', '.js', '.mjs', '.ts', '.css']);
 const forbiddenProjectRef = /keaoerzmdxthrgpqnwvs/i;
-const hardcodedSupabaseUrl = /https:\/\/[a-z0-9-]+\.supabase\.co/i;
 const hardcodedPublishableKey = /sb_publishable_[a-z0-9_-]{20,}/i;
 const hardcodedJwt = /eyJ[a-zA-Z0-9_-]{20,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}/;
 const authForms = new Map([
@@ -61,8 +60,8 @@ for (const full of files) {
   if (forbiddenProjectRef.test(source)) {
     errors.push('Removed Supabase project reference found in frontend source: ' + relative);
   }
-  const endpointMatches = source.match(/https:\\/\\/[a-z0-9-]+\\.supabase\\.co/ig) || [];
-  if (endpointMatches.some((url) => !/configuration-missing\\.supabase\\.co/i.test(url))) {
+  const endpointMatches = source.match(/https:\/\/[a-z0-9-]+\.supabase\.co/ig) || [];
+  if (endpointMatches.some((url) => !/configuration-missing\.supabase\.co/i.test(url))) {
     errors.push('Hardcoded Supabase endpoint found in frontend source: ' + relative);
   }
   if (hardcodedPublishableKey.test(source) || hardcodedJwt.test(source)) {
