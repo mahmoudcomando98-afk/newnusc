@@ -27,5 +27,7 @@ jobs:
         run: |
           npm audit --json > /tmp/npm-audit.json || true
           node -e 'const report = require("/tmp/npm-audit.json"); const items = Object.entries(report.vulnerabilities || {}); if (!items.length) console.log("npm audit: no reported package vulnerabilities"); for (const [name, item] of items) console.log(name + ": " + item.severity + "; fixAvailable=" + JSON.stringify(item.fixAvailable));'
+      - name: Fail on high or critical dependency advisories
+        run: npm audit --audit-level=high
       - name: Build all pages
         run: npm run build
