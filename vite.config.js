@@ -28,6 +28,7 @@ export default defineConfig(({ mode }) => {
           main: resolve(__dirname, 'index.html'),
           '404': resolve(__dirname, '404.html'),
           '500': resolve(__dirname, '500.html'),
+          offline: resolve(__dirname, 'offline.html'),
           login: resolve(__dirname, 'login.html'),
           register: resolve(__dirname, 'register.html'),
           'forgot-password': resolve(__dirname, 'forgot-password.html'),
