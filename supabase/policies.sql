@@ -62,6 +62,10 @@ CREATE POLICY "Admins can manage materials" ON public.materials FOR ALL
 
 -- quizzes
 DROP POLICY IF EXISTS "Anyone authenticated can view published quizzes" ON public.quizzes;
+CREATE POLICY "Anyone authenticated can view published quizzes" ON public.quizzes FOR ALL
+  USING (public.is_admin_or_moderator()) WITH CHECK (public.is_admin_or_moderator());
+
+DROP POLICY IF EXISTS "Anyone authenticated can view published quizzes" ON public.quizzes;
 CREATE POLICY "Anyone authenticated can view published quizzes" ON public.quizzes FOR SELECT
   USING (is_published = true OR public.is_admin_or_moderator());
 
@@ -138,9 +142,12 @@ CREATE POLICY "Admins can manage reports" ON public.reports FOR ALL
   USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- platform_settings
+-- Public read is intentional: logo, site name and maintenance flag are needed
+-- on unauthenticated pages (login / register / maintenance notice).
 DROP POLICY IF EXISTS "Anyone authenticated can read settings" ON public.platform_settings;
-CREATE POLICY "Anyone authenticated can read settings" ON public.platform_settings FOR SELECT
-  USING (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "Public can read platform settings" ON public.platform_settings;
+CREATE POLICY "Public can read platform settings" ON public.platform_settings FOR SELECT
+  USING (true);
 
 DROP POLICY IF EXISTS "Admins can manage settings" ON public.platform_settings;
 CREATE POLICY "Admins can manage settings" ON public.platform_settings FOR ALL
