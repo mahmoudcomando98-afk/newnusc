@@ -213,14 +213,17 @@ async function enforceMaintenanceMode(enabled) {
 }
 
 let maintenanceMonitorStarted = false;
+let maintenanceCheckInFlight = false;
 function startMaintenanceMonitor() {
   if (maintenanceMonitorStarted || typeof window === 'undefined') return;
   maintenanceMonitorStarted = true;
 
-  // Also lock already-open tabs shortly after an admin switches maintenance on.
+  // Poll conservatively and avoid overlapping requests on slow connections.
   window.setInterval(async () => {
     const pathname = window.location.pathname.toLowerCase();
-    if (pathname === '/maintenance-mode.html' || pathname === '/login.html') return;
+    if (isMaintenanceExemptPath(pathname) || maintenanceCheckInFlight) return;
+
+    maintenanceCheckInFlight = true;
     try {
       const { data, error } = await supabase.from('platform_settings')
         .select('value').eq('key', 'site_maintenance').maybeSingle();
@@ -231,11 +234,20 @@ function startMaintenanceMonitor() {
     } catch (error) {
       // A transient poll failure should not repeatedly interrupt a live session.
       console.warn('[NUSC] Maintenance status refresh failed:', error?.message || error);
+    } finally {
+      maintenanceCheckInFlight = false;
     }
-  }, 3000);
+  }, 30000);
 }
 
 async function loadPlatformBranding() {
+  if (!isSupabaseConfigured()) {
+    // Missing configuration is not the same as maintenance; let each page show
+    // its own configuration error instead of redirecting users to a false notice.
+    console.warn('[NUSC] Skipping branding and maintenance checks: Supabase is not configured.');
+    return;
+  }
+
   let redirected = false;
   try {
     const { data, error } = await supabase.from('platform_settings')
@@ -254,7 +266,7 @@ async function loadPlatformBranding() {
     if (platformName) applyPlatformName(platformName);
 
     redirected = await enforceMaintenanceMode(isMaintenanceEnabled(settings.get('site_maintenance')));
-    if (!redirected) startMaintenanceMonitor();
+    if (!redirected && !isMaintenanceExemptPath(window.location.pathname.toLowerCase())) startMaintenanceMonitor();
   } catch (error) {
     console.warn('[NUSC] Could not load platform settings or verify maintenance mode:', error?.message || error);
     const pathname = typeof window === 'undefined' ? '' : window.location.pathname.toLowerCase();
