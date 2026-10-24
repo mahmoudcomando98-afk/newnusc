@@ -8,6 +8,11 @@
 - Vite
 - Supabase (Auth + PostgreSQL + Storage)
 
+## متطلبات التشغيل
+
+- Node.js 22 أو أحدث.
+- npm يدعم lockfile الإصدار 3.
+
 ## التشغيل المحلي
 
 ```bash
