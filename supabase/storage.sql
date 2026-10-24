@@ -15,6 +15,8 @@ VALUES (
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/zip',
     'application/x-rar-compressed',
     'image/jpeg',
@@ -50,6 +52,7 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit = 2097152;
 
 DROP POLICY IF EXISTS "Authenticated users can read materials" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated users can read published materials" ON storage.objects;
 CREATE POLICY "Authenticated users can read published materials"
   ON storage.objects FOR SELECT TO authenticated
   USING (
@@ -93,8 +96,9 @@ CREATE POLICY "Users can upload own avatar"
 
 DROP POLICY IF EXISTS "Users can update own avatar" ON storage.objects;
 CREATE POLICY "Users can update own avatar"
-  ON storage.objects FOR UPDATE
-  USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
+  ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1])
+  WITH CHECK (bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]);
 
 DROP POLICY IF EXISTS "Users can delete own avatar" ON storage.objects;
 CREATE POLICY "Users can delete own avatar"
