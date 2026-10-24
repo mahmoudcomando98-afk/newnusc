@@ -353,3 +353,63 @@
     scroll-behavior: auto !important;
   }
 }
+
+
+/* Authentication pages: quieter surfaces and consistent interaction states. */
+.auth-layout {
+  border-radius: 22px;
+  box-shadow: 0 12px 36px rgba(43, 65, 50, .07);
+  backdrop-filter: none;
+}
+.auth-main { background: #fff; }
+.auth-page::before, .auth-page::after { opacity: .55; }
+.auth-input { border-radius: 10px !important; }
+.auth-submit {
+  border-radius: 10px;
+  box-shadow: none !important;
+}
+.auth-submit:hover:not(:disabled) {
+  box-shadow: 0 3px 9px rgba(49, 95, 80, .15) !important;
+  transform: none;
+}
+.auth-aside { background: #edf2e9; }
+.auth-preview {
+  border-radius: 13px;
+  box-shadow: 0 4px 14px rgba(65, 92, 70, .045);
+  backdrop-filter: none;
+}
+.auth-heading h1 { letter-spacing: -.02em; }
+@media (max-width: 820px) {
+  .auth-layout { box-shadow: 0 8px 24px rgba(43, 65, 50, .06); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-page *, .auth-page *::before, .auth-page *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+
+/* NUSC plain authentication theme: neutral surfaces, one muted charcoal accent. */
+:root { --auth-ink: #292d32; --auth-muted: #747a80; --auth-green: #454d55; --auth-green-hover: #343b42; --auth-gold: #8a9197; --auth-line: #e2e4e5; --auth-panel: #fff; }
+.auth-page { background: #f6f6f4 !important; color: #292d32 !important; }
+.auth-page::before, .auth-page::after { display: none !important; }
+.auth-layout { border: 1px solid #e2e4e5 !important; border-radius: 14px !important; background: #fff !important; box-shadow: 0 2px 8px rgba(25,30,35,.04) !important; backdrop-filter: none !important; }
+.auth-main { background: #fff !important; }
+.auth-brand, .auth-heading h1, .auth-field .form-label, .auth-field label { color: #292d32 !important; }
+.auth-brand-dot { background: #59636e !important; box-shadow: none !important; transform: none !important; border-radius: 2px !important; }
+.auth-eyebrow { background: #f0f1f1 !important; border-color: #e2e4e5 !important; color: #59636e !important; border-radius: 5px !important; }
+.auth-eyebrow-dot, .auth-status-pill span { background: #8b939a !important; }
+.auth-input { border-color: #dfe2e4 !important; border-radius: 8px !important; background: #fff !important; color: #292d32 !important; }
+.auth-input:focus { border-color: #8a939b !important; box-shadow: 0 0 0 3px rgba(89,99,110,.12) !important; }
+.auth-page a:not(.auth-brand) { color: #4c5965 !important; }
+.auth-submit { background: #454d55 !important; border-radius: 8px !important; box-shadow: none !important; }
+.auth-submit:hover:not(:disabled) { background: #343b42 !important; box-shadow: none !important; transform: none !important; }
+.auth-aside { background: #f0f1f1 !important; }
+.auth-aside::before, .auth-aside::after { display: none !important; }
+.auth-aside-content h2, .auth-aside-content > p, .auth-aside-label, .auth-benefits li { color: #454b51 !important; }
+.auth-status-pill, .auth-benefit-check, .auth-preview, .auth-preview-tag, .auth-preview-icon { background: #fff !important; border-color: #e2e4e5 !important; color: #59636e !important; box-shadow: none !important; backdrop-filter: none !important; }
+.auth-preview-title, .auth-preview-copy b { color: #343a40 !important; }
+.auth-preview-copy span, .auth-aside-bottom, .auth-note { color: #747a80 !important; }
+.auth-config-banner { background: #f4f4f2 !important; border-color: #e2e4e5 !important; color: #454b51 !important; }
