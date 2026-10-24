@@ -22,5 +22,10 @@ jobs:
         run: npm ci
       - name: Static security and requirements audit
         run: npm run audit
+      - name: Report dependency advisories
+        shell: bash
+        run: |
+          npm audit --json > /tmp/npm-audit.json || true
+          node -e 'const report = require("/tmp/npm-audit.json"); const items = Object.entries(report.vulnerabilities || {}); if (!items.length) console.log("npm audit: no reported package vulnerabilities"); for (const [name, item] of items) console.log(name + ": " + item.severity + "; fixAvailable=" + JSON.stringify(item.fixAvailable));'
       - name: Build all pages
         run: npm run build
