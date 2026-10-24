@@ -20,8 +20,8 @@ cp .env.example .env
 عدّل `.env`:
 
 ```
-VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
 ```
 
 ```bash
@@ -36,6 +36,9 @@ npm run dev
    - `supabase/policies.sql`
    - `supabase/storage.sql`
    - `supabase/functions.sql`
+   - `supabase/maintenance_lockdown.sql`
+   - `supabase/secure_admin_access.sql`
+   - `supabase/security_hardening.sql` (بعد ملف الصيانة، لتطبيق قيود RPC النهائية)
    - `supabase/seed.sql` (اختياري)
 3. Authentication → Providers → Email: فعّل Email
 4. Authentication → URL Configuration: أضف `http://localhost:5173`
