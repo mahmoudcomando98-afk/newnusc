@@ -82,3 +82,4 @@ body:has(.splash) { background:#f6f6f4 !important; color:#292d32 !important; }
 @media(prefers-reduced-motion:reduce) {
  *,*::before,*::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
 }
+/* Theme revision: neutral-v2; loaded last on every HTML route. */
