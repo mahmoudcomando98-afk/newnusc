@@ -31,6 +31,54 @@ const subjectId = params.get('id');
 let profile = null;
 let currentTab = 'lectures';
 
+function ensureSolutionModal() {
+  let modal = document.getElementById('solution-modal');
+  if (modal) return modal;
+  modal = document.createElement('div');
+  modal.id = 'solution-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.72);padding:16px;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:12px;max-width:min(96vw,720px);max-height:92vh;overflow:auto;padding:16px;width:100%;position:relative">
+      <div class="flex justify-between items-center mb-2">
+        <h3 style="margin:0;font-size:1.05rem">عرض الحل</h3>
+        <button type="button" class="btn btn-sm btn-secondary" id="solution-modal-close">إغلاق</button>
+      </div>
+      <div id="solution-modal-body" style="text-align:center">
+        <p class="text-sm text-muted">جاري التحميل...</p>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) hideSolutionModal(); });
+  document.getElementById('solution-modal-close').addEventListener('click', hideSolutionModal);
+  return modal;
+}
+
+function hideSolutionModal() {
+  const modal = document.getElementById('solution-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function showSolutionImage(path) {
+  if (!path) {
+    showToast('مفيش صورة حل متاحة دلوقتي.', 'info');
+    return;
+  }
+  const modal = ensureSolutionModal();
+  const body = document.getElementById('solution-modal-body');
+  body.innerHTML = '<p class="text-sm text-muted">جاري التحميل...</p>';
+  modal.style.display = 'flex';
+  try {
+    const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 120);
+    if (error) throw error;
+    body.innerHTML = `<img src="${escapeHtml(data.signedUrl)}" alt="صورة الحل" style="max-width:100%;height:auto;border-radius:8px" />`;
+  } catch (error) {
+    console.error('Solution image load failed:', error);
+    body.innerHTML = '<p class="text-sm" style="color:var(--danger)">مش قادرين نعرض صورة الحل دلوقتي.</p>';
+  }
+}
+
 async function init() {
   if (!subjectId) { window.location.href = '/subjects.html'; return; }
   const result = await protectPage();
@@ -58,8 +106,6 @@ function setupTabs() {
 async function loadSubject() {
   const el = document.getElementById('subject-header');
   try {
-    // Use the actual row instead of filtering on a specific schema-version column
-    // (deployments may use is_active or is_published).
     const { data, error } = await supabase.from('subjects')
       .select('*')
       .eq('id', subjectId)
@@ -107,8 +153,6 @@ function showRetryState(el, tab, message) {
 }
 
 async function loadSubjectMaterials() {
-  // Selecting * avoids breaking the page if an older database is missing a
-  // newer optional column such as description or material_type.
   const { data, error } = await supabase.from('materials')
     .select('*')
     .eq('subject_id', subjectId);
@@ -120,6 +164,10 @@ async function loadSubjectMaterials() {
 }
 
 function materialCard(material, badgeLabel) {
+  const hasSolution = !!(material.solution_image_path);
+  const solutionBtn = hasSolution
+    ? `<button type="button" class="btn btn-sm btn-primary" data-solution="${escapeHtml(material.solution_image_path)}" aria-label="عرض الحل">عرض الحل</button>`
+    : '';
   return `
     <div class="list-item">
       <div class="list-item-icon" data-icon="file"></div>
@@ -132,10 +180,14 @@ function materialCard(material, badgeLabel) {
           ${material.created_at ? ` · ${timeAgo(material.created_at)}` : ''}
         </div>
         ${material.description ? `<p class="text-sm text-muted mt-1">${escapeHtml(material.description)}</p>` : ''}
+        ${hasSolution ? '<p class="text-sm mt-1"><span class="badge badge-success">فيه صورة حل</span></p>' : ''}
       </div>
-      <button type="button" class="btn btn-sm btn-secondary" data-download="${escapeHtml(material.id)}" data-path="${escapeHtml(material.file_path || '')}" aria-label="تنزيل الملف" title="تنزيل الملف">
-        <span data-icon="download"></span>
-      </button>
+      <div class="flex gap-1 items-center flex-wrap" style="flex-shrink:0">
+        ${solutionBtn}
+        <button type="button" class="btn btn-sm btn-secondary" data-download="${escapeHtml(material.id)}" data-path="${escapeHtml(material.file_path || '')}" aria-label="تنزيل الملف" title="تنزيل الملف">
+          <span data-icon="download"></span>
+        </button>
+      </div>
     </div>`;
 }
 
@@ -144,17 +196,17 @@ function bindDownloads(el) {
   el.querySelectorAll('[data-download]').forEach((button) => {
     button.addEventListener('click', () => downloadMaterial(button.dataset.download, button.dataset.path));
   });
+  el.querySelectorAll('[data-solution]').forEach((button) => {
+    button.addEventListener('click', () => showSolutionImage(button.dataset.solution));
+  });
 }
 
 async function loadLectures(el) {
-  // Avoid naming columns that may differ between existing Supabase schemas.
-  // Also let the lecture list work if the optional materials table has a schema issue.
   const [lecturesResult, materialsResult] = await Promise.all([
     supabase.from('lectures').select('*').eq('subject_id', subjectId),
     loadSubjectMaterials().then((data) => ({ data, error: null }))
       .catch((error) => ({ data: [], error }))
   ]);
-  // A failed lectures query should not hide usable files from the materials table.
   if (lecturesResult.error) console.warn('Lecture records are temporarily unavailable:', lecturesResult.error);
   const lectures = (lecturesResult.data || [])
     .filter((item) => item.is_published !== false && item.is_active !== false)
@@ -167,7 +219,6 @@ async function loadLectures(el) {
     });
   const materials = materialsResult.data || [];
   if (materialsResult.error) console.warn('Subject materials are temporarily unavailable:', materialsResult.error);
-  // Keep old material types visible so existing files do not disappear.
   const lectureFiles = materials.filter((m) => !['section', 'assignment'].includes(m.material_type));
   if (!lectures.length && !lectureFiles.length) {
     if (lecturesResult.error || materialsResult.error) {
@@ -210,7 +261,6 @@ async function loadMaterialsByType(el, type, emptyMessage) {
 }
 
 async function loadAnnouncements(el) {
-  // Avoid server-side filters/order on optional columns in older database schemas.
   const { data, error } = await supabase.from('announcements')
     .select('*')
     .eq('subject_id', subjectId);
