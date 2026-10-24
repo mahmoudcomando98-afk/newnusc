@@ -6,8 +6,8 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>إدارة الجدول | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=quiz-sched-v1" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=quiz-sched-v1" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=sched-fix-v2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=sched-fix-v2" />
 </head>
 <body>
   <header class="app-header">
@@ -45,7 +45,6 @@
           <div class="form-group"><label class="form-label">من</label><input type="time" id="start_time" class="form-input" dir="ltr" /></div>
           <div class="form-group"><label class="form-label">إلى</label><input type="time" id="end_time" class="form-input" dir="ltr" /></div>
           <div class="form-group"><label class="form-label">المكان</label><input type="text" id="location" class="form-input" /></div>
-          <div class="form-group"><label class="form-label"><input type="checkbox" id="is_published" checked /> منشور للطلاب</label></div>
           <div class="flex gap-1"><button type="submit" class="btn btn-primary">حفظ</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
         </form>
       </div>
@@ -57,19 +56,16 @@
     import { protectAdminPage } from '../assets/js/auth.js';
     import { escapeHtml, formatTime, showEmpty, showError, showToast, withLoading, initIcons, WEEKDAYS_AR } from '../assets/js/utils.js';
 
-    const TABLE = 'schedules';
+    // Live database table name
+    const TABLE = 'schedule_items';
 
     async function init() {
       const ok = await protectAdminPage();
       if (!ok) return;
       document.documentElement.classList.remove('admin-auth-pending');
       initIcons();
-      document.getElementById('add-btn').onclick = () => {
-        document.getElementById('form-panel').classList.remove('hidden');
-      };
-      document.getElementById('cancel-btn').onclick = () => {
-        document.getElementById('form-panel').classList.add('hidden');
-      };
+      document.getElementById('add-btn').onclick = () => document.getElementById('form-panel').classList.remove('hidden');
+      document.getElementById('cancel-btn').onclick = () => document.getElementById('form-panel').classList.add('hidden');
       document.getElementById('sch-form').onsubmit = save;
       await load();
     }
@@ -77,21 +73,16 @@
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase
-          .from(TABLE)
-          .select('*')
-          .order('day_of_week', { ascending: true, nullsFirst: false })
-          .order('start_time', { ascending: true, nullsFirst: false });
+        const { data, error } = await supabase.from(TABLE).select('*').order('day_of_week').order('start_time');
         if (error) throw error;
         if (!data?.length) {
-          showEmpty(el, 'لا توجد مواعيد — أضف موعدًا من الزر أعلاه');
+          showEmpty(el, 'لا توجد مواعيد — اضغط + موعد');
           return;
         }
         el.innerHTML = data.map((s) => {
           const day = s.day_of_week != null ? (WEEKDAYS_AR[s.day_of_week] || '') : '';
           const time = s.start_time ? formatTime(s.start_time) : '';
-          const pub = s.is_published === false ? '<span class="badge badge-warning">مخفي</span>' : '';
-          return `<div class="card mb-2"><div class="flex justify-between" style="gap:8px;align-items:flex-start"><div><h3 class="card-title">${escapeHtml(s.title)}</h3><p class="text-sm text-muted">${escapeHtml(day)} ${escapeHtml(time)} ${escapeHtml(s.location || '')} ${pub}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${s.id}">حذف</button></div></div>`;
+          return `<div class="card mb-2"><div class="flex justify-between" style="gap:8px;align-items:flex-start"><div><h3 class="card-title">${escapeHtml(s.title)}</h3><p class="text-sm text-muted">${escapeHtml(day)} ${escapeHtml(time)} ${escapeHtml(s.location || '')}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${s.id}">حذف</button></div></div>`;
         }).join('');
         el.querySelectorAll('[data-del]').forEach((btn) => {
           btn.onclick = async () => {
@@ -103,7 +94,7 @@
         });
       } catch (e) {
         console.error(e);
-        showError(el, 'تعذر تحميل الجدول. تأكد من وجود جدول schedules في Supabase.');
+        showError(el, 'تعذر التحميل: ' + (e.message || 'جدول schedule_items'));
       }
     }
 
@@ -118,7 +109,7 @@
           start_time: document.getElementById('start_time').value || null,
           end_time: document.getElementById('end_time').value || null,
           location: document.getElementById('location').value.trim() || null,
-          is_published: document.getElementById('is_published').checked
+          is_active: true
         };
         const { error } = await supabase.from(TABLE).insert(payload);
         if (error) {
@@ -128,7 +119,6 @@
         showToast('تم الحفظ', 'success');
         document.getElementById('form-panel').classList.add('hidden');
         e.target.reset();
-        document.getElementById('is_published').checked = true;
         await load();
       })();
     }
