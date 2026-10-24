@@ -6,8 +6,8 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>إدارة الجدول | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=neutral-v2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=neutral-v2" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=quiz-sched-v1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=quiz-sched-v1" />
 </head>
 <body>
   <header class="app-header">
@@ -21,12 +21,31 @@
       <div id="form-panel" class="card mb-3 hidden">
         <form id="sch-form">
           <div class="form-group"><label class="form-label">العنوان *</label><input type="text" id="title" class="form-input" required /></div>
+          <div class="form-group"><label class="form-label">النوع</label>
+            <select id="event_type" class="form-select">
+              <option value="lecture">محاضرة</option>
+              <option value="section">سكشن</option>
+              <option value="quiz">كويز</option>
+              <option value="exam">امتحان</option>
+              <option value="other">أخرى</option>
+            </select>
+          </div>
           <div class="form-group"><label class="form-label">اليوم</label>
-            <select id="day_of_week" class="form-select"><option value="">—</option><option value="0">الأحد</option><option value="1">الاثنين</option><option value="2">الثلاثاء</option><option value="3">الأربعاء</option><option value="4">الخميس</option><option value="5">الجمعة</option><option value="6">السبت</option></select>
+            <select id="day_of_week" class="form-select">
+              <option value="">—</option>
+              <option value="0">الأحد</option>
+              <option value="1">الاثنين</option>
+              <option value="2">الثلاثاء</option>
+              <option value="3">الأربعاء</option>
+              <option value="4">الخميس</option>
+              <option value="5">الجمعة</option>
+              <option value="6">السبت</option>
+            </select>
           </div>
           <div class="form-group"><label class="form-label">من</label><input type="time" id="start_time" class="form-input" dir="ltr" /></div>
           <div class="form-group"><label class="form-label">إلى</label><input type="time" id="end_time" class="form-input" dir="ltr" /></div>
           <div class="form-group"><label class="form-label">المكان</label><input type="text" id="location" class="form-input" /></div>
+          <div class="form-group"><label class="form-label"><input type="checkbox" id="is_published" checked /> منشور للطلاب</label></div>
           <div class="flex gap-1"><button type="submit" class="btn btn-primary">حفظ</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
         </form>
       </div>
@@ -37,43 +56,83 @@
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
     import { escapeHtml, formatTime, showEmpty, showError, showToast, withLoading, initIcons, WEEKDAYS_AR } from '../assets/js/utils.js';
-    let profile = null;
+
+    const TABLE = 'schedules';
+
     async function init() {
-      const result = await protectAdminPage(); if (!result) return;
-      profile = result.profile; initIcons();
-      document.getElementById('add-btn').onclick = () => document.getElementById('form-panel').classList.remove('hidden');
-      document.getElementById('cancel-btn').onclick = () => document.getElementById('form-panel').classList.add('hidden');
+      const ok = await protectAdminPage();
+      if (!ok) return;
+      document.documentElement.classList.remove('admin-auth-pending');
+      initIcons();
+      document.getElementById('add-btn').onclick = () => {
+        document.getElementById('form-panel').classList.remove('hidden');
+      };
+      document.getElementById('cancel-btn').onclick = () => {
+        document.getElementById('form-panel').classList.add('hidden');
+      };
       document.getElementById('sch-form').onsubmit = save;
       await load();
     }
+
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase.from('schedule_items').select('*').order('day_of_week').order('start_time');
+        const { data, error } = await supabase
+          .from(TABLE)
+          .select('*')
+          .order('day_of_week', { ascending: true, nullsFirst: false })
+          .order('start_time', { ascending: true, nullsFirst: false });
         if (error) throw error;
-        if (!data?.length) { showEmpty(el, 'لا توجد مواعيد'); return; }
-        el.innerHTML = data.map(s => `<div class="card mb-2"><div class="flex justify-between"><div><h3 class="card-title">${escapeHtml(s.title)}</h3><p class="text-sm text-muted">${s.day_of_week!=null?WEEKDAYS_AR[s.day_of_week]:''} ${s.start_time?formatTime(s.start_time):''} ${s.location||''}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${s.id}">حذف</button></div></div>`).join('');
-        el.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => { if(!confirm('حذف؟')) return; await supabase.from('schedule_items').delete().eq('id', btn.dataset.del); await load(); });
-      } catch { showError(el, 'تعذر'); }
+        if (!data?.length) {
+          showEmpty(el, 'لا توجد مواعيد — أضف موعدًا من الزر أعلاه');
+          return;
+        }
+        el.innerHTML = data.map((s) => {
+          const day = s.day_of_week != null ? (WEEKDAYS_AR[s.day_of_week] || '') : '';
+          const time = s.start_time ? formatTime(s.start_time) : '';
+          const pub = s.is_published === false ? '<span class="badge badge-warning">مخفي</span>' : '';
+          return `<div class="card mb-2"><div class="flex justify-between" style="gap:8px;align-items:flex-start"><div><h3 class="card-title">${escapeHtml(s.title)}</h3><p class="text-sm text-muted">${escapeHtml(day)} ${escapeHtml(time)} ${escapeHtml(s.location || '')} ${pub}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${s.id}">حذف</button></div></div>`;
+        }).join('');
+        el.querySelectorAll('[data-del]').forEach((btn) => {
+          btn.onclick = async () => {
+            if (!confirm('حذف الموعد؟')) return;
+            const { error } = await supabase.from(TABLE).delete().eq('id', btn.dataset.del);
+            if (error) showToast(error.message, 'error');
+            else await load();
+          };
+        });
+      } catch (e) {
+        console.error(e);
+        showError(el, 'تعذر تحميل الجدول. تأكد من وجود جدول schedules في Supabase.');
+      }
     }
+
     async function save(e) {
       e.preventDefault();
       await withLoading(e.target.querySelector('[type=submit]'), async () => {
         const day = document.getElementById('day_of_week').value;
-        const { error } = await supabase.from('schedule_items').insert({
+        const payload = {
           title: document.getElementById('title').value.trim(),
-          day_of_week: day !== '' ? parseInt(day) : null,
+          event_type: document.getElementById('event_type').value || 'lecture',
+          day_of_week: day !== '' ? parseInt(day, 10) : null,
           start_time: document.getElementById('start_time').value || null,
           end_time: document.getElementById('end_time').value || null,
           location: document.getElementById('location').value.trim() || null,
-          is_active: true
-        });
-        if (error) { showToast(error.message, 'error'); return; }
-        showToast('تم', 'success');
+          is_published: document.getElementById('is_published').checked
+        };
+        const { error } = await supabase.from(TABLE).insert(payload);
+        if (error) {
+          showToast(error.message || 'فشل الحفظ', 'error');
+          return;
+        }
+        showToast('تم الحفظ', 'success');
         document.getElementById('form-panel').classList.add('hidden');
-        e.target.reset(); await load();
+        e.target.reset();
+        document.getElementById('is_published').checked = true;
+        await load();
       })();
     }
+
     init();
   </script>
 </body>
