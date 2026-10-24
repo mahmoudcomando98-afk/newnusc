@@ -49,24 +49,28 @@
       showFallback('الاتصال اتأخر شوية. تقدر تكمل يدويًا من هنا.');
     }, 7000);
 
-    try {
-      const { getSession, isSupabaseConfigured } = await import('./assets/js/supabase.js');
-      if (!isSupabaseConfigured()) {
-        window.clearTimeout(timeout);
-        showFallback('إعدادات الاتصال غير مكتملة. تقدر تدخل يدويًا أو تتواصل مع الدعم.');
-      } else {
-        const session = await getSession();
-        if (!routed) {
-          routed = true;
+    async function routeUser() {
+      try {
+        const { getSession, isSupabaseConfigured } = await import('./assets/js/supabase.js');
+        if (!isSupabaseConfigured()) {
           window.clearTimeout(timeout);
-          window.location.replace(session ? '/home.html' : '/login.html');
+          showFallback('إعدادات الاتصال غير مكتملة. تقدر تدخل يدويًا أو تتواصل مع الدعم.');
+          return;
         }
+
+        const session = await getSession();
+        if (routed) return;
+        routed = true;
+        window.clearTimeout(timeout);
+        window.location.replace(session ? '/home.html' : '/login.html');
+      } catch (error) {
+        window.clearTimeout(timeout);
+        console.error('[NUSC] Startup routing failed:', error);
+        showFallback('حصلت مشكلة أثناء فتح المنصة. جرّب تسجيل الدخول يدويًا.');
       }
-    } catch (error) {
-      window.clearTimeout(timeout);
-      console.error('[NUSC] Startup routing failed:', error);
-      showFallback('حصلت مشكلة أثناء فتح المنصة. جرّب تسجيل الدخول يدويًا.');
     }
+
+    routeUser();
   </script>
 </body>
 </html>
