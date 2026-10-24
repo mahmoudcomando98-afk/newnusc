@@ -61,7 +61,8 @@ for (const full of files) {
   if (forbiddenProjectRef.test(source)) {
     errors.push('Removed Supabase project reference found in frontend source: ' + relative);
   }
-  if (hardcodedSupabaseUrl.test(source) && !source.includes('configuration-missing.supabase.co')) {
+  const endpointMatches = source.match(/https:\\/\\/[a-z0-9-]+\\.supabase\\.co/ig) || [];
+  if (endpointMatches.some((url) => !/configuration-missing\\.supabase\\.co/i.test(url))) {
     errors.push('Hardcoded Supabase endpoint found in frontend source: ' + relative);
   }
   if (hardcodedPublishableKey.test(source) || hardcodedJwt.test(source)) {
