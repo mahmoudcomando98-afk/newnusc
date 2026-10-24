@@ -1,253 +1,72 @@
-
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar-EG" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="NUSC | كلية الحاسبات والمعلومات" />
+  <meta name="theme-color" content="#f6f6f4" />
+  <meta name="description" content="منصة NUSC الأكاديمية لطلاب كلية الحاسبات والمعلومات" />
   <title>NUSC</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;800&display=swap" rel="stylesheet" />
-
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      min-height: 100vh;
-      min-height: 100dvh;
-      font-family: 'Cairo', system-ui, sans-serif;
-      background: radial-gradient(ellipse at top, #fff9e8 0%, #fffef8 62%, #efeee7 100%);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-    }
-
-    .splash {
-      text-align: center;
-      max-width: 380px;
-      width: 100%;
-      animation: fadeUp .5s ease;
-    }
-
-    @keyframes fadeUp {
-      from {
-        opacity: 0;
-        transform: translateY(12px);
-      }
-      to {
-        opacity: 1;
-        transform: none;
-      }
-    }
-
-    .logo {
-      width: 72px;
-      height: 72px;
-      margin: 0 auto 18px;
-      border-radius: 20px;
-      background: #f2d447;
-      color: #302f25;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 1.05rem; letter-spacing: .08em;
-      box-shadow: none; border: 1px solid #e7ca36;
-    }
-
-    h1 {
-      font-size: 1.35rem;
-      font-weight: 800;
-      letter-spacing: -.02em;
-    }
-
-    .tag {
-      margin-top: 8px;
-      color: #77786e;
-      font-size: .95rem;
-      line-height: 1.6;
-    }
-
-    .loader {
-      width: 36px;
-      height: 36px;
-      margin: 28px auto 12px;
-      border: 3px solid rgba(198,155,45,.18);
-      border-top-color: #79640b;
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    .status {
-      font-size: .85rem;
-      color: #77786e;
-      min-height: 1.4em;
-    }
-
-    .status.error {
-      color: #b42318;
-    }
-
-    .actions {
-      display: none;
-      gap: 10px;
-      margin-top: 20px;
-      flex-direction: column;
-    }
-
-    .actions.show {
-      display: flex;
-    }
-
-    .btn {
-      display: block;
-      text-align: center;
-      text-decoration: none;
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: .95rem;
-      transition: transform .2s ease, opacity .2s ease;
-    }
-
-    .btn:hover {
-      transform: translateY(-2px);
-      opacity: .92;
-    }
-
-    .btn-primary {
-      background: #f2d447;
-      color: #302f25;
-    }
-
-    .btn-ghost {
-      background: #fff;
-      color: #6b5115;
-      border: 1px solid #e9e4d6;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *,
-      *::before,
-      *::after {
-        animation-duration: .01ms !important;
-        transition-duration: .01ms !important;
-      }
-    }
+    :root { color-scheme: light; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f6f6f4; color: #292d32; }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; margin: 0; }
+    body { min-height: 100dvh; background: #f6f6f4; }
+    .fallback { display: none; min-height: 100dvh; padding: 24px; align-items: center; justify-content: center; }
+    .fallback.show { display: flex; }
+    .fallback-content { width: min(100%, 420px); padding: 24px; background: #fff; border: 1px solid #e2e4e5; border-radius: 10px; text-align: center; }
+    h1 { margin: 0 0 8px; font-size: 1.2rem; }
+    p { margin: 0; color: #747a80; line-height: 1.8; }
+    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 18px; }
+    a { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 9px 15px; border: 1px solid #d8dcdf; border-radius: 7px; color: #454d55; text-decoration: none; font-weight: 700; }
+    a.primary { background: #454d55; color: #fff; border-color: #454d55; }
+    :focus-visible { outline: 2px solid #8a939b; outline-offset: 3px; }
   </style>
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=neutral-v2" />
 </head>
-
 <body>
-  <main class="splash">
-    <div class="logo" aria-hidden="true">NUSC</div>
-
-    <p class="tag" style="font-weight:800;color:#79640b;margin:0 0 5px">كلية الحاسبات والمعلومات</p>
-    <h1>NUSC</h1>
-    <p class="tag">منصتك الأكاديمية للفرقة الأولى</p>
-
-    <div class="loader" id="loader" aria-hidden="true"></div>
-
-    <p class="status" id="status" role="status" aria-live="polite">
-      جاري التحميل...
-    </p>
-
-    <div class="actions" id="actions">
-      <a class="btn btn-primary" href="/login.html">
-        تسجيل الدخول
-      </a>
-
-      <a class="btn btn-ghost" href="/register.html">
-        إنشاء حساب
-      </a>
+  <main class="fallback" id="fallback" role="status" aria-live="polite">
+    <div class="fallback-content">
+      <h1>تعذر فتح المنصة تلقائيًا</h1>
+      <p id="fallback-message">تقدر تدخل يدويًا من أحد الاختيارات التالية.</p>
+      <div class="actions">
+        <a class="primary" href="/login.html">تسجيل الدخول</a>
+        <a href="/register.html">إنشاء حساب</a>
+      </div>
     </div>
   </main>
 
   <script type="module">
-    const status = document.getElementById('status');
-    const loader = document.getElementById('loader');
-    const actions = document.getElementById('actions');
+    const fallback = document.getElementById('fallback');
+    const fallbackMessage = document.getElementById('fallback-message');
+    let routed = false;
 
-    let initialized = false;
+    const showFallback = (message) => {
+      if (routed) return;
+      fallbackMessage.textContent = message || 'تقدر تدخل يدويًا من أحد الاختيارات التالية.';
+      fallback.classList.add('show');
+    };
 
-    function showFallback(msg) {
-      loader.style.display = 'none';
+    const timeout = window.setTimeout(() => {
+      showFallback('الاتصال اتأخر شوية. تقدر تكمل يدويًا من هنا.');
+    }, 7000);
 
-      status.textContent =
-        msg || 'اختر أحد الخيارات للمتابعة';
-
-      status.classList.toggle(
-        'error',
-        Boolean(msg && msg.includes('إعدادات'))
-      );
-
-      actions.classList.add('show');
-    }
-
-    const hardTimeout = setTimeout(() => {
-      showFallback(
-        'استغرق التحميل وقتاً طويلاً. يمكنك المتابعة يدوياً.'
-      );
-    }, 6000);
-
-    async function initializeApp() {
-      if (initialized) return;
-      initialized = true;
-
-      try {
-        const {
-          getSession,
-          isSupabaseConfigured,
-          getConfigError
-        } = await import('./assets/js/supabase.js');
-
-        if (!isSupabaseConfigured()) {
-          clearTimeout(hardTimeout);
-
-          showFallback(
-            getConfigError() ||
-            'إعدادات Supabase غير مكتملة على السيرفر.'
-          );
-
-          return;
-        }
-
+    try {
+      const { getSession, isSupabaseConfigured } = await import('./assets/js/supabase.js');
+      if (!isSupabaseConfigured()) {
+        window.clearTimeout(timeout);
+        showFallback('إعدادات الاتصال غير مكتملة. تقدر تدخل يدويًا أو تتواصل مع الدعم.');
+      } else {
         const session = await getSession();
-
-        clearTimeout(hardTimeout);
-
-        window.location.replace(
-          session ? '/home.html' : '/login.html'
-        );
-      } catch (err) {
-        clearTimeout(hardTimeout);
-
-        console.error(
-          'NUSC initialization error:',
-          err
-        );
-
-        showFallback(
-          'تعذر الاتصال. تحقق من إعدادات المشروع على Vercel.'
-        );
+        if (!routed) {
+          routed = true;
+          window.clearTimeout(timeout);
+          window.location.replace(session ? '/home.html' : '/login.html');
+        }
       }
+    } catch (error) {
+      window.clearTimeout(timeout);
+      console.error('[NUSC] Startup routing failed:', error);
+      showFallback('حصلت مشكلة أثناء فتح المنصة. جرّب تسجيل الدخول يدويًا.');
     }
-
-    initializeApp();
   </script>
 </body>
 </html>
