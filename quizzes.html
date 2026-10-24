@@ -5,28 +5,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#faf9f7" />
   <title>الكويزات | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=white-orange-v1" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=white-orange-v1" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=quiz-sched-v1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=quiz-sched-v1" />
 </head>
 <body class="quizzes-page">
   <header class="app-header">
     <div class="container">
       <a href="/home.html" class="logo"><span class="logo-icon">N</span><span>NUSC</span></a>
       <nav class="desktop-nav">
-        <a href="/home.html" data-nav="home">الرئيسية</a><a href="/subjects.html" data-nav="subjects">المواد</a><a href="/quizzes.html" data-nav="quizzes" class="active">الكويزات</a><a href="/schedule.html" data-nav="schedule">الجدول</a><a href="/announcements.html" data-nav="announcements">الإعلانات</a>
+        <a href="/home.html" data-nav="home">الرئيسية</a>
+        <a href="/subjects.html" data-nav="subjects">المواد</a>
+        <a href="/quizzes.html" data-nav="quizzes" class="active">الكويزات</a>
+        <a href="/schedule.html" data-nav="schedule">الجدول</a>
+        <a href="/announcements.html" data-nav="announcements">الإعلانات</a>
       </nav>
-      <div class="header-actions"><a href="/notifications.html" class="header-btn" title="الإشعارات"><span data-icon="bell"></span></a><a href="/profile.html" class="header-btn" title="حسابي"><span data-icon="user"></span></a></div>
+      <div class="header-actions">
+        <a href="/notifications.html" class="header-btn" title="الإشعارات"><span data-icon="bell"></span></a>
+        <a href="/profile.html" class="header-btn" title="حسابي"><span data-icon="user"></span></a>
+      </div>
     </div>
   </header>
+
   <main class="page">
     <div class="container page-content">
-      <div class="section-header"><h1>الكويزات</h1></div>
-      <div id="quizzes-list" class="card-grid"></div>
+      <div class="section-header">
+        <h1>الكويزات</h1>
+      </div>
+
+      <div class="tabs" id="tabs" role="tablist">
+        <button type="button" class="tab active" data-status="upcoming" role="tab">قادمة</button>
+        <button type="button" class="tab" data-status="open" role="tab">مفتوحة</button>
+        <button type="button" class="tab" data-status="closed" role="tab">منتهية</button>
+        <button type="button" class="tab" data-status="all" role="tab">الكل</button>
+      </div>
+
+      <div id="quizzes-list" class="card-grid mt-2" aria-live="polite">
+        <div class="skeleton-card">
+          <div class="skeleton skeleton-title"></div>
+          <div class="skeleton skeleton-text"></div>
+        </div>
+      </div>
     </div>
   </main>
+
   <nav class="bottom-nav">
-    <a href="/home.html" data-nav="home"><span data-icon="home"></span>الرئيسية</a><a href="/subjects.html" data-nav="subjects"><span data-icon="book"></span>المواد</a><a href="/quizzes.html" data-nav="quizzes" class="active"><span data-icon="clipboard"></span>الكويزات</a><a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a><a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
+    <a href="/home.html" data-nav="home"><span data-icon="home"></span>الرئيسية</a>
+    <a href="/subjects.html" data-nav="subjects"><span data-icon="book"></span>المواد</a>
+    <a href="/quizzes.html" data-nav="quizzes" class="active"><span data-icon="clipboard"></span>الكويزات</a>
+    <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
+    <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
-  <script type="module" src="/assets/js/quizzes.js?v=white-orange-v1"></script>
+
+  <script type="module" src="/assets/js/quizzes.js?v=quiz-sched-v1"></script>
 </body>
 </html>
