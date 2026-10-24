@@ -3,43 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>الجدول الدراسي | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=neutral-v2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=neutral-v2" />
+  <meta name="theme-color" content="#faf9f7" />
+  <title>الجدول | NUSC</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=white-orange-v1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=white-orange-v1" />
 </head>
-<body>
+<body class="schedule-page">
   <header class="app-header">
     <div class="container">
-      <a href="/home.html" class="logo">
-        <span class="logo-icon">N</span>
-        <span>الجدول الدراسي</span>
-      </a>
+      <a href="/home.html" class="logo"><span class="logo-icon">N</span><span>NUSC</span></a>
       <nav class="desktop-nav">
-        <a href="/home.html">الرئيسية</a>
-        <a href="/subjects.html">المواد</a>
-        <a href="/quizzes.html">الكويزات</a>
-        <a href="/schedule.html" class="active">الجدول</a>
-        <a href="/announcements.html">الإعلانات</a>
+        <a href="/home.html" data-nav="home">الرئيسية</a><a href="/subjects.html" data-nav="subjects">المواد</a><a href="/quizzes.html" data-nav="quizzes">الكويزات</a><a href="/schedule.html" data-nav="schedule" class="active">الجدول</a><a href="/announcements.html" data-nav="announcements">الإعلانات</a>
       </nav>
+      <div class="header-actions"><a href="/notifications.html" class="header-btn" title="الإشعارات"><span data-icon="bell"></span></a><a href="/profile.html" class="header-btn" title="حسابي"><span data-icon="user"></span></a></div>
     </div>
   </header>
   <main class="page">
     <div class="container page-content">
-      <div class="tabs" id="view-tabs">
-        <button type="button" class="tab active" data-view="list">قائمة</button>
-        <button type="button" class="tab" data-view="week">أسبوعي</button>
-      </div>
-      <div id="schedule-content">
-        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
-      </div>
+      <div class="section-header"><h1>الجدول الدراسي</h1></div>
+      <div id="schedule-root"></div>
     </div>
   </main>
   <nav class="bottom-nav">
-    <a href="/home.html"><span data-icon="home"></span>الرئيسية</a>
-    <a href="/subjects.html"><span data-icon="book"></span>المواد</a>
-    <a href="/quizzes.html"><span data-icon="clipboard"></span>الكويزات</a>
-    <a href="/schedule.html" class="active"><span data-icon="calendar"></span>الجدول</a>
-    <a href="/profile.html"><span data-icon="user"></span>حسابي</a>
+    <a href="/home.html" data-nav="home"><span data-icon="home"></span>الرئيسية</a><a href="/subjects.html" data-nav="subjects"><span data-icon="book"></span>المواد</a><a href="/quizzes.html" data-nav="quizzes"><span data-icon="clipboard"></span>الكويزات</a><a href="/schedule.html" data-nav="schedule" class="active"><span data-icon="calendar"></span>الجدول</a><a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
   <script type="module" src="/assets/js/schedule.js"></script>
 </body>
