@@ -28,8 +28,11 @@
           <div class="form-group"><label class="form-label">المدة بالدقائق</label><input type="number" min="1" id="duration_minutes" class="form-input" /></div>
           <div class="form-group"><label class="form-label">بداية</label><input type="datetime-local" id="quiz_date" class="form-input" dir="ltr" /></div>
           <div class="form-group"><label class="form-label">رابط دخول الامتحان</label><input type="url" id="quiz_url" class="form-input" dir="ltr" placeholder="https://forms.google.com/..." /><p class="form-hint">ضع رابط Google Forms أو أي منصة امتحانات، وسيظهر للطلاب زر دخول الامتحان.</p></div>
-          
-          
+          <div class="form-group">
+            <label class="form-label" for="solution_image">صورة حل الكويز (اختياري)</label>
+            <input type="file" id="solution_image" class="form-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+            <p class="form-hint">صورة الحل تظهر للطالب بزر «عرض الحل».</p>
+          </div>
           <div class="form-group"><label class="form-check"><input type="checkbox" id="is_published" checked /><span>منشور</span></label></div>
           <div class="flex gap-1"><button type="submit" class="btn btn-primary">حفظ</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
         </form>
@@ -37,11 +40,14 @@
       <div id="list"></div>
     </div>
   </main>
+  <input type="file" id="solution-attach-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" style="display:none" />
   <script type="module">
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
     import { escapeHtml, formatDate, showEmpty, showError, showToast, withLoading, initIcons } from '../assets/js/utils.js';
     let profile = null;
+    let attachTargetId = null;
+
     async function init() {
       const result = await protectAdminPage(); if (!result) return;
       profile = result.profile; initIcons();
@@ -52,26 +58,109 @@
       document.getElementById('add-btn').onclick = () => document.getElementById('form-panel').classList.remove('hidden');
       document.getElementById('cancel-btn').onclick = () => document.getElementById('form-panel').classList.add('hidden');
       document.getElementById('quiz-form').onsubmit = save;
+      document.getElementById('solution-attach-input').addEventListener('change', onAttachSolution);
       await load();
     }
+
+    async function uploadSolutionImage(file) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `solutions/quizzes/${profile.id}/${Date.now()}_${safeName}`;
+      const { error } = await supabase.storage.from('materials').upload(path, file, { contentType: file.type || 'image/jpeg', upsert: false });
+      if (error) throw error;
+      return path;
+    }
+
+    async function onAttachSolution(event) {
+      const file = event.target.files?.[0];
+      const quizId = attachTargetId;
+      attachTargetId = null;
+      if (!file || !quizId) return;
+      if (!/^image\/(jpeg|png|webp)$/i.test(file.type) && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
+        showToast('اختار صورة JPG أو PNG أو WebP.', 'error');
+        return;
+      }
+      try {
+        const path = await uploadSolutionImage(file);
+        const { data: existing } = await supabase.from('quizzes').select('solution_image_path').eq('id', quizId).maybeSingle();
+        const { error } = await supabase.from('quizzes').update({ solution_image_path: path }).eq('id', quizId);
+        if (error) {
+          await supabase.storage.from('materials').remove([path]);
+          showToast(error.message || 'تعذر حفظ صورة الحل. نفّذ supabase/fix_solution_images.sql', 'error');
+          return;
+        }
+        if (existing?.solution_image_path && existing.solution_image_path !== path) {
+          await supabase.storage.from('materials').remove([existing.solution_image_path]).catch(() => {});
+        }
+        showToast('تم حفظ صورة حل الكويز.', 'success');
+        await load();
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'فشل رفع صورة الحل.', 'error');
+      }
+    }
+
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase.from('quizzes').select('id, title, start_at, duration_minutes, is_published, quiz_url, total_marks, passing_score, subject_id').order('start_at', { ascending: false });
+        const { data, error } = await supabase.from('quizzes').select('id, title, start_at, duration_minutes, is_published, quiz_url, total_marks, passing_score, subject_id, solution_image_path').order('start_at', { ascending: false });
         if (error) throw error;
         if (!data?.length) { showEmpty(el, 'لا توجد كويزات'); return; }
-        el.innerHTML = data.map(q => `<div class="card mb-2"><div class="flex justify-between flex-wrap gap-1"><div><h3 class="card-title">${escapeHtml(q.title)}</h3><p class="text-sm text-muted">${q.start_at ? formatDate(q.start_at,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${q.id}">حذف</button></div>${q.quiz_url ? `<div class="mt-2"><p class="text-sm text-muted" dir="ltr" style="overflow-wrap:anywhere">${escapeHtml(q.quiz_url)}</p><div class="flex flex-wrap gap-1 mt-1"><button type="button" class="btn btn-sm btn-secondary" data-copy="${escapeHtml(q.quiz_url)}">نسخ رابط الامتحان</button><a class="btn btn-sm btn-outline" href="https://wa.me/?text=${encodeURIComponent((q.title || 'كويز') + ' - رابط الامتحان: ' + q.quiz_url)}" target="_blank" rel="noopener noreferrer">إرسال عبر واتساب</a><a class="btn btn-sm btn-outline" href="${escapeHtml(q.quiz_url)}" target="_blank" rel="noopener noreferrer">فتح الرابط</a></div></div>` : `<p class="text-sm text-muted mt-1">لم تتم إضافة رابط امتحان لهذا الكويز.</p>`}</div>`).join('');
+        el.innerHTML = data.map(q => {
+          const hasSolution = !!q.solution_image_path;
+          return `<div class="card mb-2">
+            <div class="flex justify-between flex-wrap gap-1">
+              <div>
+                <h3 class="card-title">${escapeHtml(q.title)}</h3>
+                <p class="text-sm text-muted">${q.start_at ? formatDate(q.start_at,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</p>
+                <p class="text-sm mt-1">${hasSolution ? '<span class="badge badge-success">صورة الحل موجودة</span>' : '<span class="badge badge-warning">مفيش صورة حل</span>'}</p>
+              </div>
+              <div class="flex gap-1 flex-wrap">
+                <button type="button" class="btn btn-sm btn-secondary" data-sol="${q.id}">${hasSolution ? 'تغيير صورة الحل' : 'إضافة صورة الحل'}</button>
+                <button type="button" class="btn btn-sm btn-danger" data-del="${q.id}">حذف</button>
+              </div>
+            </div>
+            ${q.quiz_url ? `<div class="mt-2"><p class="text-sm text-muted" dir="ltr" style="overflow-wrap:anywhere">${escapeHtml(q.quiz_url)}</p><div class="flex flex-wrap gap-1 mt-1"><button type="button" class="btn btn-sm btn-secondary" data-copy="${escapeHtml(q.quiz_url)}">نسخ رابط الامتحان</button><a class="btn btn-sm btn-outline" href="https://wa.me/?text=${encodeURIComponent((q.title || 'كويز') + ' - رابط الامتحان: ' + q.quiz_url)}" target="_blank" rel="noopener noreferrer">إرسال عبر واتساب</a><a class="btn btn-sm btn-outline" href="${escapeHtml(q.quiz_url)}" target="_blank" rel="noopener noreferrer">فتح الرابط</a></div></div>` : `<p class="text-sm text-muted mt-1">لم تتم إضافة رابط امتحان لهذا الكويز.</p>`}
+          </div>`;
+        }).join('');
         el.querySelectorAll('[data-copy]').forEach(btn => btn.onclick = async () => { try { await navigator.clipboard.writeText(btn.dataset.copy); showToast('تم نسخ رابط الامتحان', 'success'); } catch { window.prompt('انسخ رابط الامتحان:', btn.dataset.copy); } });
-        el.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => { if(!confirm('حذف؟')) return; await supabase.from('quizzes').delete().eq('id', btn.dataset.del); await load(); });
+        el.querySelectorAll('[data-sol]').forEach(btn => btn.onclick = () => {
+          attachTargetId = btn.dataset.sol;
+          document.getElementById('solution-attach-input').value = '';
+          document.getElementById('solution-attach-input').click();
+        });
+        el.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => {
+          if(!confirm('حذف؟')) return;
+          const item = data.find(q => String(q.id) === String(btn.dataset.del));
+          await supabase.from('quizzes').delete().eq('id', btn.dataset.del);
+          if (item?.solution_image_path) {
+            await supabase.storage.from('materials').remove([item.solution_image_path]).catch(() => {});
+          }
+          await load();
+        });
       } catch (error) {
         console.error('Admin quizzes loading error:', { code: error?.code, message: error?.message, details: error?.details, hint: error?.hint });
         showError(el, 'تعذر تحميل الكويزات. تحقق من أعمدة جدول quizzes وسياسات القراءة في Supabase.');
       }
     }
+
     async function save(e) {
       e.preventDefault();
+      const solutionFile = document.getElementById('solution_image').files?.[0] || null;
+      if (solutionFile && !/^image\/(jpeg|png|webp)$/i.test(solutionFile.type) && !/\.(jpe?g|png|webp)$/i.test(solutionFile.name)) {
+        showToast('صورة الحل لازم تكون JPG أو PNG أو WebP.', 'error');
+        return;
+      }
       await withLoading(e.target.querySelector('[type=submit]'), async () => {
-        const { error } = await supabase.from('quizzes').insert({
+        let solutionPath = null;
+        if (solutionFile) {
+          try {
+            solutionPath = await uploadSolutionImage(solutionFile);
+          } catch (err) {
+            showToast(err.message || 'فشل رفع صورة الحل.', 'error');
+            return;
+          }
+        }
+        const payload = {
           title: document.getElementById('title').value.trim(),
           instructions: document.getElementById('rules').value.trim() || null,
           subject_id: document.getElementById('subject_id').value || null,
@@ -81,12 +170,19 @@
           total_marks: document.getElementById('total_marks').value ? Number(document.getElementById('total_marks').value) : null,
           passing_score: document.getElementById('passing_score').value ? Number(document.getElementById('passing_score').value) : null,
           is_published: document.getElementById('is_published').checked
-        });
-        if (error) { showToast(error.message, 'error'); return; }
+        };
+        if (solutionPath) payload.solution_image_path = solutionPath;
+
+        const { error } = await supabase.from('quizzes').insert(payload);
+        if (error) {
+          if (solutionPath) await supabase.storage.from('materials').remove([solutionPath]).catch(() => {});
+          showToast(error.message + (String(error.message).includes('solution_image') ? ' — نفّذ supabase/fix_solution_images.sql' : ''), 'error');
+          return;
+        }
         showToast('تم', 'success');
         document.getElementById('form-panel').classList.add('hidden');
         e.target.reset(); await load();
-      })();
+      });
     }
     init();
   </script>
