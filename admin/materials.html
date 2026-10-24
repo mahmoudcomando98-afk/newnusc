@@ -18,12 +18,12 @@
   </header>
   <main class="page" style="padding-bottom:24px">
     <div class="container page-content">
-      <p class="text-sm text-muted mb-2">ارفع الملف وحدد المادة والقسم اللي هيظهر فيه: المحاضرات أو السكاشن أو الواجبات.</p>
+      <p class="text-sm text-muted mb-2">ارفع الملف وحدد المادة والقسم اللي هيظهر فيه: المحاضرات أو السكاشن أو الواجبات. للواجبات تقدر تضيف صورة الحل منفصلة عن ملف الـ PDF.</p>
       <div id="form-panel" class="card mb-3 hidden">
         <form id="mat-form">
           <div class="form-group">
             <label class="form-label" for="title">اسم الملف *</label>
-            <input type="text" id="title" class="form-input" required maxlength="180" placeholder="مثال: محاضرة 1 - مقدمة" />
+            <input type="text" id="title" class="form-input" required maxlength="180" placeholder="مثال: واجب 1 - مقدمة" />
           </div>
           <div class="form-group">
             <label class="form-label" for="subject_id">المادة *</label>
@@ -45,6 +45,11 @@
             <label class="form-label" for="file">الملف *</label>
             <input type="file" id="file" class="form-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,.jpg,.jpeg,.png,.webp,.xls,.xlsx" required />
           </div>
+          <div class="form-group" id="solution-group">
+            <label class="form-label" for="solution_image">صورة الحل (اختياري — للواجبات)</label>
+            <input type="file" id="solution_image" class="form-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+            <p class="form-hint">صورة منفصلة عن ملف الواجب. الطالب هيشوفها بزر «عرض الحل».</p>
+          </div>
           <div class="flex gap-1">
             <button type="submit" class="btn btn-primary">ارفع الملف</button>
             <button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button>
@@ -54,6 +59,10 @@
       <div id="list"></div>
     </div>
   </main>
+
+  <!-- Hidden input for attaching solution to existing assignment -->
+  <input type="file" id="solution-attach-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" style="display:none" />
+
   <script type="module">
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
@@ -61,6 +70,7 @@
 
     let profile = null;
     let subjectNames = new Map();
+    let attachTargetId = null;
     const typeLabels = { lecture: 'المحاضرات', section: 'السكاشن', assignment: 'الواجبات', notes: 'المحاضرات', exam: 'المحاضرات', other: 'المحاضرات', pdf: 'المحاضرات', slides: 'المحاضرات' };
 
     async function init() {
@@ -71,6 +81,7 @@
       document.getElementById('add-btn').addEventListener('click', () => document.getElementById('form-panel').classList.remove('hidden'));
       document.getElementById('cancel-btn').addEventListener('click', () => document.getElementById('form-panel').classList.add('hidden'));
       document.getElementById('mat-form').addEventListener('submit', save);
+      document.getElementById('solution-attach-input').addEventListener('change', onAttachSolution);
       await loadSubjects();
       await load();
     }
@@ -92,34 +103,50 @@
       const el = document.getElementById('list');
       try {
         const { data, error } = await supabase.from('materials')
-          .select('id, title, subject_id, material_type, file_type, file_path, file_size, created_at, is_published')
+          .select('id, title, subject_id, material_type, file_type, file_path, file_size, solution_image_path, created_at, is_published')
           .order('created_at', { ascending: false }).limit(100);
         if (error) throw error;
         if (!data?.length) { showEmpty(el, 'لسه مفيش ملفات مرفوعة. اضغط «رفع ملف» عشان تبدأ.'); return; }
         el.innerHTML = data.map((item) => {
           const label = typeLabels[item.material_type] || 'المحاضرات';
+          const isAssignment = item.material_type === 'assignment';
+          const hasSolution = !!item.solution_image_path;
           return `<article class="card mb-2">
             <div class="flex justify-between items-center flex-wrap gap-1">
               <div>
                 <h3 class="card-title">${escapeHtml(item.title)}</h3>
                 <p class="text-sm text-muted">${escapeHtml(subjectNames.get(item.subject_id) || 'مادة غير محددة')} · ${label}</p>
                 <p class="text-sm text-muted">${escapeHtml(item.file_type || 'ملف')} ${item.file_size ? '· ' + formatFileSize(item.file_size) : ''} ${item.created_at ? '· ' + timeAgo(item.created_at) : ''}</p>
+                ${isAssignment ? `<p class="text-sm mt-1">${hasSolution ? '<span class="badge badge-success">صورة الحل موجودة</span>' : '<span class="badge badge-warning">مفيش صورة حل</span>'}</p>` : ''}
               </div>
-              <div class="flex gap-1 items-center">
+              <div class="flex gap-1 items-center flex-wrap">
                 <span class="badge ${item.is_published === false ? 'badge-warning' : 'badge-success'}">${item.is_published === false ? 'مسودة' : 'منشور'}</span>
+                ${isAssignment ? `<button type="button" class="btn btn-sm btn-secondary" data-sol="${item.id}">${hasSolution ? 'تغيير صورة الحل' : 'إضافة صورة الحل'}</button>` : ''}
                 <button type="button" class="btn btn-sm btn-danger" data-del="${item.id}">حذف</button>
               </div>
             </div>
           </article>`;
         }).join('');
+
+        el.querySelectorAll('[data-sol]').forEach((button) => {
+          button.addEventListener('click', () => {
+            attachTargetId = button.dataset.sol;
+            document.getElementById('solution-attach-input').value = '';
+            document.getElementById('solution-attach-input').click();
+          });
+        });
+
         el.querySelectorAll('[data-del]').forEach((button) => {
           button.addEventListener('click', async () => {
             if (!confirm('متأكد إنك عايز تحذف الملف ده؟')) return;
             const item = data.find((entry) => String(entry.id) === String(button.dataset.del));
             const { error: deleteError } = await supabase.from('materials').delete().eq('id', button.dataset.del);
             if (deleteError) { showToast(deleteError.message, 'error'); return; }
-            if (item?.file_path) {
-              const { error: storageError } = await supabase.storage.from('materials').remove([item.file_path]);
+            const paths = [];
+            if (item?.file_path) paths.push(item.file_path);
+            if (item?.solution_image_path) paths.push(item.solution_image_path);
+            if (paths.length) {
+              const { error: storageError } = await supabase.storage.from('materials').remove(paths);
               if (storageError) console.warn('Storage cleanup failed:', storageError.message);
             }
             showToast('الملف اتحذف.', 'success');
@@ -130,6 +157,43 @@
         console.error('Material list load failed:', error);
         showError(el, 'مش قادرين نحمّل الملفات. راجع اتصال قاعدة البيانات والصلاحيات.');
       }
+    }
+
+    async function onAttachSolution(event) {
+      const file = event.target.files?.[0];
+      const materialId = attachTargetId;
+      attachTargetId = null;
+      if (!file || !materialId) return;
+      if (!/^image\/(jpeg|png|webp)$/i.test(file.type) && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
+        showToast('اختار صورة JPG أو PNG أو WebP.', 'error');
+        return;
+      }
+      try {
+        const path = await uploadSolutionImage(file);
+        const { data: existing } = await supabase.from('materials').select('solution_image_path').eq('id', materialId).maybeSingle();
+        const { error } = await supabase.from('materials').update({ solution_image_path: path }).eq('id', materialId);
+        if (error) {
+          await supabase.storage.from('materials').remove([path]);
+          showToast(error.message || 'تعذر حفظ صورة الحل. نفّذ supabase/fix_solution_images.sql', 'error');
+          return;
+        }
+        if (existing?.solution_image_path && existing.solution_image_path !== path) {
+          await supabase.storage.from('materials').remove([existing.solution_image_path]).catch(() => {});
+        }
+        showToast('تم حفظ صورة الحل.', 'success');
+        await load();
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'فشل رفع صورة الحل.', 'error');
+      }
+    }
+
+    async function uploadSolutionImage(file) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `solutions/${profile.id}/${Date.now()}_${safeName}`;
+      const { error } = await supabase.storage.from('materials').upload(path, file, { contentType: file.type || 'image/jpeg', upsert: false });
+      if (error) throw error;
+      return path;
     }
 
     function isMissingMaterialColumn(error, column) {
@@ -164,7 +228,7 @@
           continue;
         }
 
-        const optionalColumns = ['description', 'file_name', 'file_type', 'file_size', 'material_type', 'is_published', 'created_by'];
+        const optionalColumns = ['description', 'file_name', 'file_type', 'file_size', 'material_type', 'is_published', 'created_by', 'solution_image_path'];
         const missingOptional = optionalColumns.find(column =>
           Object.prototype.hasOwnProperty.call(candidate, column) && isMissingMaterialColumn(result.error, column)
         );
@@ -181,11 +245,17 @@
       event.preventDefault();
       const fileInput = document.getElementById('file');
       const file = fileInput.files?.[0];
+      const solutionInput = document.getElementById('solution_image');
+      const solutionFile = solutionInput.files?.[0] || null;
       const subjectId = document.getElementById('subject_id').value;
       if (!subjectId) { showToast('اختار المادة الأول.', 'error'); return; }
       if (!file) { showToast('اختار الملف اللي هترفعه.', 'error'); return; }
       const allowed = /\.(pdf|doc|docx|ppt|pptx|zip|rar|jpg|jpeg|png|webp|xls|xlsx)$/i;
       if (!allowed.test(file.name)) { showToast('نوع الملف ده مش مدعوم.', 'error'); return; }
+      if (solutionFile && !/^image\/(jpeg|png|webp)$/i.test(solutionFile.type) && !/\.(jpe?g|png|webp)$/i.test(solutionFile.name)) {
+        showToast('صورة الحل لازم تكون JPG أو PNG أو WebP.', 'error');
+        return;
+      }
 
       await withLoading(event.target.querySelector('[type=submit]'), async () => {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -193,7 +263,18 @@
         const { error: uploadError } = await supabase.storage.from('materials').upload(path, file);
         if (uploadError) { showToast(uploadError.message, 'error'); return; }
 
-        const { data: savedMaterial, error } = await insertMaterial({
+        let solutionPath = null;
+        if (solutionFile) {
+          try {
+            solutionPath = await uploadSolutionImage(solutionFile);
+          } catch (solErr) {
+            await supabase.storage.from('materials').remove([path]);
+            showToast(solErr.message || 'فشل رفع صورة الحل.', 'error');
+            return;
+          }
+        }
+
+        const payload = {
           title: document.getElementById('title').value.trim(),
           description: document.getElementById('description').value.trim() || null,
           subject_id: subjectId,
@@ -204,15 +285,18 @@
           file_size: file.size,
           is_published: true,
           created_by: profile.id
-        });
+        };
+        if (solutionPath) payload.solution_image_path = solutionPath;
+
+        const { data: savedMaterial, error } = await insertMaterial(payload);
         if (error || !savedMaterial?.id) {
-          const { error: cleanupError } = await supabase.storage.from('materials').remove([path]);
-          if (cleanupError) console.warn('Could not clean up uploaded file:', cleanupError.message);
+          const cleanup = [path];
+          if (solutionPath) cleanup.push(solutionPath);
+          await supabase.storage.from('materials').remove(cleanup).catch(() => {});
           console.error('Material insert failed:', error);
-          showToast(error?.message || 'لم يتم تأكيد حفظ سجل الملف.', 'error');
+          showToast(error?.message || 'لم يتم تأكيد حفظ سجل الملف. لو المشكلة في صورة الحل نفّذ supabase/fix_solution_images.sql', 'error');
           return;
         }
-        console.info('Material saved:', savedMaterial.id);
         showToast('الملف اترفع واتحفظ في القسم المحدد.', 'success');
         document.getElementById('form-panel').classList.add('hidden');
         event.target.reset();
