@@ -201,3 +201,51 @@ input:focus, select:focus, textarea:focus {
     transition-duration: .01ms !important;
   }
 }
+
+
+/* NUSC understated neutral theme: no bright gradients or decorative effects. */
+:root {
+  --nusc-page: #f6f6f4;
+  --nusc-surface: #ffffff;
+  --nusc-ink: #292d32;
+  --nusc-muted: #747a80;
+  --nusc-line: #e4e5e3;
+  --nusc-accent: #59636e;
+  --nusc-accent-soft: #eef0f1;
+  --nusc-shadow: 0 1px 3px rgba(25, 30, 35, .035);
+}
+body { background: var(--nusc-page); color: var(--nusc-ink); }
+.app-header { background: #fff !important; border-bottom: 1px solid var(--nusc-line) !important; box-shadow: none !important; }
+.logo-icon { background: #e9ebed !important; color: #333940 !important; border: 1px solid #dfe2e4 !important; box-shadow: none !important; }
+.logo-word, .desktop-nav a, .header-btn { color: #454b51; }
+.desktop-nav a.active { color: #252a2f; background: #f0f1f1; }
+.header-btn { background: #fff !important; border-color: var(--nusc-line) !important; box-shadow: none !important; }
+.bottom-nav { background: #fff !important; border-top: 1px solid var(--nusc-line) !important; box-shadow: none !important; }
+.bottom-nav a.active, .bottom-nav a.active span[data-icon] { color: #30363c !important; background: #f0f1f1 !important; }
+.card, .subject-card, .shortcut-card, .feed-panel, .notification-card, .important-notice, .subjects-intro, .auth-config-banner, .offline-banner {
+  box-shadow: none !important; border-color: var(--nusc-line) !important;
+}
+.card, .subject-card, .shortcut-card, .feed-panel, .notification-card, .subjects-intro { background: #fff !important; }
+.subject-card:before { background: #a8afb5 !important; }
+.subject-card:hover { transform: none !important; box-shadow: none !important; border-color: #c9cdd0 !important; }
+.shortcut-icon, .list-item-icon, .notice-symbol, .subjects-count, .tab.active, .quick-link { background: #f0f1f1 !important; color: #4b535a !important; border-color: #e2e4e5 !important; }
+.btn-primary, .btn-gold, .auth-submit { background: #454d55 !important; color: #fff !important; border-color: #454d55 !important; box-shadow: none !important; }
+.btn-primary:hover:not(:disabled), .btn-gold:hover:not(:disabled), .auth-submit:hover:not(:disabled) { background: #343b42 !important; box-shadow: none !important; }
+.btn-secondary, .hero-secondary-link { background: #fff !important; color: #424950 !important; border-color: #dfe2e4 !important; box-shadow: none !important; }
+.section-kicker, .section-more, .toolbar-note, .subjects-intro p, .footer-brand { color: #6a7279 !important; }
+.welcome-banner, .home-hero { background: #e9ebed !important; color: #292e33 !important; box-shadow: none !important; }
+.home-hero h1, .home-hero p, .home-hero .hero-eyebrow, .home-hero .hero-bottom-line { color: #292e33 !important; }
+.home-hero .hero-dot { background: #68727b !important; }
+.home-hero .hero-bottom-line { border-color: #d5d8da !important; }
+.important-notice, .announcement-item.announcement-important, .notification-card.notification-important, .notification-card.notification-urgent { background: #f4f4f2 !important; border-color: #dfe1e1 !important; color: #30353a !important; }
+.badge-important, .badge-urgent { background: #e8e9e8 !important; color: #454b50 !important; }
+input:focus, select:focus, textarea:focus, .form-input:focus, .form-textarea:focus, .form-select:focus { border-color: #8a939b !important; box-shadow: 0 0 0 3px rgba(89, 99, 110, .12) !important; }
+:where(a, button, input, select, textarea, [tabindex]):focus-visible { outline-color: rgba(89, 99, 110, .55) !important; }
+.home-footer { background: transparent !important; border-top-color: var(--nusc-line) !important; }
+@media (max-width: 899px) {
+ .app-header, .bottom-nav { backdrop-filter: none !important; }
+ .app-header .logo-icon { background: #e9ebed !important; border-color: #dfe2e4 !important; }
+ .app-header .logo-word:after { color: #747a80 !important; }
+ .app-header .header-btn { background: #fff !important; border-color: var(--nusc-line) !important; color: #454b51 !important; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
