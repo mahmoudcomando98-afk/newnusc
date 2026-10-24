@@ -29,6 +29,8 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: resolve(projectRoot, 'index.html'),
+          '404': resolve(projectRoot, '404.html'),
+          '500': resolve(projectRoot, '500.html'),
           login: resolve(projectRoot, 'login.html'),
           register: resolve(projectRoot, 'register.html'),
           'forgot-password': resolve(projectRoot, 'forgot-password.html'),
