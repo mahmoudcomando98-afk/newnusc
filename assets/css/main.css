@@ -112,3 +112,92 @@ body.home-page .home-footer{margin-bottom:calc(44px + env(safe-area-inset-bottom
 
 /* COMADO credit removed at source; prevent stale footer credit markup. */
 .footer-credit { display: none !important; }
+
+
+/* Product UI refinement — preserve NUSC's gold/charcoal palette and existing layouts. */
+:root {
+  --radius: 12px;
+  --shadow: 0 2px 8px rgba(45, 42, 29, .045);
+  --shadow-md: 0 7px 18px rgba(45, 42, 29, .08);
+}
+html { scroll-padding-top: calc(var(--header-h) + 12px); }
+body { text-rendering: optimizeLegibility; }
+.container { padding-inline: clamp(14px, 2.2vw, 24px); }
+.app-header {
+  background: #fff;
+  backdrop-filter: none;
+  box-shadow: 0 1px 0 rgba(45, 42, 29, .035);
+}
+.logo-icon { box-shadow: none; }
+.desktop-nav a { transition: background-color .16s ease, color .16s ease; }
+.header-btn { transition: background-color .16s ease, border-color .16s ease, color .16s ease; }
+.bottom-nav { backdrop-filter: none; box-shadow: 0 -1px 0 rgba(45, 42, 29, .04); }
+.page-content { padding-top: clamp(20px, 3vw, 30px); }
+.card {
+  border-radius: var(--radius);
+  box-shadow: 0 1px 4px rgba(45, 42, 29, .035);
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.subject-card:before { height: 2px; }
+.subject-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(45, 42, 29, .07);
+}
+.section { margin-bottom: clamp(22px, 3vw, 32px); }
+.section-header { margin-bottom: 12px; }
+.section-header h2 { letter-spacing: 0; }
+.btn {
+  min-height: 42px;
+  border-radius: 9px;
+  transition: background-color .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.btn:hover:not(:disabled) { transform: none; }
+.btn-primary { box-shadow: none; }
+.btn-primary:hover:not(:disabled) { box-shadow: 0 3px 8px rgba(37, 39, 31, .12); }
+.btn:active:not(:disabled), .header-btn:active { transform: translateY(1px); }
+.form-input, .form-textarea, .form-select,
+input[type=search], input[type=text], input[type=email],
+input[type=password], input[type=tel], input[type=number], select, textarea {
+  border-radius: 9px;
+}
+.form-input:focus, .form-textarea:focus, .form-select:focus,
+input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 0 3px rgba(198, 155, 45, .13);
+}
+.list-item { transition: background-color .16s ease; }
+.list-item-icon { border-radius: 10px; }
+.tabs { scrollbar-width: thin; }
+.tab { border-radius: 8px; transition: background-color .16s ease, border-color .16s ease, color .16s ease; }
+.welcome-banner {
+  border-radius: 16px;
+  box-shadow: none;
+  background: #2f3129;
+}
+.welcome-banner:after { display: none; }
+.quick-link { border-radius: 11px; }
+.auth-config-banner, .offline-banner { line-height: 1.65; }
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid rgba(198, 155, 45, .48);
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .container { padding-inline: 14px; }
+  .page-content { padding-top: 18px; padding-bottom: 22px; }
+  .section-header { align-items: baseline; }
+  .card { padding: 16px; }
+  .btn { min-height: 42px; }
+  .bottom-nav { box-shadow: 0 -1px 0 rgba(45, 42, 29, .06); }
+}
+@media (hover: none) {
+  .subject-card:hover { transform: none; box-shadow: var(--shadow); }
+  .btn:hover:not(:disabled) { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
