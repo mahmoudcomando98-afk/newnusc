@@ -46,6 +46,7 @@ export default defineConfig(({ mode }) => {
           schedule: resolve(__dirname, 'schedule.html'),
           announcements: resolve(__dirname, 'announcements.html'),
           notifications: resolve(__dirname, 'notifications.html'),
+          updates: resolve(__dirname, 'updates.html'),
           favorites: resolve(__dirname, 'favorites.html'),
           faq: resolve(__dirname, 'faq.html'),
           profile: resolve(__dirname, 'profile.html'),
