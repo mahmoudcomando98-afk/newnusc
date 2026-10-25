@@ -95,10 +95,6 @@ export async function register({
     throw new Error('لم يتم إنشاء الحساب. حاول مرة أخرى.');
   }
 
-  /*
-   * عادةً يتم إنشاء سجل profiles من خلال Database Trigger.
-   * لا نغيّر role أو أي صلاحيات من جهة المتصفح.
-   */
   if (session) {
     const { error: profileError } = await supabase
       .from('profiles')
@@ -110,10 +106,7 @@ export async function register({
       .eq('id', user.id);
 
     if (profileError) {
-      console.warn(
-        'Profile update after signup:',
-        profileError.message
-      );
+      console.warn('Profile update after signup:', profileError.message);
     }
   }
 
@@ -129,9 +122,9 @@ export async function register({
    Login
 ========================= */
 
-export async function login({ email, password }) {
+export async function login(email, password) {
   if (!email?.trim() || !password) {
-    throw new Error('يرجى إدخال البريد الإلكتروني وكلمة المرور.');
+    throw new Error('أدخل البريد وكلمة المرور.');
   }
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -153,59 +146,41 @@ export async function login({ email, password }) {
 
 export async function logout() {
   const { error } = await supabase.auth.signOut();
-
-  if (error) {
-    throw new Error(getErrorMessage(error, 'فشل تسجيل الخروج.'));
-  }
-
+  if (error) console.warn('logout:', error.message);
   window.location.replace('/login.html');
 }
 
 
 /* =========================
-   Password Reset
+   Password reset
 ========================= */
 
 export async function requestPasswordReset(email) {
-  if (!email?.trim()) {
-    throw new Error('أدخل البريد الإلكتروني.');
-  }
+  if (!email?.trim()) throw new Error('أدخل البريد الإلكتروني.');
 
-  const redirectTo =
-    `${window.location.origin}/reset-password.html`;
-
-  const { error } = await supabase.auth.resetPasswordForEmail(
-    email.trim().toLowerCase(),
-    { redirectTo }
-  );
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+    redirectTo: `${window.location.origin}/reset-password.html`
+  });
 
   if (error) {
-    throw new Error(
-      getErrorMessage(error, 'فشل إرسال رابط استعادة كلمة المرور.')
-    );
+    throw new Error(getErrorMessage(error, 'تعذر إرسال رابط الاستعادة.'));
   }
 }
-
 
 export async function updatePassword(newPassword) {
   if (!newPassword || newPassword.length < 6) {
     throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
   }
 
-  const { error } = await supabase.auth.updateUser({
-    password: newPassword
-  });
-
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) {
-    throw new Error(
-      getErrorMessage(error, 'فشل تحديث كلمة المرور.')
-    );
+    throw new Error(getErrorMessage(error, 'تعذر تحديث كلمة المرور.'));
   }
 }
 
 
 /* =========================
-   Page Protection
+   Route guards
 ========================= */
 
 export async function protectPage({ adminOnly = false } = {}) {
@@ -219,9 +194,6 @@ export async function protectPage({ adminOnly = false } = {}) {
   const profile = await getProfile(session.user.id);
 
   if (adminOnly) {
-    // Fail closed: only a signed-in, active account explicitly assigned the
-    // admin role in public.profiles may see admin pages. Moderator/student
-    // roles and profile lookup failures are not admin access.
     const isAuthorizedAdmin =
       !!profile &&
       profile.role === 'admin' &&
@@ -232,8 +204,19 @@ export async function protectPage({ adminOnly = false } = {}) {
       return null;
     }
 
-    // Admin page HTML is hidden by an early head script until this check passes.
     document.documentElement.classList.remove('admin-auth-pending');
+  }
+
+  // Background notifications (non-blocking)
+  try {
+    const uid = session.user?.id || profile?.id;
+    if (uid && !adminOnly) {
+      import('./push.js')
+        .then((m) => m.initPushNotifications(uid))
+        .catch(() => {});
+    }
+  } catch {
+    /* ignore */
   }
 
   return {
@@ -255,9 +238,11 @@ export async function protectAdminPage() {
 
 export function initLoginPage() {
   const requestedNext = new URLSearchParams(window.location.search).get('next') || '';
-  const loginRedirect = requestedNext.startsWith('/admin/') && !requestedNext.startsWith('//')
-    ? requestedNext
-    : '/home.html';
+  const loginRedirect =
+    requestedNext.startsWith('/') && !requestedNext.startsWith('//')
+      ? requestedNext
+      : '/home.html';
+
   redirectIfAuthenticated(loginRedirect);
 
   const form = document.getElementById('login-form');
@@ -265,188 +250,45 @@ export function initLoginPage() {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const email = document.getElementById('email')?.value;
+    const password = document.getElementById('password')?.value;
+    const btn = form.querySelector('[type=submit]');
 
-    const email = form.email.value;
-    const password = form.password.value;
-    const btn = form.querySelector('button[type="submit"]');
-
-    try {
-      await withLoading(btn, async () => {
-        await login({ email, password });
-
-        showToast('تم تسجيل الدخول بنجاح.', 'success');
+    await withLoading(btn, async () => {
+      try {
+        await login(email, password);
         window.location.replace(loginRedirect);
-      });
-    } catch (err) {
-      showToast(getErrorMessage(err, 'تعذر تسجيل الدخول.'), 'error');
-    }
+      } catch (err) {
+        showToast(err.message || 'فشل تسجيل الدخول', 'error');
+      }
+    })();
   });
 }
 
-
-/* =========================
-   Register Page
-========================= */
-
 export function initRegisterPage() {
   redirectIfAuthenticated('/home.html');
-
   const form = document.getElementById('register-form');
   if (!form) return;
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const fullName = document.getElementById('full_name')?.value;
+    const email = document.getElementById('email')?.value;
+    const password = document.getElementById('password')?.value;
+    const studentId = document.getElementById('student_id')?.value;
+    const btn = form.querySelector('[type=submit]');
 
-    const fullName =
-      form.elements.full_name?.value ||
-      form.elements.fullName?.value ||
-      '';
-
-    const email = form.elements.email?.value || '';
-    const password = form.elements.password?.value || '';
-
-    const confirmPassword =
-      form.elements.password_confirm?.value ||
-      form.elements.confirm_password?.value ||
-      form.elements.confirm?.value ||
-      '';
-
-    const studentId =
-      form.elements.student_id?.value ||
-      form.elements.studentId?.value ||
-      null;
-
-    if (confirmPassword && password !== confirmPassword) {
-      showToast('كلمتا المرور غير متطابقتين.', 'error');
-      return;
-    }
-
-    const terms = form.elements.terms;
-
-    if (terms && !terms.checked) {
-      showToast('يجب الموافقة على الشروط والأحكام.', 'error');
-      return;
-    }
-
-    const btn = form.querySelector('button[type="submit"]');
-
-    try {
-      await withLoading(btn, async () => {
-        const result = await register({
-          fullName,
-          email,
-          password,
-          studentId
-        });
-
+    await withLoading(btn, async () => {
+      try {
+        const result = await register({ fullName, email, password, studentId });
         if (result.needsEmailConfirmation) {
-          showToast(
-            'تم إنشاء الحساب. تحقق من بريدك الإلكتروني لتأكيده قبل تسجيل الدخول.',
-            'success',
-            6000
-          );
+          showToast('تم إنشاء الحساب. راجع بريدك لتأكيد الحساب.', 'success');
         } else {
-          showToast('تم إنشاء الحساب بنجاح.', 'success');
-          window.location.href = '/home.html';
+          window.location.replace('/home.html');
         }
-      });
-    } catch (err) {
-      showToast(getErrorMessage(err, 'تعذر إنشاء الحساب.'), 'error');
-    }
+      } catch (err) {
+        showToast(err.message || 'فشل إنشاء الحساب', 'error');
+      }
+    })();
   });
 }
-
-
-/* =========================
-   Forgot Password Page
-========================= */
-
-export function initForgotPasswordPage() {
-  const form = document.getElementById('forgot-form');
-  if (!form) return;
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const email = form.elements.email?.value || '';
-    const btn = form.querySelector('button[type="submit"]');
-
-    try {
-      await withLoading(btn, async () => {
-        await requestPasswordReset(email);
-
-        showToast(
-          'إذا كان البريد مسجلًا، فستصلك رسالة لاستعادة كلمة المرور.',
-          'success'
-        );
-      });
-    } catch (err) {
-      showToast(
-        getErrorMessage(err, 'تعذر إرسال رابط الاستعادة.'),
-        'error'
-      );
-    }
-  });
-}
-
-
-/* =========================
-   Reset Password Page
-========================= */
-
-export function initResetPasswordPage() {
-  const form = document.getElementById('reset-form');
-  if (!form) return;
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const password = form.elements.password?.value || '';
-
-    const confirmPassword =
-      form.elements.password_confirm?.value ||
-      form.elements.confirm?.value ||
-      form.elements.confirm_password?.value ||
-      '';
-
-    if (confirmPassword && password !== confirmPassword) {
-      showToast('كلمتا المرور غير متطابقتين.', 'error');
-      return;
-    }
-
-    const btn = form.querySelector('button[type="submit"]');
-
-    try {
-      await withLoading(btn, async () => {
-        await updatePassword(password);
-
-        showToast('تم تحديث كلمة المرور بنجاح.', 'success');
-        window.location.href = '/login.html';
-      });
-    } catch (err) {
-      showToast(
-        getErrorMessage(err, 'تعذر تحديث كلمة المرور.'),
-        'error'
-      );
-    }
-  });
-}
-
-
-/* =========================
-   Default Export
-========================= */
-
-export default {
-  register,
-  login,
-  logout,
-  requestPasswordReset,
-  updatePassword,
-  protectPage,
-  protectAdminPage,
-  initLoginPage,
-  initRegisterPage,
-  initForgotPasswordPage,
-  initResetPasswordPage
-};
