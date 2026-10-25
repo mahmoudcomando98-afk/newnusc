@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#faf9f7" />
+  <title>محظور | NUSC</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=ui-polish-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=ui-polish-2" />
+  <style>
+    body { min-height: 100dvh; display: grid; place-items: center; background: #faf9f7; margin: 0; }
+    .box { max-width: 420px; width: calc(100% - 32px); text-align: center; padding: 28px 20px; }
+  </style>
+</head>
+<body>
+  <div class="card box">
+    <h1 style="font-size:1.25rem;margin:0 0 12px">تم حظرك من المنصة</h1>
+    <p class="text-muted" style="line-height:1.8;margin:0 0 20px">
+      تم حذرك من المنصة. اتكلم مع الليدر علشان تفك الحظر.
+    </p>
+    <button type="button" class="btn btn-secondary" id="logout-btn">تسجيل الخروج</button>
+  </div>
+  <script type="module">
+    import { supabase } from './assets/js/supabase.js';
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      try { await supabase.auth.signOut(); } catch {}
+      window.location.replace('/login.html');
+    });
+  </script>
+</body>
+</html>
