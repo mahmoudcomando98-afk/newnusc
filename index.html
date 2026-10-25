@@ -1,76 +1,52 @@
 <!DOCTYPE html>
-<html lang="ar-EG" dir="rtl">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#f6f6f4" />
-  <meta name="description" content="منصة NUSC الأكاديمية لطلاب كلية الحاسبات والمعلومات" />
+  <meta name="theme-color" content="#faf9f7" />
+  <meta name="description" content="منصة NUSC — ملفات المواد، مواعيد الكويزات، وإعلانات الدكاترة لطلاب كلية الحاسبات والمعلومات." />
+  <meta name="robots" content="noindex" />
   <title>NUSC</title>
   <style>
-    :root { color-scheme: light; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f6f6f4; color: #292d32; }
-    * { box-sizing: border-box; }
-    html, body { min-height: 100%; margin: 0; }
-    body { min-height: 100dvh; background: #f6f6f4; }
-    .fallback { display: none; min-height: 100dvh; padding: 24px; align-items: center; justify-content: center; }
-    .fallback.show { display: flex; }
-    .fallback-content { width: min(100%, 420px); padding: 24px; background: #fff; border: 1px solid #e2e4e5; border-radius: 10px; text-align: center; }
-    h1 { margin: 0 0 8px; font-size: 1.2rem; }
-    p { margin: 0; color: #747a80; line-height: 1.8; }
-    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 18px; }
-    a { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 9px 15px; border: 1px solid #d8dcdf; border-radius: 7px; color: #454d55; text-decoration: none; font-weight: 700; }
-    a.primary { background: #454d55; color: #fff; border-color: #454d55; }
-    :focus-visible { outline: 2px solid #8a939b; outline-offset: 3px; }
+    html, body { margin: 0; min-height: 100%; background: #faf9f7; }
+    body { min-height: 100dvh; display: grid; place-items: center; font-family: system-ui, sans-serif; color: #2c2a28; }
+    .boot { text-align: center; padding: 24px; color: #7a736c; font-size: 0.95rem; }
   </style>
 </head>
 <body>
-  <main class="fallback" id="fallback" role="status" aria-live="polite">
-    <div class="fallback-content">
-      <h1>تعذر فتح المنصة تلقائيًا</h1>
-      <p id="fallback-message">تقدر تدخل يدويًا من أحد الاختيارات التالية.</p>
-      <div class="actions">
-        <a class="primary" href="/login.html">تسجيل الدخول</a>
-        <a href="/register.html">إنشاء حساب</a>
-      </div>
-    </div>
-  </main>
+  <p class="boot" id="boot" aria-live="polite">جاري التحويل…</p>
 
   <script type="module">
-    const fallback = document.getElementById('fallback');
-    const fallbackMessage = document.getElementById('fallback-message');
-    let routed = false;
+    /**
+     * Entry router: logged-in → home, otherwise → login.
+     * Never show an error screen to guests — just go to login.
+     */
+    const LOGIN = '/login.html';
+    const HOME = '/home.html';
 
-    const showFallback = (message) => {
-      if (routed) return;
-      fallbackMessage.textContent = message || 'تقدر تدخل يدويًا من أحد الاختيارات التالية.';
-      fallback.classList.add('show');
-    };
+    function go(path) {
+      window.location.replace(path);
+    }
 
-    const timeout = window.setTimeout(() => {
-      showFallback('الاتصال اتأخر شوية. تقدر تكمل يدويًا من هنا.');
-    }, 7000);
+    // Hard ceiling: if anything stalls, guests land on login (not an error page).
+    const hardLimit = window.setTimeout(() => go(LOGIN), 4000);
 
-    async function routeUser() {
+    async function route() {
       try {
-        const { getSession, isSupabaseConfigured } = await import('./assets/js/supabase.js');
-        if (!isSupabaseConfigured()) {
-          window.clearTimeout(timeout);
-          showFallback('إعدادات الاتصال غير مكتملة. تقدر تدخل يدويًا أو تتواصل مع الدعم.');
-          return;
-        }
-
-        const session = await getSession();
-        if (routed) return;
-        routed = true;
-        window.clearTimeout(timeout);
-        window.location.replace(session ? '/home.html' : '/login.html');
-      } catch (error) {
-        window.clearTimeout(timeout);
-        console.error('[NUSC] Startup routing failed:', error);
-        showFallback('حصلت مشكلة أثناء فتح المنصة. جرّب تسجيل الدخول يدويًا.');
+        const mod = await import('./assets/js/supabase.js');
+        const session = await Promise.race([
+          mod.getSession(),
+          new Promise((resolve) => setTimeout(() => resolve(null), 2500))
+        ]);
+        window.clearTimeout(hardLimit);
+        go(session ? HOME : LOGIN);
+      } catch {
+        window.clearTimeout(hardLimit);
+        go(LOGIN);
       }
     }
 
-    routeUser();
+    route();
   </script>
 </body>
 </html>
