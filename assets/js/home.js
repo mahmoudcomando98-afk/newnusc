@@ -84,7 +84,7 @@ async function loadSubjects() {
       .slice(0, 6);
 
     if (!rows.length) {
-      showEmpty(el, 'لا توجد مواد حالياً. لو أنت أدمن: انشر المواد من لوحة التحكم.');
+      showEmpty(el, 'لا توجد مواد حالياً.');
       return;
     }
 
@@ -94,21 +94,18 @@ async function loadSubjects() {
         const code = s.code || s.subject_code || '';
         const instructor = s.instructor || s.doctor || s.teacher || '';
         return `
-      <a class="card subject-card" href="/subject-details.html?id=${encodeURIComponent(s.id)}">
+      <a class="card subject-card home-subject-card" href="/subject-details.html?id=${encodeURIComponent(s.id)}">
+        ${code ? `<span class="subject-code-badge">${escapeHtml(code)}</span>` : ''}
         <h3 class="card-title">${escapeHtml(title)}</h3>
-        <p class="text-sm text-muted">
-          ${code ? escapeHtml(code) : ''}
-          ${code && instructor ? ' · ' : ''}
-          ${instructor ? escapeHtml(instructor) : ''}
-        </p>
-        <span class="text-sm" style="color:var(--primary)">عرض المادة ←</span>
+        ${instructor ? `<p class="text-sm text-muted home-subject-meta">${escapeHtml(instructor)}</p>` : '<p class="home-subject-meta"></p>'}
+        <span class="btn btn-sm btn-primary home-subject-open">افتح المادة</span>
       </a>`;
       })
       .join('');
     initIcons();
   } catch (error) {
     console.error('[NUSC] loadSubjects:', error);
-    showError(el, 'تعذر تحميل المواد. تأكد من صلاحيات القراءة على جدول subjects.');
+    showError(el, 'تعذر تحميل المواد.');
   }
 }
 
@@ -175,7 +172,7 @@ async function loadLectures() {
       }))
     ]
       .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-      .slice(0, 8);
+      .slice(0, 3);
 
     if (!feed.length) {
       showEmpty(el, 'لا توجد محاضرات بعد');
@@ -281,7 +278,7 @@ async function loadAnnouncements() {
     }
 
     el.innerHTML = rows
-      .slice(0, 5)
+      .slice(0, 2)
       .map((announcement) => {
         const level = String(announcement.importance || announcement.priority || 'normal').toLowerCase();
         const body = announcement.content || announcement.body || announcement.description || '';
@@ -302,7 +299,7 @@ async function loadAnnouncements() {
     initIcons();
   } catch (error) {
     console.error('[NUSC] loadAnnouncements:', error);
-    showError(el, 'تعذر تحميل الإعلانات. تأكد من صلاحيات القراءة على جدول announcements.');
+    showError(el, 'تعذر تحميل الإعلانات.');
   }
 }
 
@@ -348,7 +345,7 @@ async function loadMaterials() {
       subjectNames = Object.fromEntries((subjects || []).map((s) => [s.id, s.name]));
     }
     el.innerHTML = data
-      .slice(0, 5)
+      .slice(0, 3)
       .map((material) => {
         const subjectName = subjectNames[material.subject_id] || '';
         const href = material.subject_id
