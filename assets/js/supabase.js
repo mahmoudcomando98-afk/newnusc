@@ -55,6 +55,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
+    storageKey: 'nusc-auth-token',
     storage: typeof localStorage !== 'undefined' ? localStorage : undefined,
     flowType: 'pkce'
   },
@@ -63,8 +64,17 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
   }
 });
 
-// Apply the platform logo globally. The URL is stored as a public platform setting,
-// so unauthenticated login/register pages can load it too.
+if (typeof window !== 'undefined') {
+  try { supabase.auth.startAutoRefresh(); } catch {}
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      supabase.auth.getSession().then(({ data }) => {
+        if (data?.session) supabase.auth.refreshSession().catch(() => {});
+      }).catch(() => {});
+    }
+  });
+}
+
 function normalizePlatformLogo(value) {
   if (typeof value === 'string') return value;
   if (value && typeof value === 'object') return value.url || value.logo_url || '';
@@ -81,8 +91,6 @@ function applyPlatformName(name) {
   if (typeof document === 'undefined' || typeof name !== 'string') return;
   const platformName = name.trim();
   if (platformName.length < 2 || platformName.length > 60) return;
-
-  // Login and registration brand labels.
   document.querySelectorAll('.auth-brand').forEach((brand) => {
     const label = Array.from(brand.children).find((child) =>
       child.tagName === 'SPAN' &&
@@ -91,15 +99,11 @@ function applyPlatformName(name) {
     );
     if (label) label.textContent = platformName;
   });
-
-  // Main navigation, footer, and welcome heading.
   document.querySelectorAll('.logo-word, .footer-brand').forEach((el) => {
     el.textContent = platformName;
   });
   const welcome = document.getElementById('welcome-text');
   if (welcome) welcome.textContent = 'أهلاً بك في ' + platformName;
-
-  // Keep the page-specific title, only replacing the platform suffix.
   if (document.title === 'NUSC' || document.title === 'NUSC Student Hub') {
     document.title = platformName;
   } else {
@@ -128,18 +132,14 @@ function createPlatformLogoImage(url, className, size) {
 
 function applyPlatformLogo(url) {
   if (typeof document === 'undefined' || !/^https?:\/\//i.test(url || '')) return;
-
-  // Refresh image sources when an administrator changes the logo in the current session.
   document.querySelectorAll('.platform-brand-image, .platform-header-logo, .auth-brand-logo').forEach((img) => {
     if (img.src !== url) img.src = url;
   });
-
   document.querySelectorAll('.app-header .logo-icon').forEach((slot) => {
     if (slot.querySelector('.platform-brand-image')) return;
     slot.replaceChildren(createPlatformLogoImage(url, 'platform-brand-image', '100%'));
     slot.setAttribute('aria-label', 'شعار المنصة');
   });
-
   document.querySelectorAll('.auth-brand .auth-brand-dot').forEach((slot) => {
     if (slot.dataset.platformLogoApplied === 'true') return;
     const img = createPlatformLogoImage(url, 'auth-brand-logo', '38px');
@@ -148,12 +148,10 @@ function applyPlatformLogo(url) {
     img.style.borderRadius = '10px';
     slot.replaceWith(img);
   });
-
   document.querySelectorAll('.splash > .logo').forEach((slot) => {
     if (slot.querySelector('.platform-brand-image')) return;
     slot.replaceChildren(createPlatformLogoImage(url, 'platform-brand-image', '100%'));
   });
-
   document.querySelectorAll('.app-header a.logo').forEach((anchor) => {
     if (anchor.querySelector('.logo-icon') || anchor.querySelector('.platform-header-logo')) return;
     const img = createPlatformLogoImage(url, 'platform-header-logo', '30px');
@@ -187,26 +185,16 @@ function isMaintenanceEnabled(value) {
 }
 
 function isMaintenanceExemptPath(pathname) {
-  // The maintenance page must always remain available. Login is the sole public
-  // entry point needed for the real administrator to sign in and reopen the site.
   return pathname === '/maintenance-mode.html' || pathname === '/login.html';
 }
 
 async function enforceMaintenanceMode(enabled) {
   if (typeof window === 'undefined') return false;
   const pathname = window.location.pathname.toLowerCase();
-
-  // The maintenance notice is the only public app page allowed during downtime.
   if (pathname === '/maintenance-mode.html') return false;
   if (!enabled) return false;
-
-  // Admin accounts stay available so the real administrator can disable maintenance.
   if (await isActiveContentManager()) return false;
-
-  // Keep login available as the administrator's recovery path. Any non-admin
-  // who signs in is redirected back to the maintenance page on the next route.
   if (isMaintenanceExemptPath(pathname)) return false;
-
   window.location.replace('/maintenance-mode.html');
   return true;
 }
@@ -215,8 +203,6 @@ let maintenanceMonitorStarted = false;
 function startMaintenanceMonitor() {
   if (maintenanceMonitorStarted || typeof window === 'undefined') return;
   maintenanceMonitorStarted = true;
-
-  // Also lock already-open tabs shortly after an admin switches maintenance on.
   window.setInterval(async () => {
     const pathname = window.location.pathname.toLowerCase();
     if (pathname === '/maintenance-mode.html' || pathname === '/login.html') return;
@@ -228,14 +214,12 @@ function startMaintenanceMonitor() {
         await enforceMaintenanceMode(true);
       }
     } catch (error) {
-      // A transient poll failure should not repeatedly interrupt a live session.
       console.warn('[NUSC] Maintenance status refresh failed:', error?.message || error);
     }
-  }, 3000);
+  }, 60000);
 }
 
 async function loadPlatformBranding() {
-  let redirected = false;
   try {
     const { data, error } = await supabase.from('platform_settings')
       .select('key, value').in('key', [
@@ -252,18 +236,11 @@ async function loadPlatformBranding() {
     applyPlatformLogo(logoUrl);
     if (platformName) applyPlatformName(platformName);
 
-    redirected = await enforceMaintenanceMode(isMaintenanceEnabled(settings.get('site_maintenance')));
+    const redirected = await enforceMaintenanceMode(isMaintenanceEnabled(settings.get('site_maintenance')));
     if (!redirected) startMaintenanceMonitor();
   } catch (error) {
-    console.warn('[NUSC] Could not load platform settings or verify maintenance mode:', error?.message || error);
-    const pathname = typeof window === 'undefined' ? '' : window.location.pathname.toLowerCase();
-
-    // Fail closed on app pages if maintenance status cannot be verified. The
-    // maintenance notice remains readable and explains that a retry may help.
-    if (typeof window !== 'undefined' && pathname !== '/maintenance-mode.html' && pathname !== '/login.html') {
-      redirected = true;
-      window.location.replace('/maintenance-mode.html?status=unavailable');
-    }
+    // Fail open: network/RLS blips must not log students out or block the app.
+    console.warn('[NUSC] Could not load platform settings:', error?.message || error);
   }
 }
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
@@ -275,7 +252,6 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     if (name) applyPlatformName(name);
   });
 
-  // React to changes made by the admin without introducing a separate loader page.
   window.addEventListener('nusc:maintenance-updated', async (event) => {
     const enabled = isMaintenanceEnabled(event.detail?.enabled);
     const pathname = window.location.pathname.toLowerCase();
@@ -285,7 +261,6 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       window.location.replace('/home.html');
     }
   });
-  // Maintenance is checked immediately without a separate blank/loading screen.
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', loadPlatformBranding, { once: true });
   } else {
@@ -321,14 +296,21 @@ function withTimeout(promise, ms = 12000) {
 export async function getSession() {
   if (!isSupabaseConfigured()) return null;
   try {
-    const { data: { session }, error } = await withTimeout(supabase.auth.getSession(), 12000);
-    if (error) {
-      console.error('session:', error.message);
-      return null;
+    const { data, error } = await supabase.auth.getSession();
+    if (error) console.warn('[NUSC] getSession:', error.message);
+    if (data?.session) return data.session;
+    try {
+      const { data: refreshed, error: refreshError } = await withTimeout(
+        supabase.auth.refreshSession(),
+        15000
+      );
+      if (!refreshError && refreshed?.session) return refreshed.session;
+    } catch (refreshErr) {
+      console.warn('[NUSC] refreshSession:', refreshErr?.message || refreshErr);
     }
-    return session;
+    return null;
   } catch (err) {
-    console.error('getSession:', err.message);
+    console.warn('[NUSC] getSession failed:', err?.message || err);
     return null;
   }
 }
