@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#faf9f7" />
   <title>الإشعارات | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=neutral-v2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=neutral-v2" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=ui-polish-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=ui-polish-2" />
 </head>
 <body>
   <header class="app-header">
@@ -25,141 +26,160 @@
     </div>
   </main>
   <nav class="bottom-nav">
-    <a href="/home.html"><span data-icon="home"></span>الرئيسية</a>
-    <a href="/subjects.html"><span data-icon="book"></span>المواد</a>
-    <a href="/quizzes.html"><span data-icon="clipboard"></span>الكويزات</a>
-    <a href="/schedule.html"><span data-icon="calendar"></span>الجدول</a>
-    <a href="/profile.html" class="active"><span data-icon="user"></span>حسابي</a>
+    <a href="/home.html" data-nav="home"><span data-icon="home"></span>الرئيسية</a>
+    <a href="/subjects.html" data-nav="subjects"><span data-icon="book"></span>المواد</a>
+    <a href="/quizzes.html" data-nav="quizzes"><span data-icon="clipboard"></span>الكويزات</a>
+    <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
+    <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
+
   <script type="module">
     import { supabase } from './assets/js/supabase.js';
     import { protectPage } from './assets/js/auth.js';
     import { escapeHtml, timeAgo, showEmpty, showError, showToast, initIcons } from './assets/js/utils.js';
 
     let profile = null;
-    let announcements = [];
-    const subjectNames = new Map();
+    let items = []; // unified list
 
     function readKey() {
-      return 'nusc_read_announcements_' + (profile?.id || 'guest');
+      return 'nusc_read_notifs_' + (profile?.id || 'guest');
     }
     function getReadIds() {
       try {
         const value = JSON.parse(localStorage.getItem(readKey()) || '[]');
-        return new Set(Array.isArray(value) ? value : []);
+        return new Set(Array.isArray(value) ? value.map(String) : []);
       } catch {
         return new Set();
       }
     }
     function saveReadIds(ids) {
-      try { localStorage.setItem(readKey(), JSON.stringify([...ids])); } catch {}
-    }
-
-    function safeHttpUrl(raw) {
-      if (raw && typeof raw === 'object') raw = raw.url || raw.href || '';
-      if (typeof raw !== 'string' || !raw.trim()) return '';
       try {
-        const url = new URL(raw.trim());
-        return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
-      } catch {
-        return '';
+        localStorage.setItem(readKey(), JSON.stringify([...ids]));
+      } catch {}
+    }
+
+    function safeLink(raw) {
+      if (!raw || typeof raw !== 'string') return '/notifications.html';
+      const v = raw.trim();
+      if (v.startsWith('/')) return v;
+      try {
+        const u = new URL(v);
+        if (['http:', 'https:'].includes(u.protocol)) return u.href;
+      } catch {}
+      return '/notifications.html';
+    }
+
+    function render() {
+      const el = document.getElementById('notif-list');
+      if (!items.length) {
+        showEmpty(el, 'مفيش إشعارات حالياً');
+        return;
       }
-    }
+      const read = getReadIds();
+      el.innerHTML = items
+        .map((item) => {
+          const id = String(item.id);
+          const isRead = read.has(id);
+          const href = safeLink(item.link);
+          return `
+          <article class="card notification-card mb-2" data-id="${escapeHtml(id)}" style="${isRead ? 'opacity:.72' : ''}">
+            <div class="flex justify-between items-center gap-1">
+              <h3 class="card-title" style="margin:0">${escapeHtml(item.title || 'إشعار')}</h3>
+              ${!isRead ? '<span class="badge">جديد</span>' : ''}
+            </div>
+            ${item.body ? `<p class="text-sm text-muted mt-1">${escapeHtml(item.body)}</p>` : ''}
+            <p class="text-sm text-muted mt-1">${escapeHtml(timeAgo(item.created_at))}${item.source === 'announcement' ? ' · إعلان' : ''}</p>
+            <div class="mt-2">
+              <a class="btn btn-sm btn-secondary" href="${escapeHtml(href)}">فتح</a>
+            </div>
+          </article>`;
+        })
+        .join('');
 
-    function announcementJoinUrl(item) {
-      const storedUrl = item.link_url || item.session_url || item.section_url || item.meeting_url || item.join_url || item.external_url;
-      const directUrl = safeHttpUrl(storedUrl);
-      if (directUrl) return directUrl;
-      const text = String(item.content || item.body || '');
-      const match = text.match(/https?:\/\/[^\s<>"']+/i);
-      return match ? safeHttpUrl(match[0].replace(/[),.،؛]+$/, '')) : '';
-    }
-
-    async function init() {
-      const result = await protectPage();
-      if (!result) return;
-      profile = result.profile;
+      el.querySelectorAll('[data-id]').forEach((card) => {
+        card.addEventListener('click', (ev) => {
+          if (ev.target.closest('a')) return;
+          const ids = getReadIds();
+          ids.add(card.dataset.id);
+          saveReadIds(ids);
+          card.style.opacity = '0.72';
+          const badge = card.querySelector('.badge');
+          if (badge) badge.remove();
+        });
+      });
       initIcons();
-      document.getElementById('mark-all')?.addEventListener('click', markAll);
-      await load();
     }
 
     async function load() {
       const el = document.getElementById('notif-list');
       try {
-        // Announcements are the existing, published source of student-facing updates.
-        // This avoids depending on notification tables/RPCs that may not exist in this project.
-        const { data, error } = await supabase
-          .from('announcements')
-          .select('*')
-          .eq('is_published', true)
-          .order('is_pinned', { ascending: false })
+        const uid = profile?.id;
+        let rows = [];
+
+        // Primary: admin notifications
+        let notifQuery = supabase
+          .from('notifications')
+          .select('id, title, body, type, link, is_global, user_id, created_at')
           .order('created_at', { ascending: false })
           .limit(50);
 
-        if (error) throw error;
-        announcements = data || [];
-        const subjectIds = [...new Set(announcements.map((item) => item.subject_id).filter(Boolean))];
-        if (subjectIds.length) {
-          const { data: subjects, error: subjectError } = await supabase.from('subjects').select('id, name').in('id', subjectIds);
-          if (!subjectError) (subjects || []).forEach((subject) => subjectNames.set(subject.id, subject.name));
-        }
-        if (!announcements.length) {
-          showEmpty(el, 'لا توجد إشعارات أو إعلانات جديدة حالياً');
-          return;
+        const { data: notifs, error: notifErr } = await notifQuery;
+
+        if (!notifErr && notifs) {
+          rows = notifs
+            .filter((n) => n.is_global === true || (uid && n.user_id === uid))
+            .map((n) => ({ ...n, source: 'notification' }));
+        } else if (notifErr) {
+          console.warn('notifications table:', notifErr.message);
         }
 
+        // Also show published announcements as secondary updates
+        try {
+          const { data: anns } = await supabase
+            .from('announcements')
+            .select('id, title, content, created_at, is_published')
+            .eq('is_published', true)
+            .order('created_at', { ascending: false })
+            .limit(20);
+          for (const a of anns || []) {
+            rows.push({
+              id: 'ann-' + a.id,
+              title: a.title,
+              body: a.content,
+              link: '/announcements.html',
+              created_at: a.created_at,
+              source: 'announcement'
+            });
+          }
+        } catch {}
+
+        rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        items = rows;
+
+        if (!items.length) {
+          showEmpty(el, 'مفيش إشعارات حالياً');
+          return;
+        }
         render();
       } catch (err) {
-        console.error('[NUSC] notifications load failed:', err);
-        showError(el, 'تعذر تحميل الإشعارات. حاول تحديث الصفحة، وإذا استمرت المشكلة راجع اتصال قاعدة البيانات والصلاحيات.');
+        console.error(err);
+        showError(el, 'تعذر تحميل الإشعارات. حاول مرة أخرى.');
       }
     }
 
-    function render() {
-      const el = document.getElementById('notif-list');
-      const readIds = getReadIds();
-      el.innerHTML = announcements.map(n => {
-        const isRead = readIds.has(String(n.id));
-        const level = n.priority || n.importance || 'normal';
-        const priority = level === 'urgent'
-          ? '<span class="badge badge-urgent">عاجل</span>'
-          : level === 'high' ? '<span class="badge badge-important">مهم</span>' : '';
-        const subjectName = subjectNames.get(n.subject_id) || '';
-        return `
-          <article class="card mb-2 notification-card ${level === 'urgent' ? 'notification-urgent' : ['high'].includes(level) ? 'notification-important' : ''}" data-id="${escapeHtml(String(n.id))}" style="${isRead ? 'opacity:.78' : ''}">
-            <div class="flex items-center justify-between gap-1 mb-1">
-              <h3 class="card-title">${escapeHtml(n.title || 'إعلان جديد')}</h3>
-              <div class="flex items-center gap-1">${priority}${isRead ? '<span class="badge">مقروء</span>' : '<span class="badge badge-primary">جديد</span>'}</div>
-            </div>
-            ${subjectName ? `<p class="text-sm text-muted">${escapeHtml(subjectName)}</p>` : ''}
-            ${n.content ? `<p class="text-sm" style="white-space:pre-wrap">${escapeHtml(n.content)}</p>` : ''}
-            <div class="card-meta"><span>${timeAgo(n.created_at)}</span>${n.is_pinned ? '<span class="badge badge-info">مثبّت</span>' : ''}</div>
-            ${announcementJoinUrl(n)
-              ? `<a href="${escapeHtml(announcementJoinUrl(n))}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary mt-1">${escapeHtml(n.link_label || 'دخول السيكشن أونلاين')}</a>`
-              : n.link_status === 'coming_soon'
-                ? '<div class="mt-1"><span class="badge badge-warning">رابط السيكشن قريبًا</span></div>'
-                : '<a href="/announcements.html" class="btn btn-sm btn-outline mt-1">عرض الإعلانات</a>'}
-          </article>`;
-      }).join('');
+    async function init() {
+      const result = await protectPage();
+      if (!result) return;
+      profile = result.profile || null;
+      initIcons();
 
-      el.querySelectorAll('[data-id]').forEach(card => {
-        card.addEventListener('click', event => {
-          if (event.target.closest('a')) return;
-          const ids = getReadIds();
-          ids.add(String(card.dataset.id));
-          saveReadIds(ids);
-          const title = card.querySelector('.card-title');
-          if (title) title.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-          render();
-        });
+      document.getElementById('mark-all')?.addEventListener('click', () => {
+        saveReadIds(items.map((i) => String(i.id)));
+        showToast('تم تعليم الكل كمقروء', 'success');
+        render();
       });
-    }
 
-    function markAll() {
-      saveReadIds(new Set([...getReadIds(), ...announcements.map(n => String(n.id))]));
-      render();
-      showToast('تم تعيين الكل كمقروء', 'success');
+      await load();
     }
 
     init();
