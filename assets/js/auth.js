@@ -88,7 +88,6 @@ export async function updatePassword(password) {
 export async function protectPage({ adminOnly = false } = {}) {
   let session = await getSession();
   if (!session) {
-    // One more recovery attempt before forcing login
     try {
       const { data } = await supabase.auth.refreshSession();
       session = data?.session || null;
@@ -99,6 +98,15 @@ export async function protectPage({ adminOnly = false } = {}) {
     return null;
   }
   const profile = await getProfile(session.user.id);
+
+  if (profile && profile.is_active === false && !adminOnly) {
+    const path = (window.location.pathname || '').toLowerCase();
+    if (!path.endsWith('/banned.html')) {
+      window.location.replace('/banned.html');
+    }
+    return null;
+  }
+
   if (adminOnly) {
     const isAuthorizedAdmin = !!profile && profile.role === 'admin' && profile.is_active === true;
     if (!isAuthorizedAdmin) {
@@ -132,6 +140,11 @@ export function initLoginPage() {
     try {
       await withLoading(btn, async () => {
         await login({ email, password });
+        const profile = await getProfile();
+        if (profile && profile.is_active === false) {
+          window.location.href = '/banned.html';
+          return;
+        }
         window.location.href = '/home.html';
       });
     } catch (err) {
