@@ -4,8 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#faf9f7" />
-  <meta name="description" content="المواد الدراسية على منصة NUSC" />
-  <title>المواد | NUSC</title>
+  <title>المواد الدراسية | NUSC</title>
   <link rel="stylesheet" href="/assets/css/main.css?v=ui-polish-2" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=ui-polish-2" />
 </head>
@@ -14,29 +13,26 @@
     <div class="container">
       <a href="/home.html" class="logo"><span class="logo-icon">N</span><span>NUSC</span></a>
       <nav class="desktop-nav">
-        <a href="/home.html" data-nav="home">الرئيسية</a>
-        <a href="/subjects.html" data-nav="subjects" class="active">المواد</a>
-        <a href="/quizzes.html" data-nav="quizzes">الكويزات</a>
-        <a href="/schedule.html" data-nav="schedule">الجدول</a>
-        <a href="/announcements.html" data-nav="announcements">الإعلانات</a>
+        <a href="/home.html" data-nav="home">الرئيسية</a><a href="/subjects.html" data-nav="subjects" class="active">المواد</a><a href="/quizzes.html" data-nav="quizzes">الكويزات</a><a href="/schedule.html" data-nav="schedule">الجدول</a><a href="/announcements.html" data-nav="announcements">الإعلانات</a>
       </nav>
       <div class="header-actions">
-        <a href="/notifications.html" class="header-btn" title="الإشعارات"><span data-icon="bell"></span></a>
+        <a href="/notifications.html" class="header-btn notification-header-btn" title="الإشعارات" aria-label="الإشعارات"><span data-icon="bell"></span></a>
         <a href="/profile.html" class="header-btn" title="حسابي"><span data-icon="user"></span></a>
       </div>
     </div>
   </header>
   <main class="page">
     <div class="container page-content">
-      <div class="section-header">
-        <h1>المواد الدراسية</h1>
-      </div>
-      <div class="subjects-toolbar toolbar">
-        <input type="search" id="search" class="form-input" placeholder="ابحث عن مادة…" aria-label="بحث" />
-      </div>
-      <div id="subjects-list" class="card-grid" aria-live="polite">
-        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
-      </div>
+      <section class="subjects-intro">
+        <div>
+          <span class="section-kicker">كتالوج المواد</span>
+          <h1>المواد الدراسية</h1>
+          <p>تصفح المواد المتاحة وافتح المحاضرات والملفات من مكان واحد.</p>
+        </div>
+        <div class="subjects-count"><span class="count-symbol" data-icon="book"></span><strong id="subjects-count">—</strong><span>مواد متاحة</span></div>
+      </section>
+      <div class="subjects-toolbar"><div class="search-box"><span class="search-icon" data-icon="search"></span><input type="search" id="search-input" placeholder="ابحث باسم المادة أو الكود أو الدكتور..." autocomplete="off" aria-label="ابحث عن مادة" /></div><span class="toolbar-note">اختر مادة للبدء</span></div>
+      <div class="card-grid subjects-grid" id="subjects-grid"><div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div><div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div></div>
     </div>
   </main>
   <nav class="bottom-nav">
