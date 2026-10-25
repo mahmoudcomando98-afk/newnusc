@@ -74,28 +74,41 @@ async function loadSubjects() {
   try {
     const { data, error } = await supabase
       .from('subjects')
-      .select('id, name, code, instructor, is_published')
-      .order('name')
-      .limit(20);
+      .select('*')
+      .order('name', { ascending: true })
+      .limit(50);
     if (error) throw error;
-    const rows = (data || []).filter((s) => s.is_published !== false).slice(0, 8);
+
+    const rows = (data || [])
+      .filter((s) => s.is_published !== false && s.is_active !== false)
+      .slice(0, 6);
+
     if (!rows.length) {
-      showEmpty(el, 'لا توجد مواد منشورة حالياً');
+      showEmpty(el, 'لا توجد مواد حالياً. لو أنت أدمن: انشر المواد من لوحة التحكم.');
       return;
     }
+
     el.innerHTML = rows
-      .map(
-        (s) => `
+      .map((s) => {
+        const title = s.name || s.title || 'مادة';
+        const code = s.code || s.subject_code || '';
+        const instructor = s.instructor || s.doctor || s.teacher || '';
+        return `
       <a class="card subject-card" href="/subject-details.html?id=${encodeURIComponent(s.id)}">
-        <h3 class="card-title">${escapeHtml(s.name)}</h3>
-        <p class="text-sm text-muted">${escapeHtml(s.code || '')}${s.instructor ? ' · ' + escapeHtml(s.instructor) : ''}</p>
-      </a>`
-      )
+        <h3 class="card-title">${escapeHtml(title)}</h3>
+        <p class="text-sm text-muted">
+          ${code ? escapeHtml(code) : ''}
+          ${code && instructor ? ' · ' : ''}
+          ${instructor ? escapeHtml(instructor) : ''}
+        </p>
+        <span class="text-sm" style="color:var(--primary)">عرض المادة ←</span>
+      </a>`;
+      })
       .join('');
     initIcons();
   } catch (error) {
     console.error('[NUSC] loadSubjects:', error);
-    showError(el, 'تعذر تحميل المواد.');
+    showError(el, 'تعذر تحميل المواد. تأكد من صلاحيات القراءة على جدول subjects.');
   }
 }
 
@@ -107,7 +120,7 @@ async function loadLectures() {
     try {
       const { data, error } = await supabase
         .from('lectures')
-        .select('id, title, lecture_number, created_at, published_at, subject_id, is_published, is_active')
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(20);
       if (!error) {
@@ -120,7 +133,7 @@ async function loadLectures() {
     let materialLectures = [];
     const mat = await supabase
       .from('materials')
-      .select('id, title, created_at, subject_id, material_type, is_published, file_type')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(30);
     if (!mat.error) {
@@ -192,11 +205,7 @@ async function loadQuizzes() {
   const el = document.getElementById('quizzes-list');
   if (!el) return;
   try {
-    const { data, error } = await supabase
-      .from('quizzes')
-      .select('id, title, start_at, status, is_published, subject_id')
-      .order('start_at', { ascending: true })
-      .limit(15);
+    const { data, error } = await supabase.from('quizzes').select('*').order('start_at', { ascending: true }).limit(15);
     if (error) throw error;
     const rows = (data || []).filter((q) => q.is_published !== false);
     if (!rows.length) {
@@ -247,27 +256,35 @@ async function loadAnnouncements() {
   try {
     const { data, error } = await supabase
       .from('announcements')
-      .select('id, title, content, body, created_at, importance, priority, is_pinned, is_published, subject_id, link_url')
+      .select('*')
       .order('created_at', { ascending: false })
-      .limit(15);
+      .limit(30);
     if (error) throw error;
 
-    const rows = (data || []).filter((a) => a.is_published !== false);
+    const now = Date.now();
+    const rows = (data || [])
+      .filter((a) => a.is_published !== false)
+      .filter((a) => {
+        if (!a.expires_at) return true;
+        const t = new Date(a.expires_at).getTime();
+        return Number.isNaN(t) || t > now;
+      })
+      .sort((a, b) => {
+        const pin = Number(!!b.is_pinned) - Number(!!a.is_pinned);
+        if (pin) return pin;
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      });
+
     if (!rows.length) {
-      showEmpty(el, 'لا توجد إعلانات');
+      showEmpty(el, 'لا توجد إعلانات منشورة حالياً');
       return;
     }
-
-    rows.sort((a, b) => {
-      const pin = Number(!!b.is_pinned) - Number(!!a.is_pinned);
-      if (pin) return pin;
-      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-    });
 
     el.innerHTML = rows
       .slice(0, 5)
       .map((announcement) => {
-        const level = announcement.importance || announcement.priority || 'normal';
+        const level = String(announcement.importance || announcement.priority || 'normal').toLowerCase();
+        const body = announcement.content || announcement.body || announcement.description || '';
         return `
         <div class="list-item announcement-item ${['urgent', 'high'].includes(level) ? 'announcement-important' : ''}">
           <div class="list-item-icon" data-icon="megaphone"></div>
@@ -276,7 +293,7 @@ async function loadAnnouncements() {
               ${announcement.is_pinned ? '📌 ' : ''}${escapeHtml(announcement.title || 'إعلان')}
               ${freshnessBadgesHtml(announcement)}
             </div>
-            <div class="list-item-desc">${escapeHtml((announcement.content || announcement.body || '').slice(0, 80))} · ${timeAgo(announcement.created_at)}</div>
+            <div class="list-item-desc">${escapeHtml(String(body).slice(0, 100))}${announcement.created_at ? ' · ' + timeAgo(announcement.created_at) : ''}</div>
             <a href="/announcements.html" class="btn btn-sm btn-outline mt-1">عرض الإعلان</a>
           </div>
         </div>`;
@@ -285,7 +302,7 @@ async function loadAnnouncements() {
     initIcons();
   } catch (error) {
     console.error('[NUSC] loadAnnouncements:', error);
-    showError(el, 'تعذر تحميل الإعلانات.');
+    showError(el, 'تعذر تحميل الإعلانات. تأكد من صلاحيات القراءة على جدول announcements.');
   }
 }
 
@@ -293,11 +310,7 @@ async function loadImportantNotice() {
   const box = document.getElementById('important-notice');
   if (!box) return;
   try {
-    const { data, error } = await supabase
-      .from('announcements')
-      .select('id, title, content, body, created_at, importance, priority, is_pinned, is_published, link_url')
-      .order('created_at', { ascending: false })
-      .limit(10);
+    const { data, error } = await supabase.from('announcements').select('*').order('created_at', { ascending: false }).limit(10);
     if (error) throw error;
     const notice = (data || []).find((n) => {
       if (n.is_published === false) return false;
@@ -321,39 +334,19 @@ async function loadMaterials() {
   const el = document.getElementById('materials-list');
   if (!el) return;
   try {
-    let res = await supabase
-      .from('materials')
-      .select('id, title, file_type, created_at, is_important, subject_id, is_published')
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (
-      res.error &&
-      /is_important|column .* does not exist|PGRST204|42703/i.test(
-        String(res.error.message || '') + String(res.error.code || '')
-      )
-    ) {
-      res = await supabase
-        .from('materials')
-        .select('id, title, file_type, created_at, subject_id, is_published')
-        .order('created_at', { ascending: false })
-        .limit(20);
-    }
+    const res = await supabase.from('materials').select('*').order('created_at', { ascending: false }).limit(20);
     if (res.error) throw res.error;
-
     const data = (res.data || []).filter((m) => m.is_published !== false);
     if (!data.length) {
       showEmpty(el, 'لا توجد ملفات مضافة بعد');
       return;
     }
-
     const ids = [...new Set(data.map((m) => m.subject_id).filter(Boolean))];
     let subjectNames = {};
     if (ids.length) {
       const { data: subjects } = await supabase.from('subjects').select('id, name').in('id', ids);
       subjectNames = Object.fromEntries((subjects || []).map((s) => [s.id, s.name]));
     }
-
     el.innerHTML = data
       .slice(0, 5)
       .map((material) => {
@@ -387,25 +380,17 @@ async function loadNotifCount() {
   const badge = document.getElementById('notif-badge');
   if (!badge) return;
   try {
-    const { data, error } = await supabase
-      .from('announcements')
-      .select('id, is_published')
-      .order('created_at', { ascending: false })
-      .limit(100);
+    const { data, error } = await supabase.from('announcements').select('id, is_published').order('created_at', { ascending: false }).limit(100);
     if (error) throw error;
     let readIds = [];
     try {
-      const stored = JSON.parse(
-        localStorage.getItem('nusc_read_announcements_' + (profile?.id || 'guest')) || '[]'
-      );
+      const stored = JSON.parse(localStorage.getItem('nusc_read_announcements_' + (profile?.id || 'guest')) || '[]');
       readIds = Array.isArray(stored) ? stored.map(String) : [];
     } catch {
       readIds = [];
     }
     const readSet = new Set(readIds);
-    const unreadCount = (data || [])
-      .filter((item) => item.is_published !== false)
-      .filter((item) => !readSet.has(String(item.id))).length;
+    const unreadCount = (data || []).filter((item) => item.is_published !== false).filter((item) => !readSet.has(String(item.id))).length;
     if (unreadCount > 0) {
       badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
       badge.classList.remove('hidden');
