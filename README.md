@@ -1,12 +1,6 @@
 # NUSC Student Hub
 
-منصة جامعية متكاملة لطلاب الفرقة الأولى — كلية الحاسبات والمعلومات — جامعة NUSC
-
-## التقنيات
-
-- HTML5 + CSS3 + JavaScript (Vanilla)
-- Vite
-- Supabase (Auth + PostgreSQL + Storage)
+منصة أكاديمية لطلاب كلية الحاسبات والمعلومات — ملفات المواد، الكويزات، الجدول، والإعلانات.
 
 ## التشغيل المحلي
 
@@ -15,59 +9,43 @@ git clone https://github.com/mahmoudcomando98-afk/newnusc.git
 cd newnusc
 npm install
 cp .env.example .env
-```
-
-عدّل `.env`:
-
-```
-VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
-```
-
-```bash
+# عدّل قيم Supabase في .env
 npm run dev
 ```
 
-## إعداد Supabase
+افتح العنوان اللي يظهره Vite (عادةً `http://localhost:5173`).
 
-1. أنشئ مشروعاً جديداً في [supabase.com](https://supabase.com)
-2. نفّذ ملفات SQL بالترتيب:
-   - `supabase/schema.sql`
-   - `supabase/policies.sql`
-   - `supabase/storage.sql`
-   - `supabase/functions.sql`
-   - `supabase/seed.sql` (اختياري)
-3. Authentication → Providers → Email: فعّل Email
-4. Authentication → URL Configuration: أضف `http://localhost:5173`
+## متغيرات البيئة
 
-### إنشاء حساب مدير
+| المتغير | الوصف |
+|---------|--------|
+| `VITE_SUPABASE_URL` | رابط مشروع Supabase |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | المفتاح العام (anon / publishable) |
+| `VITE_VAPID_PUBLIC_KEY` | مفتاح Web Push العام (اختياري) |
 
-1. سجّل حساباً عادياً من الواجهة
-2. في SQL Editor:
+**لا تضع Service Role Key في الفرونت أبدًا.**
 
-```sql
-UPDATE public.profiles SET role = 'admin' WHERE email = 'your@email.com';
-```
+## Supabase
 
-## البناء والنشر
+نفّذ ملفات SQL من مجلد `supabase/` بالترتيب المناسب لمشروعك (على الأقل `schema.sql` و `policies.sql`).  
+لجدول المواعيد الحالي في الإنتاج: `schedule_items` + `fix_student_schedule_read.sql`.
 
-```bash
-npm run build
-```
+## Deploy
 
-ارفع مجلد `dist/` على Vercel / Netlify / Cloudflare Pages.
+- الاستضافة: **Vercel** (ربط فرع `main`).
+- بعد كل push كبير: Redeploy بدون Build Cache لو التغييرات مش ظاهرة.
+- Edge Function للإشعارات: `supabase/functions/send-push` (اختياري).
 
-## الميزات
+## الصفحات
 
-- تسجيل دخول بدون موافقة إدارة
-- مواد ومحاضرات وملفات
-- كويزات وقواعد
-- جدول دراسي
-- إعلانات وإشعارات
-- مفضلة وبحث
-- لوحة إدارة كاملة
-- RLS وأمان Supabase
+| المسار | الوصف |
+|--------|--------|
+| `/` | تحويل تلقائي لوجين أو الرئيسية |
+| `/login` `/register` | الحساب |
+| `/home` | لوحة الطالب |
+| `/subjects` `/quizzes` `/schedule` | المحتوى الدراسي |
+| `/admin/*` | لوحة الإدارة (صلاحية admin) |
 
-## الترخيص
+## التطوير
 
-MIT
+Mahmoud Oshiba
