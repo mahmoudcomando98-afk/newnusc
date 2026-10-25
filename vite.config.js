@@ -57,6 +57,7 @@ export default defineConfig(({ mode }) => {
           'admin-quizzes': resolve(__dirname, 'admin/quizzes.html'),
           'admin-schedule': resolve(__dirname, 'admin/schedule.html'),
           'admin-announcements': resolve(__dirname, 'admin/announcements.html'),
+          'admin-notifications': resolve(__dirname, 'admin/notifications.html'),
           'admin-faq': resolve(__dirname, 'admin/faq.html'),
           'admin-settings': resolve(__dirname, 'admin/settings.html')
         }
