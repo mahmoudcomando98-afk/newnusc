@@ -18,6 +18,7 @@ import {
   onConnectivityChange,
   quizStatusLabel
 } from './utils.js';
+import { isNewItem, isImportantItem, freshnessBadgesHtml, touchLastVisit } from './freshness.js';
 import { cached } from './cache.js';
 
 let profile = null;
@@ -28,17 +29,25 @@ async function init() {
     if (!result) return;
 
     profile = result.profile || null;
-
     setActiveNav('home');
     initIcons();
-    setupUserUI();
-    setupOffline();
-
-    document.getElementById('user-chip')?.addEventListener('click', () => {
-      window.location.href = '/profile.html';
+    setupUserChip();
+    onConnectivityChange((online) => {
+      const banner = document.getElementById('offline-banner');
+      if (banner) banner.classList.toggle('hidden', online);
     });
 
-    await Promise.allSettled([
+    const name = profile?.full_name || 'طالب';
+    const welcome = document.getElementById('welcome-text');
+    if (welcome) welcome.textContent = `أهلاً، ${name}`;
+
+    const short = document.getElementById('user-name-short');
+    if (short) short.textContent = name.split(' ')[0] || name;
+
+    const avatar = document.getElementById('user-avatar');
+    if (avatar) avatar.textContent = (name.trim()[0] || '؟').toUpperCase();
+
+    await Promise.all([
       loadSubjects(),
       loadLectures(),
       loadQuizzes(),
@@ -47,73 +56,47 @@ async function init() {
       loadMaterials(),
       loadNotifCount()
     ]);
-    window.setInterval(() => { loadImportantNotice(); loadNotifCount(); }, 30000);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') { loadImportantNotice(); loadNotifCount(); }
-    });
   } catch (error) {
-    console.error('[NUSC] Home initialization failed:', error);
+    console.error('[NUSC] home init:', error);
   }
 }
 
-function setupUserUI() {
-  const name = profile?.full_name?.trim() || 'طالب';
-  const welcome = document.getElementById('welcome-text');
-  const shortName = document.getElementById('user-name-short');
-  const avatar = document.getElementById('user-avatar');
-  if (welcome) welcome.textContent = `أهلاً بك، ${name}`;
-  if (shortName) shortName.textContent = name.split(/\s+/)[0] || 'طالب';
-  if (avatar) {
-    if (profile?.avatar_url) {
-      const img = document.createElement('img');
-      img.src = profile.avatar_url;
-      img.alt = '';
-      avatar.replaceChildren(img);
-    } else {
-      avatar.textContent = name.charAt(0) || 'ط';
-    }
-  }
-}
-
-function setupOffline() {
-  const banner = document.getElementById('offline-banner');
-  if (!banner) return;
-  onConnectivityChange((online) => {
-    banner.classList.toggle('show', !online);
+function setupUserChip() {
+  const chip = document.getElementById('user-chip');
+  if (!chip) return;
+  chip.addEventListener('click', () => {
+    window.location.href = '/profile.html';
   });
-  if (!navigator.onLine) banner.classList.add('show');
 }
 
 async function loadSubjects() {
   const el = document.getElementById('subjects-list');
   if (!el) return;
   try {
-    const data = await cached('home:subjects:v1', async () => {
-      const { data, error } = await supabase
-        .from('subjects')
-        .select('id, name, code, instructor, description')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true })
-        .limit(6);
-      if (error) throw error;
-      return data || [];
-    }, 3 * 60 * 1000);
+    const { data, error } = await supabase
+      .from('subjects')
+      .select('id, name, code, instructor, is_published')
+      .eq('is_published', true)
+      .order('name')
+      .limit(8);
+    if (error) throw error;
     if (!data?.length) {
-      showEmpty(el, 'لا توجد مواد متاحة حالياً');
+      showEmpty(el, 'لا توجد مواد منشورة حالياً');
       return;
     }
-    el.innerHTML = data.map((subject) => `
-      <div class="card subject-card">
-        <h3 class="card-title">${escapeHtml(subject.name)}</h3>
-        ${subject.code ? `<span class="badge badge-primary">${escapeHtml(subject.code)}</span>` : ''}
-        ${subject.instructor ? `<p class="text-sm text-muted mt-1">${escapeHtml(subject.instructor)}</p>` : ''}
-        ${subject.description ? `<p class="text-sm text-muted mt-1">${escapeHtml(subject.description.slice(0, 80))}${subject.description.length > 80 ? '...' : ''}</p>` : ''}
-        <a href="/subject-details.html?id=${encodeURIComponent(subject.id)}" class="btn btn-outline btn-sm mt-2">فتح المادة</a>
-      </div>
-    `).join('');
+    el.innerHTML = data
+      .map(
+        (s) => `
+      <a class="card subject-card" href="/subject-details.html?id=${encodeURIComponent(s.id)}">
+        <h3 class="card-title">${escapeHtml(s.name)}</h3>
+        <p class="text-sm text-muted">${escapeHtml(s.code || '')}${s.instructor ? ' · ' + escapeHtml(s.instructor) : ''}</p>
+      </a>`
+      )
+      .join('');
+    initIcons();
   } catch (error) {
     console.error('[NUSC] loadSubjects:', error);
-    showError(el, 'تعذر تحميل المواد. حاول مرة أخرى.');
+    showError(el, 'تعذر تحميل المواد.');
   }
 }
 
@@ -123,193 +106,143 @@ async function loadLectures() {
   try {
     const { data, error } = await supabase
       .from('lectures')
-      .select('id, title, lecture_number, published_at, subjects(name)')
-      .not('published_at', 'is', null)
-      .order('published_at', { ascending: false })
+      .select('id, title, lecture_number, created_at, subject_id, subjects(name)')
+      .eq('is_published', true)
+      .order('created_at', { ascending: false })
       .limit(5);
     if (error) throw error;
     if (!data?.length) {
-      showEmpty(el, 'لا توجد محاضرات مضافة بعد');
+      showEmpty(el, 'لا توجد محاضرات بعد');
       return;
     }
-    el.innerHTML = data.map((lecture) => `
-      <a href="/lecture-details.html?id=${encodeURIComponent(lecture.id)}" class="list-item" style="text-decoration:none;color:inherit">
-        <div class="list-item-icon" data-icon="file"></div>
+    el.innerHTML = data
+      .map(
+        (lec) => `
+      <a class="list-item" href="/lecture-details.html?id=${encodeURIComponent(lec.id)}" style="text-decoration:none;color:inherit">
+        <div class="list-item-icon" data-icon="book-open"></div>
         <div class="list-item-body">
-          <div class="list-item-title">
-            ${escapeHtml(lecture.title)}
-            ${lecture.lecture_number ? ` (محاضرة ${escapeHtml(lecture.lecture_number)})` : ''}
-          </div>
-          <div class="list-item-desc">
-            ${escapeHtml(lecture.subjects?.name || '')} · ${timeAgo(lecture.published_at)}
-          </div>
+          <div class="list-item-title">${escapeHtml(lec.title || 'محاضرة')}</div>
+          <div class="list-item-desc">${escapeHtml(lec.subjects?.name || '')} · ${timeAgo(lec.created_at)}</div>
         </div>
-      </a>
-    `).join('');
+      </a>`
+      )
+      .join('');
     initIcons();
   } catch (error) {
     console.error('[NUSC] loadLectures:', error);
-    showError(el, 'تعذر تحميل المحاضرات. حاول مرة أخرى.');
+    showError(el, 'تعذر تحميل المحاضرات.');
   }
-}
-
-function getQuizStatus(quiz) {
-  const now = Date.now();
-  const start = quiz.quiz_date ? new Date(quiz.quiz_date).getTime() : 0;
-  if (!quiz.quiz_date) return 'upcoming';
-  if (start && now < start) return 'upcoming';
-  if (start && quiz.duration_minutes) {
-    return now <= start + Number(quiz.duration_minutes) * 60000 ? 'open' : 'closed';
-  }
-  return 'open';
 }
 
 async function loadQuizzes() {
   const el = document.getElementById('quizzes-list');
   if (!el) return;
   try {
-    const data = await cached('home:quizzes:v1', async () => {
-      const { data, error } = await supabase
-        .from('quizzes')
-        .select('id, title, description, rules, quiz_date, duration_minutes, is_published, subjects(name)')
-        .eq('is_published', true)
-        .order('quiz_date', { ascending: true, nullsFirst: false })
-        .limit(5);
-      if (error) throw error;
-      return data || [];
-    }, 2 * 60 * 1000);
-    const quizzes = (data || []).filter((quiz) => {
-      const status = getQuizStatus(quiz);
-      return status === 'upcoming' || status === 'open';
-    });
-    if (!quizzes.length) {
-      showEmpty(el, 'لا توجد كويزات قادمة حالياً');
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('id, title, start_at, status, is_published, subjects(name)')
+      .eq('is_published', true)
+      .order('start_at', { ascending: true })
+      .limit(5);
+    if (error) throw error;
+    if (!data?.length) {
+      showEmpty(el, 'لا توجد كويزات حالياً');
       return;
     }
-    el.innerHTML = quizzes.map((quiz) => {
-      const status = getQuizStatus(quiz);
-      const badgeClass = status === 'open' ? 'badge-success' : 'badge-info';
-      return `
-        <a href="/quizzes.html" class="list-item" style="text-decoration:none;color:inherit">
+    el.innerHTML = data
+      .map((q) => {
+        const st = q.status || 'upcoming';
+        return `
+        <a class="list-item" href="/quizzes.html" style="text-decoration:none;color:inherit">
           <div class="list-item-icon" data-icon="clipboard"></div>
           <div class="list-item-body">
-            <div class="list-item-title">${escapeHtml(quiz.title)}</div>
-            <div class="list-item-desc">
-              ${escapeHtml(quiz.subjects?.name || '')}
-              ${quiz.quiz_date ? ` · ${formatDate(quiz.quiz_date, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}
-              <span class="badge ${badgeClass}" style="margin-right:6px">${quizStatusLabel(status)}</span>
-            </div>
+            <div class="list-item-title">${escapeHtml(q.title || 'كويز')}</div>
+            <div class="list-item-desc">${escapeHtml(q.subjects?.name || '')} · ${escapeHtml(quizStatusLabel(st))}</div>
           </div>
-        </a>
-      `;
-    }).join('');
+        </a>`;
+      })
+      .join('');
     initIcons();
   } catch (error) {
     console.error('[NUSC] loadQuizzes:', error);
-    showError(el, 'تعذر تحميل الكويزات. حاول مرة أخرى.');
-  }
-}
-
-function safeHttpUrl(raw) {
-  if (raw && typeof raw === 'object') raw = raw.url || raw.href || '';
-  if (typeof raw !== 'string' || !raw.trim()) return '';
-  try {
-    const url = new URL(raw.trim());
-    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
-  } catch {
-    return '';
+    showError(el, 'تعذر تحميل الكويزات.');
   }
 }
 
 function announcementJoinUrl(item) {
-  const storedUrl = item.link_url || item.session_url || item.section_url || item.meeting_url || item.join_url || item.external_url;
-  const directUrl = safeHttpUrl(storedUrl);
-  if (directUrl) return directUrl;
-  const text = String(item.content || item.body || '');
-  const match = text.match(/https?:\/\/[^\s<>"']+/i);
-  return match ? safeHttpUrl(match[0].replace(/[),.،؛]+$/, '')) : '';
+  const raw = item?.link_url || item?.session_url || item?.meeting_url || '';
+  if (typeof raw !== 'string' || !raw.trim()) return '';
+  try {
+    const u = new URL(raw.trim());
+    return ['http:', 'https:'].includes(u.protocol) ? u.href : '';
+  } catch {
+    return '';
+  }
 }
 
 async function loadAnnouncements() {
   const el = document.getElementById('announcements-list');
   if (!el) return;
   try {
-    const { data, error } = await supabase.from('announcements')
-      .select('*')
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('id, title, content, body, created_at, importance, priority, is_pinned, is_published, subject_id, link_url')
       .eq('is_published', true)
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(5);
     if (error) throw error;
-    if (!data?.length) { showEmpty(el, 'لا توجد إعلانات حالياً'); return; }
-    let subjectNames = {};
-    const subjectIds = [...new Set(data.map((item) => item.subject_id).filter(Boolean))];
-    if (subjectIds.length) {
-      const { data: subjects, error: subjectsError } = await supabase.from('subjects').select('id, name').in('id', subjectIds);
-      if (!subjectsError) subjectNames = Object.fromEntries((subjects || []).map((item) => [item.id, item.name]));
+    if (!data?.length) {
+      showEmpty(el, 'لا توجد إعلانات');
+      return;
     }
-    el.innerHTML = data.slice(0, 5).map((announcement) => {
-      const level = announcement.importance || announcement.priority || 'normal';
-      const subjectName = subjectNames[announcement.subject_id] || '';
-      return `
-        <div class="list-item announcement-item ${['urgent','high'].includes(level) ? 'announcement-important' : ''}">
+    el.innerHTML = data
+      .map((announcement) => {
+        const level = announcement.importance || announcement.priority || 'normal';
+        return `
+        <div class="list-item announcement-item ${['urgent', 'high'].includes(level) ? 'announcement-important' : ''}">
           <div class="list-item-icon" data-icon="megaphone"></div>
           <div class="list-item-body">
             <div class="list-item-title">
               ${announcement.is_pinned ? '📌 ' : ''}${escapeHtml(announcement.title)}
-              ${level === 'urgent' ? '<span class="badge badge-urgent">عاجل</span>' : level === 'high' ? '<span class="badge badge-important">مهم</span>' : ''}
+              ${freshnessBadgesHtml(announcement)}
             </div>
-            ${subjectName ? `<div class="list-item-desc">${escapeHtml(subjectName)}</div>` : ''}
             <div class="list-item-desc">${escapeHtml((announcement.content || announcement.body || '').slice(0, 80))} · ${timeAgo(announcement.created_at)}</div>
-            ${announcementJoinUrl(announcement)
-              ? `<a href="${escapeHtml(announcementJoinUrl(announcement))}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary mt-1">${escapeHtml(announcement.link_label || 'دخول السيكشن أونلاين')}</a>`
-              : announcement.link_status === 'coming_soon'
-                ? '<span class="badge badge-warning mt-1">رابط السيكشن قريبًا</span>'
-                : ''}
             <a href="/announcements.html" class="btn btn-sm btn-outline mt-1">عرض الإعلان</a>
           </div>
         </div>`;
-    }).join('');
+      })
+      .join('');
     initIcons();
   } catch (error) {
     console.error('[NUSC] loadAnnouncements:', error);
-    showError(el, 'تعذر تحميل الإعلانات. حاول مرة أخرى.');
+    showError(el, 'تعذر تحميل الإعلانات.');
   }
 }
 
 async function loadImportantNotice() {
-  const banner = document.getElementById('important-notice');
-  if (!banner) return;
+  const box = document.getElementById('important-notice');
+  if (!box) return;
   try {
-    const { data, error } = await supabase.from('announcements')
-      .select('*')
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('id, title, content, body, created_at, importance, priority, is_pinned, link_url')
       .eq('is_published', true)
-      .is('subject_id', null)
+      .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(30);
+      .limit(1);
     if (error) throw error;
-    const notice = (data || []).find((item) => ['urgent', 'high'].includes(item.importance || item.priority));
-    if (!notice) { banner.classList.add('hidden'); return; }
-    const level = notice.importance || notice.priority || 'normal';
-    document.getElementById('important-notice-title').textContent = notice.title || 'تنبيه من الإدارة';
-    document.getElementById('important-notice-content').textContent = (notice.content || notice.body || '').slice(0, 260);
-    const time = document.getElementById('important-notice-time');
-    if (time) time.textContent = level === 'urgent' ? 'تنبيه عاجل' : 'إعلان مهم من الإدارة';
-    const noticeLink = banner.querySelector('.notice-open');
-    const safeNoticeUrl = announcementJoinUrl(notice);
-    if (noticeLink) {
-      noticeLink.href = safeNoticeUrl || '/notifications.html';
-      noticeLink.textContent = safeNoticeUrl ? (notice.link_label || 'دخول السيكشن أونلاين') : 'عرض الإشعارات ←';
-      if (safeNoticeUrl) {
-        noticeLink.target = '_blank';
-        noticeLink.rel = 'noopener noreferrer';
-      } else {
-        noticeLink.removeAttribute('target');
-        noticeLink.removeAttribute('rel');
-      }
-    }
-    banner.classList.toggle('notice-urgent', level === 'urgent');
-    banner.classList.remove('hidden');
+    const notice = (data || [])[0];
+    if (!notice) return;
+    const level = notice.importance || notice.priority || '';
+    if (!notice.is_pinned && !['high', 'urgent'].includes(String(level))) return;
+    box.classList.remove('hidden');
+    const t = document.getElementById('important-notice-title');
+    const c = document.getElementById('important-notice-content');
+    const tm = document.getElementById('important-notice-time');
+    if (t) t.textContent = notice.title || '';
+    if (c) c.textContent = notice.content || notice.body || '';
+    if (tm) tm.textContent = timeAgo(notice.created_at);
   } catch (error) {
     console.warn('[NUSC] loadImportantNotice:', error);
   }
@@ -319,31 +252,54 @@ async function loadMaterials() {
   const el = document.getElementById('materials-list');
   if (!el) return;
   try {
-    const { data, error } = await supabase
+    let data = null;
+    let error = null;
+    const full = await supabase
       .from('materials')
-      .select('id, title, file_type, created_at, subjects(name)')
+      .select('id, title, file_type, created_at, is_important, subjects(name)')
       .eq('is_published', true)
       .order('created_at', { ascending: false })
       .limit(5);
+    data = full.data;
+    error = full.error;
+    if (
+      error &&
+      /is_important|column .* does not exist|PGRST204|42703/i.test(
+        String(error.message || '') + String(error.code || '')
+      )
+    ) {
+      const basic = await supabase
+        .from('materials')
+        .select('id, title, file_type, created_at, subjects(name)')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      data = basic.data;
+      error = basic.error;
+    }
     if (error) throw error;
     if (!data?.length) {
       showEmpty(el, 'لا توجد ملفات مضافة بعد');
       return;
     }
-    el.innerHTML = data.map((material) => `
+    el.innerHTML = data
+      .map(
+        (material) => `
       <div class="list-item">
         <div class="list-item-icon" data-icon="file"></div>
         <div class="list-item-body">
-          <div class="list-item-title">${escapeHtml(material.title)}</div>
+          <div class="list-item-title">${escapeHtml(material.title)} ${freshnessBadgesHtml(material)}</div>
           <div class="list-item-desc">
             ${escapeHtml(material.subjects?.name || '')}
             ${material.file_type ? ` · ${escapeHtml(material.file_type)}` : ''}
             · ${timeAgo(material.created_at)}
           </div>
         </div>
-      </div>
-    `).join('');
+      </div>`
+      )
+      .join('');
     initIcons();
+    touchLastVisit();
   } catch (error) {
     console.error('[NUSC] loadMaterials:', error);
     showError(el, 'تعذر تحميل الملفات. حاول مرة أخرى.');
@@ -363,13 +319,15 @@ async function loadNotifCount() {
     if (error) throw error;
     let readIds = [];
     try {
-      const stored = JSON.parse(localStorage.getItem('nusc_read_announcements_' + (profile?.id || 'guest')) || '[]');
+      const stored = JSON.parse(
+        localStorage.getItem('nusc_read_announcements_' + (profile?.id || 'guest')) || '[]'
+      );
       readIds = Array.isArray(stored) ? stored.map(String) : [];
     } catch {
       readIds = [];
     }
     const readSet = new Set(readIds);
-    const unreadCount = (data || []).filter(item => !readSet.has(String(item.id))).length;
+    const unreadCount = (data || []).filter((item) => !readSet.has(String(item.id))).length;
     if (unreadCount > 0) {
       badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
       badge.classList.remove('hidden');
