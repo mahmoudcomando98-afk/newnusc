@@ -29,6 +29,7 @@ export default defineConfig(({ mode }) => {
           '404': resolve(__dirname, '404.html'),
           '500': resolve(__dirname, '500.html'),
           offline: resolve(__dirname, 'offline.html'),
+          banned: resolve(__dirname, 'banned.html'),
           about: resolve(__dirname, 'about.html'),
           contact: resolve(__dirname, 'contact.html'),
           privacy: resolve(__dirname, 'privacy.html'),
