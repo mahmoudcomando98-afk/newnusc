@@ -12,59 +12,71 @@ async function loadUpdates() {
 
   try {
     let materials = [];
-    let announcements = [];
-
-    const matFull = await supabase
+    const matRes = await supabase
       .from('materials')
-      .select('id, title, file_type, created_at, is_important, subject_id, subjects(name)')
-      .eq('is_published', true)
+      .select('*')
       .order('created_at', { ascending: false })
-      .limit(30);
+      .limit(40);
 
-    if (
-      matFull.error &&
-      /is_important|column .* does not exist|PGRST204|42703/i.test(
-        String(matFull.error.message || '') + String(matFull.error.code || '')
-      )
-    ) {
-      const basic = await supabase
-        .from('materials')
-        .select('id, title, file_type, created_at, subject_id, subjects(name)')
-        .eq('is_published', true)
-        .order('created_at', { ascending: false })
-        .limit(30);
-      if (basic.error) throw basic.error;
-      materials = basic.data || [];
-    } else if (matFull.error) {
-      throw matFull.error;
+    if (matRes.error) {
+      console.warn('[NUSC] materials:', matRes.error.message);
     } else {
-      materials = matFull.data || [];
+      materials = (matRes.data || []).filter((m) => m.is_published !== false);
     }
 
-    const ann = await supabase
+    let announcements = [];
+    const annRes = await supabase
       .from('announcements')
-      .select('id, title, content, body, created_at, importance, priority, is_pinned, is_published')
-      .eq('is_published', true)
+      .select('*')
       .order('created_at', { ascending: false })
-      .limit(30);
-    if (ann.error) throw ann.error;
-    announcements = ann.data || [];
+      .limit(40);
+
+    if (annRes.error) {
+      console.warn('[NUSC] announcements:', annRes.error.message);
+    } else {
+      const now = Date.now();
+      announcements = (annRes.data || [])
+        .filter((a) => a.is_published !== false)
+        .filter((a) => {
+          if (!a.expires_at) return true;
+          const t = new Date(a.expires_at).getTime();
+          return Number.isNaN(t) || t > now;
+        });
+    }
+
+    const subjectIds = [
+      ...new Set(materials.map((m) => m.subject_id).filter(Boolean))
+    ];
+    let subjectNames = {};
+    if (subjectIds.length) {
+      try {
+        const { data: subjects } = await supabase
+          .from('subjects')
+          .select('id, name')
+          .in('id', subjectIds);
+        subjectNames = Object.fromEntries((subjects || []).map((s) => [s.id, s.name]));
+      } catch (e) {
+        console.warn('[NUSC] subject names:', e);
+      }
+    }
 
     const feed = [
       ...materials.map((m) => ({
         kind: 'material',
         id: m.id,
         title: m.title || 'ملف',
-        subtitle: m.subjects?.name || m.file_type || 'ملف',
+        subtitle: subjectNames[m.subject_id] || m.file_type || 'ملف',
         created_at: m.created_at,
         is_important: m.is_important,
-        href: m.subject_id ? `/subject-details.html?id=${encodeURIComponent(m.subject_id)}` : '/subjects.html'
+        href: m.subject_id
+          ? `/subject-details.html?id=${encodeURIComponent(m.subject_id)}`
+          : '/subjects.html'
       })),
       ...announcements.map((a) => ({
         kind: 'announcement',
         id: a.id,
         title: a.title || 'إعلان',
-        subtitle: String(a.content || a.body || '').slice(0, 100),
+        subtitle: String(a.content || a.body || a.description || '').slice(0, 100),
         created_at: a.created_at,
         importance: a.importance || a.priority,
         is_pinned: a.is_pinned,
@@ -73,6 +85,13 @@ async function loadUpdates() {
     ].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
     if (!feed.length) {
+      if (matRes.error && annRes.error) {
+        showError(
+          el,
+          'تعذر تحميل التحديثات. تأكد من صلاحيات القراءة على materials و announcements.'
+        );
+        return;
+      }
       showEmpty(el, 'مفيش تحديثات حالياً');
       return;
     }
