@@ -16,6 +16,8 @@ import {
   quizStatusLabel,
   showToast
 } from './utils.js';
+import { normalizeStoragePath, resolveSolutionUrl, decodeDataSolution } from './solution-helpers.js';
+
 
 let quizzes = [];
 let currentStatus = 'all';
@@ -105,26 +107,30 @@ function ensureSolutionModal() {
 }
 
 async function showSolutionImage(path) {
-  if (!path) return;
+  if (!path) {
+    showToast('مفيش صورة حل للكويز ده', 'error');
+    return;
+  }
   try {
     const modal = ensureSolutionModal();
     const img = document.getElementById('quiz-solution-img');
     img.removeAttribute('src');
     modal.classList.remove('hidden');
-    const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 3600);
-    if (error || !data?.signedUrl) {
-      const { data: pub } = supabase.storage.from('materials').getPublicUrl(path);
-      if (pub?.publicUrl) img.src = pub.publicUrl;
-      else {
-        showToast('تعذر عرض الحل', 'error');
-        modal.classList.add('hidden');
-      }
+    const { data: sess } = await supabase.auth.getSession();
+    if (!sess?.session) {
+      showToast('سجّل دخول تاني عشان تشوف الحل', 'error');
+      modal.classList.add('hidden');
       return;
     }
-    img.src = data.signedUrl;
+    const url = await resolveSolutionUrl(path);
+    img.onerror = () => {
+      showToast('تعذر تحميل صورة الحل', 'error');
+      modal.classList.add('hidden');
+    };
+    img.src = url;
   } catch (e) {
     console.error(e);
-    showToast('تعذر عرض الحل', 'error');
+    showToast('تعذر عرض الحل. لو المشكلة مستمرة بلّغ الأدمن.', 'error');
   }
 }
 
@@ -173,14 +179,14 @@ function renderQuizzes() {
         ${instructions ? `<p class="text-sm mt-1"><strong>التعليمات:</strong> ${escapeHtml(instructions)}</p>` : ''}
         <div class="mt-2 flex flex-wrap gap-1">
           ${quiz.quiz_url ? `<a class="btn btn-primary" href="${escapeHtml(quiz.quiz_url)}" target="_blank" rel="noopener noreferrer">فتح الامتحان</a>` : ''}
-          ${hasSolution ? `<button type="button" class="btn btn-secondary" data-solution="${escapeHtml(quiz.solution_image_path)}">عرض الحل</button>` : ''}
+          ${hasSolution ? `<button type="button" class="btn btn-secondary" data-solution="${escapeHtml(encodeURIComponent(quiz.solution_image_path || ''))}">عرض الحل</button>` : ''}
         </div>
       </article>`;
     })
     .join('');
 
   el.querySelectorAll('[data-solution]').forEach((btn) => {
-    btn.addEventListener('click', () => showSolutionImage(btn.dataset.solution));
+    btn.addEventListener('click', () => showSolutionImage(decodeDataSolution(btn)));
   });
 
   initIcons();
