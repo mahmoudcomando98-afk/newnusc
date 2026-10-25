@@ -57,33 +57,43 @@ export async function register({ fullName, email, password, studentId = null }) 
 
 export async function login({ email, password }) {
   if (!email?.trim() || !password) throw new Error('يرجى إدخال البريد الإلكتروني وكلمة المرور.');
-  const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password
+  });
   if (error) throw new Error(getErrorMessage(error, 'فشل تسجيل الدخول.'));
   return data;
 }
 
 export async function logout() {
   const { error } = await supabase.auth.signOut();
-  if (error) throw new Error(getErrorMessage(error, 'فشل تسجيل الخروج.'));
-  window.location.replace('/login.html');
+  if (error) throw error;
+  window.location.href = '/login.html';
 }
 
 export async function requestPasswordReset(email) {
-  if (!email?.trim()) throw new Error('أدخل البريد الإلكتروني.');
+  if (!email?.trim()) throw new Error('يرجى إدخال البريد الإلكتروني.');
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
     redirectTo: `${window.location.origin}/reset-password.html`
   });
-  if (error) throw new Error(getErrorMessage(error, 'فشل إرسال رابط استعادة كلمة المرور.'));
+  if (error) throw new Error(getErrorMessage(error, 'تعذر إرسال رابط الاستعادة.'));
 }
 
-export async function updatePassword(newPassword) {
-  if (!newPassword || newPassword.length < 6) throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
-  const { error } = await supabase.auth.updateUser({ password: newPassword });
-  if (error) throw new Error(getErrorMessage(error, 'فشل تحديث كلمة المرور.'));
+export async function updatePassword(password) {
+  if (!password || password.length < 6) throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw new Error(getErrorMessage(error, 'تعذر تحديث كلمة المرور.'));
 }
 
 export async function protectPage({ adminOnly = false } = {}) {
-  const session = await getSession();
+  let session = await getSession();
+  if (!session) {
+    // One more recovery attempt before forcing login
+    try {
+      const { data } = await supabase.auth.refreshSession();
+      session = data?.session || null;
+    } catch { /* ignore */ }
+  }
   if (!session) {
     window.location.replace('/login.html');
     return null;
@@ -111,21 +121,18 @@ export async function protectAdminPage() {
 }
 
 export function initLoginPage() {
-  const requestedNext = new URLSearchParams(window.location.search).get('next') || '';
-  const loginRedirect = requestedNext.startsWith('/admin/') && !requestedNext.startsWith('//') ? requestedNext : '/home.html';
-  redirectIfAuthenticated(loginRedirect);
   const form = document.getElementById('login-form');
   if (!form) return;
+  redirectIfAuthenticated('/home.html');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = form.email.value;
-    const password = form.password.value;
+    const email = form.elements.email?.value || '';
+    const password = form.elements.password?.value || '';
     const btn = form.querySelector('button[type="submit"]');
     try {
       await withLoading(btn, async () => {
         await login({ email, password });
-        showToast('تم تسجيل الدخول بنجاح.', 'success');
-        window.location.replace(loginRedirect);
+        window.location.href = '/home.html';
       });
     } catch (err) {
       showToast(getErrorMessage(err, 'تعذر تسجيل الدخول.'), 'error');
@@ -134,16 +141,16 @@ export function initLoginPage() {
 }
 
 export function initRegisterPage() {
-  redirectIfAuthenticated('/home.html');
   const form = document.getElementById('register-form');
   if (!form) return;
+  redirectIfAuthenticated('/home.html');
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const fullName = form.elements.full_name?.value || form.elements.fullName?.value || '';
     const email = form.elements.email?.value || '';
     const password = form.elements.password?.value || '';
-    const confirmPassword = form.elements.password_confirm?.value || form.elements.confirm_password?.value || form.elements.confirm?.value || '';
-    const studentId = form.elements.student_id?.value || form.elements.studentId?.value || null;
+    const studentId = form.elements.student_id?.value || form.elements.studentId?.value || '';
+    const confirmPassword = form.elements.password_confirm?.value || form.elements.confirm?.value || form.elements.confirm_password?.value || '';
     if (confirmPassword && password !== confirmPassword) {
       showToast('كلمتا المرور غير متطابقتين.', 'error');
       return;
