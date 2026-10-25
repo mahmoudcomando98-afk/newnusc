@@ -6,8 +6,8 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>لوحة الإدارة | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=neutral-v2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=neutral-v2" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=ui-polish-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=ui-polish-2" />
 </head>
 <body>
   <header class="app-header">
@@ -21,15 +21,15 @@
   </header>
   <main class="page" style="padding-bottom:24px">
     <div class="container page-content">
-      <h1 class="mb-2" style="font-size:1.4rem">مرحباً بك في لوحة الإدارة</h1>
-      <p class="text-muted mb-3">إدارة محتوى NUSC</p>
+      <h1 class="mb-2" style="font-size:1.25rem">لوحة الإدارة</h1>
+      <p class="text-muted mb-3 text-sm">إدارة محتوى المنصة والإشعارات</p>
       <div class="card-grid" id="stats">
         <div class="card"><div class="skeleton skeleton-title"></div></div>
         <div class="card"><div class="skeleton skeleton-title"></div></div>
         <div class="card"><div class="skeleton skeleton-title"></div></div>
       </div>
       <div class="section mt-3">
-        <h2 class="mb-2">الأقسام</h2>
+        <h2 class="mb-2" style="font-size:1.05rem">الأقسام</h2>
         <div class="card-grid">
           <a href="/admin/subjects.html" class="card" style="text-decoration:none;color:inherit">
             <h3 class="card-title">المواد الدراسية</h3>
@@ -51,6 +51,10 @@
             <h3 class="card-title">الإعلانات</h3>
             <p class="text-sm text-muted">نشر وتثبيت الإعلانات</p>
           </a>
+          <a href="/admin/notifications.html" class="card" style="text-decoration:none;color:inherit">
+            <h3 class="card-title">إرسال إشعارات</h3>
+            <p class="text-sm text-muted">إشعار يظهر للطالب في اللوحة وعلى الهاتف</p>
+          </a>
           <a href="/admin/students.html" class="card" style="text-decoration:none;color:inherit">
             <h3 class="card-title">الطلاب</h3>
             <p class="text-sm text-muted">عرض الحسابات المسجلة</p>
@@ -59,16 +63,10 @@
             <h3 class="card-title">الأسئلة الشائعة</h3>
             <p class="text-sm text-muted">إدارة الأسئلة والإجابات</p>
           </a>
-          <div class="card" style="display:flex;flex-direction:column;align-items:stretch;gap:12px">
-            <div>
-              <h3 class="card-title">إعدادات المنصة</h3>
-              <p class="text-sm text-muted">تغيير اسم المنصة ولوجوها والتحكم في وضع الصيانة.</p>
-            </div>
-            <a href="/admin/settings.html#site-name-form" class="btn btn-primary" style="text-align:center;text-decoration:none">تغيير اسم المنصة</a>
-            <a href="/admin/settings.html#logo-form" class="btn btn-secondary" style="text-align:center;text-decoration:none">رفع لوجو المنصة</a>
-            <a href="/admin/settings.html#maintenance-form" class="btn btn-secondary" style="text-align:center;text-decoration:none">تشغيل / إيقاف الصيانة</a>
-            <a href="/admin/settings.html" class="btn btn-secondary btn-sm" style="text-align:center;text-decoration:none">فتح كل الإعدادات</a>
-          </div>
+          <a href="/admin/settings.html" class="card" style="text-decoration:none;color:inherit">
+            <h3 class="card-title">الإعدادات</h3>
+            <p class="text-sm text-muted">اسم المنصة، اللوجو، الصيانة</p>
+          </a>
         </div>
       </div>
     </div>
@@ -76,26 +74,29 @@
   <script type="module">
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
-    import { escapeHtml, showError } from '../assets/js/utils.js';
+    import { initIcons } from '../assets/js/utils.js';
+
     async function init() {
-      const result = await protectAdminPage();
-      if (!result) return;
+      const ok = await protectAdminPage();
+      if (!ok) return;
+      document.documentElement.classList.remove('admin-auth-pending');
+      initIcons();
       const el = document.getElementById('stats');
       try {
         const [students, subjects, quizzes, announcements] = await Promise.all([
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'student'),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('subjects').select('id', { count: 'exact', head: true }),
           supabase.from('quizzes').select('id', { count: 'exact', head: true }),
           supabase.from('announcements').select('id', { count: 'exact', head: true }).eq('is_published', true)
         ]);
         el.innerHTML = `
-          <div class="card text-center"><p class="text-muted text-sm">الطلاب</p><p style="font-size:1.75rem;font-weight:700;color:var(--primary)">${students.count ?? 0}</p></div>
-          <div class="card text-center"><p class="text-muted text-sm">المواد</p><p style="font-size:1.75rem;font-weight:700;color:var(--primary)">${subjects.count ?? 0}</p></div>
-          <div class="card text-center"><p class="text-muted text-sm">الكويزات</p><p style="font-size:1.75rem;font-weight:700;color:var(--primary)">${quizzes.count ?? 0}</p></div>
-          <div class="card text-center"><p class="text-muted text-sm">الإعلانات</p><p style="font-size:1.75rem;font-weight:700;color:var(--primary)">${announcements.count ?? 0}</p></div>
-        `;
-      } catch (err) {
-        showError(el, 'تعذر تحميل الإحصائيات');
+          <div class="card text-center"><p class="text-muted text-sm">الطلاب</p><p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${students.count ?? 0}</p></div>
+          <div class="card text-center"><p class="text-muted text-sm">المواد</p><p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${subjects.count ?? 0}</p></div>
+          <div class="card text-center"><p class="text-muted text-sm">الكويزات</p><p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${quizzes.count ?? 0}</p></div>
+          <div class="card text-center"><p class="text-muted text-sm">الإعلانات</p><p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${announcements.count ?? 0}</p></div>`;
+      } catch (e) {
+        console.warn(e);
+        el.innerHTML = '';
       }
     }
     init();
