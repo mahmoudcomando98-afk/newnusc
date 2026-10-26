@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS public.materials (
   file_type TEXT,
   file_size BIGINT,
   material_type TEXT DEFAULT 'lecture' CHECK (material_type IN ('lecture', 'section', 'notes', 'assignment', 'exam', 'other', 'pdf', 'slides')),
+  due_at TIMESTAMPTZ,
   solution_image_path TEXT,
   download_count INTEGER DEFAULT 0,
   view_count INTEGER DEFAULT 0,
