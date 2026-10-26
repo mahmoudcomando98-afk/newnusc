@@ -137,6 +137,7 @@
   }
 }
 
+.tabs,
 #tabs,
 .subject-tabs,
 [role="tablist"] {
@@ -149,6 +150,7 @@
   max-width: 100%;
 }
 
+.tabs .tab,
 #tabs .btn,
 #tabs [data-tab],
 .subject-tabs button {
