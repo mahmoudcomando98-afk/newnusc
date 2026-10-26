@@ -94,6 +94,12 @@ export async function protectPage({ adminOnly = false } = {}) {
     } catch { /* ignore */ }
   }
   if (!session) {
+    try {
+      const next = (window.location.pathname || '') + (window.location.search || '');
+      if (next && next.startsWith('/') && !next.startsWith('//') && !/login\.html/i.test(next)) {
+        sessionStorage.setItem('nusc_next', next);
+      }
+    } catch { /* ignore */ }
     window.location.replace('/login.html');
     return null;
   }
@@ -145,7 +151,15 @@ export function initLoginPage() {
           window.location.href = '/banned.html';
           return;
         }
-        window.location.href = '/home.html';
+        let next = '/home.html';
+        try {
+          const stored = sessionStorage.getItem('nusc_next');
+          if (stored && stored.startsWith('/') && !stored.startsWith('//') && !/login\.html/i.test(stored)) {
+            next = stored;
+            sessionStorage.removeItem('nusc_next');
+          }
+        } catch { /* ignore */ }
+        window.location.href = next;
       });
     } catch (err) {
       showToast(getErrorMessage(err, 'تعذر تسجيل الدخول.'), 'error');
