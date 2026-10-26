@@ -94,7 +94,6 @@
   }
 }
 
-/* Classic list-item safe on mobile */
 .list-item {
   display: flex;
   flex-direction: column;
@@ -157,3 +156,19 @@
   flex: 0 0 auto;
   white-space: nowrap;
 }
+
+/* Download / load spinner */
+.dl-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(0,0,0,.15);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: nusc-spin .7s linear infinite;
+  vertical-align: middle;
+  margin-inline-end: 4px;
+}
+.dl-spinner.hidden { display: none !important; }
+@keyframes nusc-spin { to { transform: rotate(360deg); } }
+.material-action-btn.is-loading { opacity: .75; pointer-events: none; }
