@@ -40,6 +40,7 @@ export default defineConfig(({ mode }) => {
           home: resolve(__dirname, 'home.html'),
           subjects: resolve(__dirname, 'subjects.html'),
           'subject-details': resolve(__dirname, 'subject-details.html'),
+          'file-view': resolve(__dirname, 'file-view.html'),
           'lecture-details': resolve(__dirname, 'lecture-details.html'),
           quizzes: resolve(__dirname, 'quizzes.html'),
           'quiz-rules': resolve(__dirname, 'quiz-rules.html'),
