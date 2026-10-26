@@ -98,7 +98,7 @@ function renderSubjects(rows) {
       return `
       <a class="card subject-card home-subject-card" href="/subject-details.html?id=${encodeURIComponent(s.id)}">
         <div class="home-subject-card-top">
-          <span class="home-subject-symbol" aria-hidden="true"><span data-icon="book-open"></span></span>
+          <span class="home-subject-symbol" aria-hidden="true"><span data-icon="book"></span></span>
           ${code ? `<span class="subject-code-badge">${escapeHtml(code)}</span>` : '<span class="subject-code-badge">مادة دراسية</span>'}
         </div>
         <h3 class="card-title">${escapeHtml(title)}</h3>
