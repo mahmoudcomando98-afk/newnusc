@@ -97,10 +97,13 @@ function renderSubjects(rows) {
       const instructor = s.instructor || s.doctor || s.teacher || '';
       return `
       <a class="card subject-card home-subject-card" href="/subject-details.html?id=${encodeURIComponent(s.id)}">
-        ${code ? `<span class="subject-code-badge">${escapeHtml(code)}</span>` : ''}
+        <div class="home-subject-card-top">
+          <span class="home-subject-symbol" aria-hidden="true"><span data-icon="book-open"></span></span>
+          ${code ? `<span class="subject-code-badge">${escapeHtml(code)}</span>` : '<span class="subject-code-badge">مادة دراسية</span>'}
+        </div>
         <h3 class="card-title">${escapeHtml(title)}</h3>
-        ${instructor ? `<p class="text-sm text-muted home-subject-meta">${escapeHtml(instructor)}</p>` : '<p class="home-subject-meta"></p>'}
-        <span class="btn btn-sm btn-primary home-subject-open">افتح المادة</span>
+        ${instructor ? `<p class="text-sm text-muted home-subject-meta">${escapeHtml(instructor)}</p>` : '<p class="home-subject-meta home-subject-meta-empty">المحتوى الدراسي والمحاضرات</p>'}
+        <span class="home-subject-open"><span>فتح المادة</span><span class="home-subject-arrow" aria-hidden="true">←</span></span>
       </a>`;
     })
     .join('');
