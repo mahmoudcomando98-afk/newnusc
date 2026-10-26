@@ -168,6 +168,14 @@ function materialCard(material, badgeLabel) {
   const solutionBtn = hasSolution
     ? `<button type="button" class="btn btn-sm btn-primary" data-solution="${escapeHtml(material.solution_image_path)}" aria-label="عرض الحل">عرض الحل</button>`
     : '';
+  const isAssignment = badgeLabel === 'واجب';
+  const dueDate = isAssignment && material.due_at
+    ? new Date(material.due_at).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })
+    : '';
+  const assignmentActions = isAssignment
+    ? `<button type="button" class="btn btn-sm btn-outline" data-copy-link="${escapeHtml(material.id)}" data-path="${escapeHtml(material.file_path || '')}">نسخ الرابط</button>
+       <button type="button" class="btn btn-sm btn-secondary" data-share-link="${escapeHtml(material.id)}" data-path="${escapeHtml(material.file_path || '')}" data-title="${escapeHtml(material.title || 'واجب')}">مشاركة</button>`
+    : '';
   return `
     <div class="list-item">
       <div class="list-item-icon" data-icon="file"></div>
@@ -180,10 +188,12 @@ function materialCard(material, badgeLabel) {
           ${material.created_at ? ` · ${timeAgo(material.created_at)}` : ''}
         </div>
         ${material.description ? `<p class="text-sm text-muted mt-1">${escapeHtml(material.description)}</p>` : ''}
+        ${dueDate ? `<p class="text-sm mt-1"><strong>موعد التسليم:</strong> ${escapeHtml(dueDate)}</p>` : ''}
         ${hasSolution ? '<p class="text-sm mt-1"><span class="badge badge-success">فيه صورة حل</span></p>' : ''}
       </div>
       <div class="flex gap-1 items-center flex-wrap" style="flex-shrink:0">
         ${solutionBtn}
+        ${assignmentActions}
         <button type="button" class="btn btn-sm btn-secondary" data-download="${escapeHtml(material.id)}" data-path="${escapeHtml(material.file_path || '')}" aria-label="تنزيل الملف" title="تنزيل الملف">
           <span data-icon="download"></span>
         </button>
@@ -198,6 +208,12 @@ function bindDownloads(el) {
   });
   el.querySelectorAll('[data-solution]').forEach((button) => {
     button.addEventListener('click', () => showSolutionImage(button.dataset.solution));
+  });
+  el.querySelectorAll('[data-copy-link]').forEach((button) => {
+    button.addEventListener('click', () => copyMaterialLink(button.dataset.path));
+  });
+  el.querySelectorAll('[data-share-link]').forEach((button) => {
+    button.addEventListener('click', () => shareMaterialLink(button.dataset.path, button.dataset.title));
   });
 }
 
@@ -307,6 +323,62 @@ async function loadAnnouncements(el) {
       </article>`;
   }).join('');
   initIcons();
+}
+
+async function createShareableMaterialUrl(path) {
+  if (!path) throw new Error('رابط الملف غير متاح دلوقتي.');
+  const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 604800);
+  if (error) throw error;
+  if (!data?.signedUrl) throw new Error('تعذر تجهيز رابط الملف.');
+  return data.signedUrl;
+}
+
+async function copyTextToClipboard(value) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+  const input = document.createElement('textarea');
+  input.value = value;
+  input.setAttribute('readonly', '');
+  input.style.position = 'fixed';
+  input.style.opacity = '0';
+  document.body.appendChild(input);
+  input.select();
+  const copied = document.execCommand('copy');
+  input.remove();
+  if (!copied) throw new Error('المتصفح لم يسمح بنسخ الرابط.');
+}
+
+async function copyMaterialLink(path) {
+  try {
+    const url = await createShareableMaterialUrl(path);
+    await copyTextToClipboard(url);
+    showToast('تم نسخ رابط الواجب. الرابط صالح لمدة 7 أيام.', 'success');
+  } catch (error) {
+    console.error('Copy assignment link failed:', error);
+    showToast(error.message || 'تعذر نسخ رابط الواجب.', 'error');
+  }
+}
+
+async function shareMaterialLink(path, title) {
+  try {
+    const url = await createShareableMaterialUrl(path);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: title || 'واجب NUSC', text: 'رابط ملف الواجب', url });
+        return;
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+        throw error;
+      }
+    }
+    await copyTextToClipboard(url);
+    showToast('المشاركة المباشرة غير متاحة؛ تم نسخ الرابط بدلًا منها. صالح لمدة 7 أيام.', 'success');
+  } catch (error) {
+    console.error('Share assignment link failed:', error);
+    showToast(error.message || 'تعذرت مشاركة رابط الواجب.', 'error');
+  }
 }
 
 async function downloadMaterial(id, path) {
