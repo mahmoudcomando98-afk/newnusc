@@ -7,7 +7,7 @@
   <title>المواد الدراسية | NUSC</title>
   <link rel="stylesheet" href="/assets/css/main.css?v=ui-polish-2" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=ui-polish-2" />
-  <link rel="stylesheet" href="/assets/css/subjects-page.css?v=1" />
+  <link rel="stylesheet" href="/assets/css/subjects-page.css?v=2" />
 </head>
 <body class="subjects-page">
   <header class="app-header">
@@ -26,14 +26,20 @@
     <div class="container page-content">
       <section class="subjects-intro">
         <div>
-          <span class="section-kicker">كتالوج المواد</span>
           <h1>المواد الدراسية</h1>
-          <p>تصفح المواد المتاحة وافتح المحاضرات والملفات من مكان واحد.</p>
         </div>
-        <div class="subjects-count"><span class="count-symbol" data-icon="book"></span><strong id="subjects-count">—</strong><span>مواد متاحة</span></div>
+        <div class="subjects-count"><span class="count-symbol" data-icon="book"></span><strong id="subjects-count">—</strong><span>مادة</span></div>
       </section>
-      <div class="subjects-toolbar"><div class="search-box"><span class="search-icon" data-icon="search"></span><input type="search" id="search-input" placeholder="ابحث باسم المادة أو الكود أو الدكتور..." autocomplete="off" aria-label="ابحث عن مادة" /></div><span class="toolbar-note">اختر مادة للبدء</span></div>
-      <div class="card-grid subjects-grid" id="subjects-grid"><div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div><div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div></div>
+      <div class="subjects-toolbar">
+        <div class="search-box">
+          <span class="search-icon" data-icon="search"></span>
+          <input type="search" id="search-input" placeholder="ابحث باسم المادة أو الكود أو الدكتور..." autocomplete="off" aria-label="ابحث عن مادة" />
+        </div>
+      </div>
+      <div class="card-grid subjects-grid" id="subjects-grid">
+        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+      </div>
     </div>
   </main>
   <nav class="bottom-nav">
@@ -43,6 +49,6 @@
     <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
     <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
-  <script type="module" src="/assets/js/subjects.js?v=tiles-1"></script>
+  <script type="module" src="/assets/js/subjects.js?v=tiles-2"></script>
 </body>
 </html>
