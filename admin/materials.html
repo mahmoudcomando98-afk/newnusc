@@ -185,10 +185,10 @@
           .order('created_at', { ascending: false })
           .limit(100);
 
-        if (result.error && /description|file_name/i.test(String(result.error.message || ''))) {
+        if (result.error && /description|file_name|due_at/i.test(String(result.error.message || ''))) {
           result = await supabase
             .from('materials')
-            .select('id, title, subject_id, material_type, file_type, file_path, file_size, solution_image_path, due_at, created_at, is_published')
+            .select('id, title, subject_id, material_type, file_type, file_path, file_size, solution_image_path, created_at, is_published')
             .order('created_at', { ascending: false })
             .limit(100);
         }
