@@ -7,6 +7,7 @@
   <title>تفاصيل المادة | NUSC</title>
   <link rel="stylesheet" href="/assets/css/main.css?v=ui-polish-2" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=ui-polish-2" />
+  <link rel="stylesheet" href="/assets/css/material-cards.css?v=1" />
 </head>
 <body class="subject-details-page">
   <header class="app-header">
@@ -23,14 +24,13 @@
   <main class="page">
     <div class="container page-content">
       <div id="subject-header" class="mb-3">
-        <div class="skeleton skeleton-title"></div>
-        <div class="skeleton skeleton-text short"></div>
+        <div class="skeleton skeleton-title" style="width:60%"></div>
       </div>
-      <div class="tabs" id="tabs" aria-label="أقسام المادة">
-        <button type="button" class="tab active" data-tab="lectures">المحاضرات</button>
-        <button type="button" class="tab" data-tab="sections">السكاشن</button>
-        <button type="button" class="tab" data-tab="assignments">الواجبات</button>
-        <button type="button" class="tab" data-tab="announcements">إعلانات المادة</button>
+      <div id="tabs" class="flex gap-1 mb-3" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <button type="button" class="btn btn-sm btn-outline active" data-tab="lectures">المحاضرات</button>
+        <button type="button" class="btn btn-sm btn-outline" data-tab="sections">السكاشن</button>
+        <button type="button" class="btn btn-sm btn-outline" data-tab="assignments">الواجبات</button>
+        <button type="button" class="btn btn-sm btn-outline" data-tab="announcements">إعلانات المادة</button>
       </div>
       <div id="tab-content">
         <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
@@ -44,7 +44,6 @@
     <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
     <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
-  <script type="module" src="/assets/js/subject-details.js?v=solution-fix-2"></script>
-  <script type="module" src="/assets/js/solution-viewer-patch.js?v=solution-fix-2"></script>
+  <script type="module" src="/assets/js/subject-details.js"></script>
 </body>
 </html>
