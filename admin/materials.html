@@ -43,6 +43,11 @@
             <label class="form-label" for="description">وصف مختصر (اختياري)</label>
             <textarea id="description" class="form-textarea" rows="2" maxlength="1000" placeholder="تفاصيل تساعد الطالب يعرف الملف"></textarea>
           </div>
+          <div class="form-group hidden" id="due-date-group">
+            <label class="form-label" for="due_at">موعد تسليم الواجب (اختياري)</label>
+            <input type="datetime-local" id="due_at" class="form-input" />
+            <p class="form-hint">يظهر الموعد للطلاب داخل قسم الواجبات.</p>
+          </div>
           <div class="form-group">
             <label class="form-label" for="file" id="file-label">الملف *</label>
             <input type="file" id="file" class="form-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,.jpg,.jpeg,.png,.webp,.xls,.xlsx" />
@@ -98,6 +103,20 @@
       document.getElementById('file').required = true;
       document.getElementById('mat-form').reset();
       document.getElementById('material_type').value = 'lecture';
+      document.getElementById('due_at').value = '';
+      updateDueDateVisibility();
+    }
+
+    function updateDueDateVisibility() {
+      const isAssignment = document.getElementById('material_type').value === 'assignment';
+      document.getElementById('due-date-group').classList.toggle('hidden', !isAssignment);
+    }
+
+    function formatDateTimeLocal(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '';
+      return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     }
 
     function openCreateForm() {
@@ -120,6 +139,8 @@
       document.getElementById('subject_id').value = item.subject_id || '';
       document.getElementById('material_type').value = item.material_type || 'lecture';
       document.getElementById('description').value = item.description || '';
+      document.getElementById('due_at').value = formatDateTimeLocal(item.due_at);
+      updateDueDateVisibility();
       document.getElementById('form-panel').classList.remove('hidden');
       document.getElementById('form-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
       document.getElementById('title').focus();
@@ -136,6 +157,7 @@
         resetFormMode();
       });
       document.getElementById('mat-form').addEventListener('submit', save);
+      document.getElementById('material_type').addEventListener('change', updateDueDateVisibility);
       document.getElementById('solution-attach-input').addEventListener('change', onAttachSolution);
       await loadSubjects();
       await load();
@@ -159,14 +181,14 @@
       try {
         let result = await supabase
           .from('materials')
-          .select('id, title, description, subject_id, material_type, file_type, file_path, file_name, file_size, solution_image_path, created_at, is_published')
+          .select('id, title, description, subject_id, material_type, file_type, file_path, file_name, file_size, solution_image_path, due_at, created_at, is_published')
           .order('created_at', { ascending: false })
           .limit(100);
 
         if (result.error && /description|file_name/i.test(String(result.error.message || ''))) {
           result = await supabase
             .from('materials')
-            .select('id, title, subject_id, material_type, file_type, file_path, file_size, solution_image_path, created_at, is_published')
+            .select('id, title, subject_id, material_type, file_type, file_path, file_size, solution_image_path, due_at, created_at, is_published')
             .order('created_at', { ascending: false })
             .limit(100);
         }
@@ -190,6 +212,7 @@
                 <h3 class="card-title">${escapeHtml(item.title)}</h3>
                 <p class="text-sm text-muted">${escapeHtml(subjectNames.get(item.subject_id) || 'مادة غير محددة')} · ${label}</p>
                 <p class="text-sm text-muted">${escapeHtml(item.file_type || 'ملف')} ${item.file_size ? '· ' + formatFileSize(item.file_size) : ''} ${item.created_at ? '· ' + timeAgo(item.created_at) : ''}</p>
+                ${isAssignment && item.due_at ? `<p class="text-sm mt-1">موعد التسليم: ${escapeHtml(new Date(item.due_at).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }))}</p>` : ''}
                 ${isAssignment ? `<p class="text-sm mt-1">${hasSolution ? '<span class="badge badge-success">صورة الحل موجودة</span>' : '<span class="badge badge-warning">مفيش صورة حل</span>'}</p>` : ''}
               </div>
               <div class="flex gap-1 items-center flex-wrap">
@@ -378,6 +401,8 @@
       const title = document.getElementById('title').value.trim();
       const materialType = document.getElementById('material_type').value;
       const description = document.getElementById('description').value.trim() || null;
+      const dueAtValue = document.getElementById('due_at').value;
+      const dueAt = materialType === 'assignment' && dueAtValue ? new Date(dueAtValue).toISOString() : null;
 
       if (!title) {
         showToast('اكتب اسم الملف.', 'error');
@@ -409,7 +434,8 @@
             title,
             description,
             subject_id: subjectId,
-            material_type: materialType
+            material_type: materialType,
+            due_at: dueAt
           };
 
           let newPath = null;
@@ -492,6 +518,7 @@
           description,
           subject_id: subjectId,
           material_type: materialType,
+          due_at: dueAt,
           file_name: file.name,
           file_path: path,
           file_type: file.type || file.name.split('.').pop().toLowerCase(),
