@@ -1,4 +1,4 @@
-/* Homepage subject cards — restrained NUSC styling */
+/* Homepage subject cards — simple, neutral, square style */
 .home-subject-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -7,7 +7,6 @@
 }
 
 a.home-subject-card {
-  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -18,30 +17,18 @@ a.home-subject-card {
   color: inherit;
   text-decoration: none;
   background: #fff;
-  border: 1px solid #ebe6e1;
-  border-radius: 12px;
-  transition: border-color .18s ease, background-color .18s ease, transform .18s ease;
-}
-
-a.home-subject-card::after {
-  content: "";
-  position: absolute;
-  inset-inline-start: 0;
-  top: 0;
-  width: 3px;
-  height: 100%;
-  background: #c56a3a;
-  opacity: .72;
+  border: 1px solid #e5e5e5;
+  border-radius: 0;
+  transition: border-color .18s ease, background-color .18s ease;
 }
 
 a.home-subject-card:hover {
-  border-color: #d9b9a5;
-  background: #fffdfb;
-  transform: translateY(-2px);
+  border-color: #bdbdbd;
+  background: #fafafa;
 }
 
 a.home-subject-card:focus-visible {
-  outline: 2px solid #c56a3a;
+  outline: 2px solid #555;
   outline-offset: 3px;
 }
 
@@ -60,10 +47,10 @@ a.home-subject-card:focus-visible {
   flex: 0 0 42px;
   width: 42px;
   height: 42px;
-  color: #9a4f2b;
-  background: #f8efe8;
-  border: 1px solid #efe0d4;
-  border-radius: 10px;
+  color: #444;
+  background: #f5f5f5;
+  border: 1px solid #e8e8e8;
+  border-radius: 0;
 }
 
 .home-subject-symbol [data-icon],
@@ -78,18 +65,18 @@ a.home-subject-card:focus-visible {
   overflow-wrap: anywhere;
   align-self: flex-start;
   padding: 4px 9px;
-  color: #8a4b2a;
-  background: #f8f3ef;
-  border: 1px solid #eee2d8;
-  border-radius: 7px;
+  color: #555;
+  background: #f7f7f7;
+  border: 1px solid #e8e8e8;
+  border-radius: 0;
   font-size: .72rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.5;
 }
 
 .home-subject-card .card-title {
   margin: 0 0 7px;
-  color: #2c2a28;
+  color: #292929;
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.55;
@@ -99,7 +86,7 @@ a.home-subject-card:focus-visible {
 .home-subject-meta {
   min-height: 1.5em;
   margin: 0 0 18px;
-  color: #7a736c;
+  color: #777;
   font-size: .8rem;
   line-height: 1.6;
   overflow-wrap: anywhere;
@@ -117,8 +104,8 @@ a.home-subject-card:focus-visible {
   width: 100%;
   margin-top: auto;
   padding-top: 12px;
-  color: #9a4f2b;
-  border-top: 1px solid #f0eae5;
+  color: #444;
+  border-top: 1px solid #ededed;
   font-size: .84rem;
   font-weight: 700;
 }
@@ -130,9 +117,9 @@ a.home-subject-card:focus-visible {
   width: 27px;
   height: 27px;
   flex: 0 0 27px;
-  border: 1px solid #eee2d8;
-  border-radius: 8px;
-  background: #fffaf6;
+  border: 1px solid #e5e5e5;
+  border-radius: 0;
+  background: #fafafa;
   transition: transform .18s ease;
 }
 
@@ -185,8 +172,5 @@ a.home-subject-card:focus-visible {
   a.home-subject-card,
   .home-subject-arrow {
     transition: none;
-  }
-  a.home-subject-card:hover {
-    transform: none;
   }
 }
