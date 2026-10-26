@@ -1,6 +1,6 @@
 /**
- * In-app file viewer. Requires login; shares platform links only.
- * PDFs are fetched then shown via blob: URL so mobile browsers can render them.
+ * In-app file viewer — PDF via PDF.js (canvas), images inline.
+ * Open/download use the signed storage URL so mobile browsers actually respond.
  */
 import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
@@ -9,7 +9,12 @@ import { escapeHtml, showToast, initIcons, formatFileSize, timeAgo } from './uti
 const params = new URLSearchParams(window.location.search);
 const materialId = params.get('id');
 
-let currentObjectUrl = null;
+const PDFJS_VERSION = '4.4.168';
+const PDFJS_MAIN = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.min.mjs`;
+const PDFJS_WORKER = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.mjs`;
+
+let signedFileUrl = null;
+let materialMeta = null;
 
 function shortFileType(raw) {
   if (!raw) return '';
@@ -39,64 +44,129 @@ function isImage(type, path, name) {
 
 function setLoading(viewer, text) {
   viewer.innerHTML = `
-    <div class="file-view-loading">
-      <span class="dl-spinner" style="width:28px;height:28px;border-width:3px"></span>
+    <div class="file-view-loading" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;min-height:40vh;color:var(--text-muted,#7a736c)">
+      <span class="dl-spinner" style="width:28px;height:28px;border-width:3px;display:inline-block;border:3px solid rgba(0,0,0,.12);border-top-color:currentColor;border-radius:50%;animation:nusc-spin .7s linear infinite"></span>
       <span>${escapeHtml(text || 'جاري تحميل الملف…')}</span>
     </div>`;
 }
 
-function showFallback(viewer, url, title, message) {
+function openSignedInNewTab() {
+  if (!signedFileUrl) {
+    showToast('رابط الملف مش جاهز دلوقتي.', 'error');
+    return;
+  }
+  // window.open is more reliable than <a> with blob: on mobile
+  const win = window.open(signedFileUrl, '_blank', 'noopener,noreferrer');
+  if (!win) {
+    // popup blocked — navigate same tab as last resort
+    window.location.href = signedFileUrl;
+  }
+}
+
+async function downloadSigned() {
+  if (!signedFileUrl) {
+    showToast('رابط الملف مش جاهز دلوقتي.', 'error');
+    return;
+  }
+  try {
+    const res = await fetch(signedFileUrl, { mode: 'cors', credentials: 'omit' });
+    if (!res.ok) throw new Error('status ' + res.status);
+    const blob = await res.blob();
+    const obj = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = obj;
+    a.download = materialMeta?.file_name || materialMeta?.title || 'file.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(obj), 2000);
+  } catch (err) {
+    console.warn('[NUSC] download fetch failed, opening tab', err);
+    openSignedInNewTab();
+  }
+}
+
+async function renderPdfWithPdfJs(viewer, url) {
+  setLoading(viewer, 'جاري تجهيز ملف PDF…');
+  const pdfjsLib = await import(/* @vite-ignore */ PDFJS_MAIN);
+  pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+
+  const loadingTask = pdfjsLib.getDocument({
+    url,
+    withCredentials: false,
+    // avoid range requests that some mobile networks break
+    disableRange: true,
+    disableStream: true
+  });
+
+  const pdf = await loadingTask.promise;
+  const total = pdf.numPages;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'pdf-pages';
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:8px;align-items:center;background:#e8e4df';
+
+  const info = document.createElement('p');
+  info.className = 'text-sm text-muted';
+  info.style.cssText = 'margin:0;padding:4px 8px;text-align:center;width:100%;background:#fff';
+  info.textContent = `عدد الصفحات: ${total}`;
+  wrap.appendChild(info);
+
+  viewer.innerHTML = '';
+  viewer.appendChild(wrap);
+
+  // Render page by page (cap very large files for memory)
+  const maxPages = Math.min(total, 40);
+  for (let pageNum = 1; pageNum <= maxPages; pageNum += 1) {
+    const page = await pdf.getPage(pageNum);
+    const baseViewport = page.getViewport({ scale: 1 });
+    const containerWidth = Math.min(viewer.clientWidth || window.innerWidth || 360, 900) - 24;
+    const scale = Math.min(2, Math.max(1, containerWidth / baseViewport.width));
+    const viewport = page.getViewport({ scale });
+
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'max-width:100%;height:auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12)';
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    wrap.appendChild(canvas);
+  }
+
+  if (total > maxPages) {
+    const more = document.createElement('p');
+    more.className = 'text-sm text-muted';
+    more.style.textAlign = 'center';
+    more.textContent = `عرضنا أول ${maxPages} صفحة. باقي الصفحات من «فتح في تاب» أو التنزيل.`;
+    wrap.appendChild(more);
+  }
+}
+
+async function renderPdf(viewer, url) {
+  try {
+    await renderPdfWithPdfJs(viewer, url);
+  } catch (err) {
+    console.error('[NUSC] PDF.js failed:', err);
+    viewer.innerHTML = `
+      <div style="padding:28px;text-align:center">
+        <p class="text-sm text-muted mb-2">ما قدرناش نعرض الـ PDF جوّه الصفحة على الجهاز ده.</p>
+        <button type="button" class="btn btn-primary" id="pdf-open-fallback">فتح الملف</button>
+      </div>`;
+    document.getElementById('pdf-open-fallback')?.addEventListener('click', openSignedInNewTab);
+  }
+}
+
+function renderImage(viewer, url, title) {
+  viewer.innerHTML = `<img src="${escapeHtml(url)}" alt="${escapeHtml(title)}" style="max-width:100%;height:auto;display:block;margin:0 auto;background:#fff" />`;
+}
+
+function renderOther(viewer) {
   viewer.innerHTML = `
     <div style="padding:28px;text-align:center">
-      <p class="text-sm text-muted mb-2">${escapeHtml(message || 'مش قادرين نعرض الملف جوّه الصفحة.')}</p>
-      <a class="btn btn-primary" href="${escapeHtml(url)}" target="_blank" rel="noopener">فتح الملف في تاب جديد</a>
+      <p class="text-sm text-muted mb-2">نوع الملف ده الأفضل يتفتح برّه أو يتنزّل.</p>
+      <button type="button" class="btn btn-primary" id="other-open">فتح الملف</button>
     </div>`;
-}
-
-async function signedUrlToObjectUrl(signedUrl, preferType) {
-  const res = await fetch(signedUrl, { mode: 'cors', credentials: 'omit' });
-  if (!res.ok) throw new Error('تعذر تحميل الملف من التخزين (' + res.status + ')');
-  const buf = await res.arrayBuffer();
-  const headerType = (res.headers.get('content-type') || '').split(';')[0].trim();
-  const type = preferType || headerType || 'application/octet-stream';
-  const blob = new Blob([buf], { type });
-  if (currentObjectUrl) {
-    try { URL.revokeObjectURL(currentObjectUrl); } catch { /* ignore */ }
-  }
-  currentObjectUrl = URL.createObjectURL(blob);
-  return { objectUrl: currentObjectUrl, type: blob.type, size: blob.size };
-}
-
-async function renderPdf(viewer, signedUrl, title) {
-  setLoading(viewer, 'جاري تجهيز ملف PDF…');
-  try {
-    const { objectUrl } = await signedUrlToObjectUrl(signedUrl, 'application/pdf');
-    viewer.innerHTML = `
-      <object data="${escapeHtml(objectUrl)}" type="application/pdf" title="${escapeHtml(title)}" style="width:100%;height:min(75vh,900px);border:0">
-        <iframe title="${escapeHtml(title)}" src="${escapeHtml(objectUrl)}" style="width:100%;height:min(75vh,900px);border:0"></iframe>
-      </object>
-      <p class="text-sm text-muted" style="text-align:center;padding:8px">
-        لو الصفحة فاضية:
-        <a href="${escapeHtml(objectUrl)}" target="_blank" rel="noopener">افتح PDF هنا</a>
-      </p>`;
-  } catch (err) {
-    console.warn('[NUSC] blob PDF failed, trying direct URL', err);
-    viewer.innerHTML = `
-      <iframe title="${escapeHtml(title)}" src="${escapeHtml(signedUrl)}" style="width:100%;height:min(75vh,900px);border:0"></iframe>
-      <p class="text-sm text-muted" style="text-align:center;padding:8px">
-        <a href="${escapeHtml(signedUrl)}" target="_blank" rel="noopener">فتح في تاب جديد</a>
-      </p>`;
-  }
-}
-
-async function renderImage(viewer, signedUrl, title) {
-  setLoading(viewer, 'جاري تحميل الصورة…');
-  try {
-    const { objectUrl } = await signedUrlToObjectUrl(signedUrl);
-    viewer.innerHTML = `<img src="${escapeHtml(objectUrl)}" alt="${escapeHtml(title)}" style="max-width:100%;height:auto;display:block;margin:0 auto" />`;
-  } catch {
-    viewer.innerHTML = `<img src="${escapeHtml(signedUrl)}" alt="${escapeHtml(title)}" style="max-width:100%;height:auto;display:block;margin:0 auto" />`;
-  }
+  document.getElementById('other-open')?.addEventListener('click', openSignedInNewTab);
 }
 
 async function init() {
@@ -128,6 +198,7 @@ async function init() {
       return;
     }
 
+    materialMeta = material;
     const title = material.title || 'ملف';
     document.title = `${title} | NUSC`;
     const pageTitle = document.getElementById('page-title');
@@ -151,13 +222,13 @@ async function init() {
     const platformUrl = `${window.location.origin}/file-view.html?id=${encodeURIComponent(material.id)}`;
 
     toolbar.innerHTML = `
+      <button type="button" class="btn btn-sm btn-primary" id="btn-open">فتح</button>
       <button type="button" class="btn btn-sm btn-secondary" id="btn-download">
         <span class="dl-spinner hidden" aria-hidden="true"></span>
         <span>تنزيل</span>
       </button>
       <button type="button" class="btn btn-sm btn-outline" id="btn-copy">نسخ رابط المنصة</button>
       <button type="button" class="btn btn-sm btn-outline" id="btn-share">مشاركة</button>
-      <a class="btn btn-sm btn-outline" id="btn-open-tab" href="#" target="_blank" rel="noopener">فتح في تاب</a>
     `;
 
     if (!material.file_path) {
@@ -172,38 +243,21 @@ async function init() {
       .createSignedUrl(material.file_path, 3600);
     if (signError) throw signError;
 
-    const url = signed.signedUrl;
-    const openTab = document.getElementById('btn-open-tab');
-    if (openTab) openTab.href = url;
+    signedFileUrl = signed.signedUrl;
 
-    if (isPdf(material.file_type, material.file_path, material.file_name)) {
-      await renderPdf(viewer, url, title);
-    } else if (isImage(material.file_type, material.file_path, material.file_name)) {
-      await renderImage(viewer, url, title);
-    } else {
-      showFallback(viewer, url, title, 'نوع الملف ده الأفضل يتفتح برّه الصفحة أو يتنزّل.');
-    }
-
+    document.getElementById('btn-open')?.addEventListener('click', openSignedInNewTab);
     document.getElementById('btn-download')?.addEventListener('click', async (e) => {
       const btn = e.currentTarget;
       const spinner = btn.querySelector('.dl-spinner');
       try {
         btn.disabled = true;
         spinner?.classList.remove('hidden');
-        const a = document.createElement('a');
-        a.href = currentObjectUrl || url;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        a.download = material.file_name || material.title || 'file';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        await downloadSigned();
       } finally {
         btn.disabled = false;
         spinner?.classList.add('hidden');
       }
     });
-
     document.getElementById('btn-copy')?.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(platformUrl);
@@ -212,7 +266,6 @@ async function init() {
         showToast('ما قدرناش ننسخ الرابط.', 'error');
       }
     });
-
     document.getElementById('btn-share')?.addEventListener('click', async () => {
       try {
         if (navigator.share) {
@@ -227,11 +280,23 @@ async function init() {
       }
     });
 
+    if (isPdf(material.file_type, material.file_path, material.file_name)) {
+      await renderPdf(viewer, signedFileUrl);
+    } else if (isImage(material.file_type, material.file_path, material.file_name)) {
+      renderImage(viewer, signedFileUrl, title);
+    } else {
+      renderOther(viewer);
+    }
+
     initIcons();
   } catch (error) {
     console.error('[NUSC] file-view:', error);
     metaEl.innerHTML = `<p class="text-sm">تعذر فتح الملف. ${escapeHtml(error?.message || 'حاول مرة أخرى.')}</p>`;
-    viewer.innerHTML = '';
+    viewer.innerHTML = `
+      <div style="padding:24px;text-align:center">
+        <button type="button" class="btn btn-primary" id="err-open">محاولة الفتح في تاب جديد</button>
+      </div>`;
+    document.getElementById('err-open')?.addEventListener('click', openSignedInNewTab);
   }
 }
 
