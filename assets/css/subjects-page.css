@@ -22,7 +22,7 @@
 }
 
 .subjects-page .subjects-intro .section-kicker {
-  display: none; /* quieter, like the old simple page */
+  display: none;
 }
 
 .subjects-page .subjects-intro h1 {
@@ -34,17 +34,17 @@
 }
 
 .subjects-page .subjects-intro p {
-  display: none; /* keep header short on phone */
+  display: none;
 }
 
 .subjects-page .subjects-count {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 5px 9px;
   background: #f5f2ee;
   border: 1px solid var(--border, #e8e4df);
-  border-radius: 999px;
+  border-radius: 8px;
   color: #6b645c;
   font-size: 0.75rem;
   line-height: 1.2;
@@ -61,7 +61,7 @@
   height: 14px;
 }
 
-/* Search full width */
+/* Search full width, shorter height */
 .subjects-page .subjects-toolbar {
   display: block !important;
   margin-bottom: 10px !important;
@@ -79,10 +79,11 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 9px 12px;
+  padding: 5px 10px;
+  min-height: 34px;
   background: #fff;
   border: 1px solid var(--border, #e8e4df);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .subjects-page .subjects-toolbar .search-box:focus-within {
@@ -96,9 +97,11 @@
   background: transparent;
   width: 100%;
   min-width: 0;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
+  line-height: 1.3;
   box-shadow: none !important;
   padding: 0 !important;
+  height: 22px;
 }
 
 /* Always 2 subjects side by side */
@@ -145,26 +148,27 @@
 
 .subjects-page .subject-tile-top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 6px;
 }
 
+/* Full subject code — no ellipsis cut-off */
 .subjects-page .subject-tile-code {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  padding: 2px 7px;
-  border-radius: 999px;
+  display: inline-block;
+  max-width: calc(100% - 32px);
+  padding: 3px 8px;
+  border-radius: 6px;
   background: #f3efe9;
   border: 1px solid #e4ddd4;
-  color: #5a534c;
-  font-size: 0.68rem;
+  color: #3f3a35;
+  font-size: 0.72rem;
   font-weight: 700;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .subjects-page .subject-tile-icon {
@@ -209,7 +213,7 @@
 }
 
 .subjects-page .subject-tile-desc {
-  display: none; /* tighter cards on phone */
+  display: none;
 }
 
 .subjects-page .subject-tile-footer {
@@ -239,7 +243,6 @@
   color: #2c2a28;
 }
 
-/* Slightly roomier on wider phones / tablets but still 2 cols until desktop */
 @media (min-width: 720px) {
   .subjects-page .subjects-intro h1 {
     font-size: 1.2rem;
