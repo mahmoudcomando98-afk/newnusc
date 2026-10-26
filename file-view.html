@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#faf9f7" />
+  <title>عرض الملف | NUSC</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=ui-polish-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=ui-polish-2" />
+  <link rel="stylesheet" href="/assets/css/material-cards.css?v=2" />
+  <style>
+    .file-view-shell { display: flex; flex-direction: column; min-height: calc(100dvh - 120px); gap: 12px; }
+    .file-view-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .file-view-frame-wrap {
+      flex: 1;
+      min-height: 60vh;
+      border: 1px solid var(--border, #e8e4df);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .file-view-frame-wrap iframe,
+    .file-view-frame-wrap img {
+      width: 100%;
+      height: min(75vh, 900px);
+      border: 0;
+      display: block;
+      background: #f7f5f2;
+    }
+    .file-view-loading {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; min-height: 40vh; color: var(--text-muted, #7a736c);
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/subjects.html" class="logo" id="back-link">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span id="page-title">عرض الملف</span>
+      </a>
+    </div>
+  </header>
+  <main class="page">
+    <div class="container page-content file-view-shell">
+      <div id="file-meta">
+        <div class="skeleton skeleton-title" style="width:50%"></div>
+      </div>
+      <div class="file-view-toolbar" id="file-toolbar"></div>
+      <div class="file-view-frame-wrap" id="file-viewer">
+        <div class="file-view-loading">
+          <span class="dl-spinner" style="width:28px;height:28px;border-width:3px"></span>
+          <span>جاري تحميل الملف…</span>
+        </div>
+      </div>
+    </div>
+  </main>
+  <nav class="bottom-nav">
+    <a href="/home.html"><span data-icon="home"></span>الرئيسية</a>
+    <a href="/subjects.html" class="active"><span data-icon="book"></span>المواد</a>
+    <a href="/quizzes.html"><span data-icon="clipboard"></span>الكويزات</a>
+    <a href="/schedule.html"><span data-icon="calendar"></span>الجدول</a>
+    <a href="/profile.html"><span data-icon="user"></span>حسابي</a>
+  </nav>
+  <script type="module" src="/assets/js/file-view.js"></script>
+</body>
+</html>
