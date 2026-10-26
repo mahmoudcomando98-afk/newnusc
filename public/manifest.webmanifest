@@ -1,0 +1,20 @@
+{
+  "name": "NUSC — منصة الطلاب",
+  "short_name": "NUSC",
+  "description": "ملفات المواد، الكويزات، والإعلانات لطلاب كلية الحاسبات والمعلومات",
+  "start_url": "/home.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#faf9f7",
+  "theme_color": "#faf9f7",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/nusc.png.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}
