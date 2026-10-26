@@ -1,93 +1,111 @@
 /**
- * NUSC — Subjects catalog page
+ * NUSC Student Hub - Subjects Page
  */
-import { supabase } from './supabase.js';
+
 import { protectPage } from './auth.js';
 import {
   escapeHtml,
   showEmpty,
   showError,
   initIcons,
-  setActiveNav
+  setActiveNav,
+  debounce
 } from './utils.js';
-import { cacheGetSoft, cacheSet } from './cache.js';
+import { cachedStaleWhileRevalidate } from './cache.js';
+import { fetchSubjects } from './data-api.js';
 
 let allSubjects = [];
 
 async function init() {
-  const result = await protectPage();
-  if (!result) return;
-
   try {
+    const result = await protectPage();
+    if (!result) return;
+
     setActiveNav('subjects');
-  } catch {
-    /* optional helper */
-  }
-  initIcons();
+    initIcons();
 
-  const search = document.getElementById('search-input');
-  if (search) {
-    search.addEventListener('input', () => applyFilter());
+    const searchInput = document.getElementById('search-input');
+
+    searchInput?.addEventListener(
+      'input',
+      debounce((event) => {
+        filterSubjects(event.target.value.trim());
+      }, 250)
+    );
+
+    await loadSubjects();
+  } catch (error) {
+    console.error('Subjects page initialization error:', error);
+
+    const el = document.getElementById('subjects-grid');
+
+    if (el) {
+      showError(el, 'تعذر فتح صفحة المواد. حاول تسجيل الدخول مجددًا.');
+    }
+  }
+}
+
+function applySubjects(data) {
+  const el = document.getElementById('subjects-grid');
+  if (!el) return;
+
+  allSubjects = (data || []).slice().sort((a, b) => {
+    const orderA = Number(a.sort_order ?? 9999);
+    const orderB = Number(b.sort_order ?? 9999);
+    if (orderA !== orderB) return orderA - orderB;
+    return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
+  });
+
+  if (!allSubjects.length) {
+    showEmpty(el, 'لا توجد مواد نشطة متاحة حاليًا.');
+    return;
   }
 
-  await loadSubjects();
+  const count = document.getElementById('subjects-count');
+  if (count) count.textContent = String(allSubjects.length);
+  renderSubjects(allSubjects);
 }
 
 async function loadSubjects() {
   const el = document.getElementById('subjects-grid');
+
   if (!el) {
     console.error('Missing #subjects-grid in subjects.html');
     return;
   }
 
   try {
-    const soft = cacheGetSoft('page:subjects');
-    if (soft && Array.isArray(soft) && soft.length) {
-      allSubjects = soft;
-      renderSubjects(allSubjects);
-    }
-
-    const { data, error } = await supabase
-      .from('subjects')
-      .select('*')
-      .order('name', { ascending: true });
-
-    if (error) throw error;
-
-    allSubjects = (data || []).filter(
-      (s) => s.is_published !== false && s.is_active !== false
+    const data = await cachedStaleWhileRevalidate(
+      'page:subjects',
+      () => fetchSubjects(100),
+      { ttlMs: 2 * 60 * 1000, onUpdate: applySubjects }
     );
-    cacheSet('page:subjects', allSubjects, 5 * 60 * 1000);
-    renderSubjects(allSubjects);
+    applySubjects(data);
   } catch (error) {
-    console.error('Subjects load failed:', error);
-    if (!allSubjects.length) {
-      showError(el, 'مش قادرين نحمّل المواد دلوقتي. جرّب تاني.');
-    }
+    console.error('Subjects loading error:', error);
+    showError(el, 'تعذر تحميل المواد. حاول مرة أخرى.');
   }
 }
 
-function applyFilter() {
-  const q = (document.getElementById('search-input')?.value || '')
-    .trim()
-    .toLowerCase();
-
-  if (!q) {
+function filterSubjects(query) {
+  if (!query) {
     renderSubjects(allSubjects);
     return;
   }
 
+  const search = query.toLocaleLowerCase();
+
   const filtered = allSubjects.filter((subject) => {
-    const hay = [
+    const searchable = [
       subject.name,
       subject.code,
       subject.instructor,
       subject.description
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase();
-    return hay.includes(q);
+    ];
+
+    return searchable.some((value) =>
+      String(value || '').toLocaleLowerCase().includes(search)
+    );
   });
 
   renderSubjects(filtered);
@@ -110,7 +128,7 @@ function renderSubjects(subjects) {
       const name = escapeHtml(subject.name || 'مادة دراسية');
       const code = subject.code
         ? `<span class="subject-tile-code">${escapeHtml(subject.code)}</span>`
-        : '<span class="subject-tile-code">مادة</span>';
+        : `<span class="subject-tile-code">مادة</span>`;
       const instructor = subject.instructor
         ? `<p class="subject-tile-instructor">${escapeHtml(subject.instructor)}</p>`
         : '';
