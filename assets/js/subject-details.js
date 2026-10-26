@@ -1,6 +1,5 @@
 /**
  * NUSC Student Hub - Subject Details
- * Four student-facing sections: lectures, sections, assignments, announcements.
  */
 import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
@@ -192,9 +191,7 @@ function materialCard(material, badgeLabel) {
   const solutionBtn = hasSolution
     ? `<button type="button" class="btn btn-sm btn-primary material-action-btn" data-solution="${escapeHtml(material.solution_image_path)}" aria-label="عرض الحل">عرض الحل</button>`
     : '';
-  const shareBtns = `
-        <button type="button" class="btn btn-sm btn-outline material-action-btn" data-copy-link="${escapeHtml(material.id || '')}" data-path="${escapeHtml(material.file_path || '')}">نسخ الرابط</button>
-        <button type="button" class="btn btn-sm btn-outline material-action-btn" data-share-link="${escapeHtml(material.id || '')}" data-path="${escapeHtml(material.file_path || '')}" data-title="${escapeHtml(material.title || 'ملف')}">مشاركة</button>`;
+  const platformLink = `${window.location.origin}/file-view.html?id=${encodeURIComponent(material.id || '')}`;
   return `
     <div class="material-card">
       <div class="material-card-top">
@@ -213,9 +210,12 @@ function materialCard(material, badgeLabel) {
         </div>
       </div>
       <div class="material-card-actions">
+        <button type="button" class="btn btn-sm btn-primary material-action-btn" data-view="${escapeHtml(material.id || '')}">عرض</button>
         ${solutionBtn}
-        ${shareBtns}
+        <button type="button" class="btn btn-sm btn-outline material-action-btn" data-copy-link="${escapeHtml(platformLink)}">نسخ الرابط</button>
+        <button type="button" class="btn btn-sm btn-outline material-action-btn" data-share-link="${escapeHtml(platformLink)}" data-title="${escapeHtml(material.title || 'ملف')}">مشاركة</button>
         <button type="button" class="btn btn-sm btn-secondary material-action-btn" data-download="${escapeHtml(material.id)}" data-path="${escapeHtml(material.file_path || '')}" aria-label="تنزيل الملف" title="تنزيل">
+          <span class="dl-spinner hidden" aria-hidden="true"></span>
           <span data-icon="download"></span>
           <span class="material-dl-label">تنزيل</span>
         </button>
@@ -226,16 +226,22 @@ function materialCard(material, badgeLabel) {
 function bindDownloads(el) {
   initIcons();
   el.querySelectorAll('[data-download]').forEach((button) => {
-    button.addEventListener('click', () => downloadMaterial(button.dataset.download, button.dataset.path));
+    button.addEventListener('click', () => downloadMaterial(button.dataset.download, button.dataset.path, button));
+  });
+  el.querySelectorAll('[data-view]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const id = button.dataset.view;
+      if (id) window.location.href = `/file-view.html?id=${encodeURIComponent(id)}`;
+    });
   });
   el.querySelectorAll('[data-solution]').forEach((button) => {
     button.addEventListener('click', () => showSolutionImage(button.dataset.solution));
   });
   el.querySelectorAll('[data-copy-link]').forEach((button) => {
-    button.addEventListener('click', () => copyMaterialLink(button.dataset.path));
+    button.addEventListener('click', () => copyPlatformLink(button.dataset.copyLink));
   });
   el.querySelectorAll('[data-share-link]').forEach((button) => {
-    button.addEventListener('click', () => shareMaterialLink(button.dataset.path, button.dataset.title));
+    button.addEventListener('click', () => sharePlatformLink(button.dataset.shareLink, button.dataset.title));
   });
 }
 
@@ -347,26 +353,50 @@ async function loadAnnouncements(el) {
   initIcons();
 }
 
-async function downloadMaterial(id, path) {
+async function downloadMaterial(id, path, button) {
   if (!path) { showToast('مسار الملف مش متاح دلوقتي.', 'error'); return; }
+  const spinner = button?.querySelector('.dl-spinner');
+  const icon = button?.querySelector('[data-icon]');
+  const label = button?.querySelector('.material-dl-label');
   try {
+    if (button) {
+      button.disabled = true;
+      button.classList.add('is-loading');
+    }
+    if (spinner) spinner.classList.remove('hidden');
+    if (icon) icon.classList.add('hidden');
+    if (label) label.textContent = 'جاري…';
+
     const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 60);
     if (error) throw error;
     try { await supabase.rpc('increment_download_count', { p_material_id: id }); }
     catch (countError) { console.warn('Could not count file download:', countError); }
-    window.open(data.signedUrl, '_blank', 'noopener');
+
+    const a = document.createElement('a');
+    a.href = data.signedUrl;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.download = '';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   } catch (error) {
     console.error('Material download failed:', error);
     showToast('مش قادرين ننزّل الملف. ممكن يكون مش متاح دلوقتي.', 'error');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.classList.remove('is-loading');
+    }
+    if (spinner) spinner.classList.add('hidden');
+    if (icon) icon.classList.remove('hidden');
+    if (label) label.textContent = 'تنزيل';
   }
 }
 
-async function copyMaterialLink(path) {
-  if (!path) { showToast('مفيش رابط متاح للنسخ.', 'error'); return; }
+async function copyPlatformLink(url) {
+  if (!url) { showToast('مفيش رابط متاح للنسخ.', 'error'); return; }
   try {
-    const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 3600);
-    if (error) throw error;
-    const url = data.signedUrl;
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(url);
     } else {
@@ -377,29 +407,25 @@ async function copyMaterialLink(path) {
       document.execCommand('copy');
       document.body.removeChild(ta);
     }
-    showToast('تم نسخ رابط الملف.', 'success');
+    showToast('تم نسخ رابط الملف داخل المنصة.', 'success');
   } catch (error) {
     console.error('Copy link failed:', error);
     showToast('ما قدرناش ننسخ الرابط.', 'error');
   }
 }
 
-async function shareMaterialLink(path, title) {
-  if (!path) { showToast('مفيش رابط للمشاركة.', 'error'); return; }
+async function sharePlatformLink(url, title) {
+  if (!url) { showToast('مفيش رابط للمشاركة.', 'error'); return; }
   try {
-    const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 3600);
-    if (error) throw error;
-    const url = data.signedUrl;
     if (navigator.share) {
-      await navigator.share({ title: title || 'ملف NUSC', text: title || 'ملف من NUSC', url });
+      await navigator.share({
+        title: title || 'ملف NUSC',
+        text: (title || 'ملف') + ' على منصة NUSC',
+        url
+      });
       return;
     }
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(url);
-      showToast('تم نسخ الرابط للمشاركة.', 'success');
-    } else {
-      showToast('المشاركة غير متاحة على الجهاز ده.', 'error');
-    }
+    await copyPlatformLink(url);
   } catch (error) {
     if (error && error.name === 'AbortError') return;
     console.error('Share link failed:', error);
