@@ -18,9 +18,11 @@
   </header>
   <main class="page" style="padding-bottom:24px">
     <div class="container page-content">
-      <p class="text-sm text-muted mb-2">ارفع الملف وحدد المادة والقسم اللي هيظهر فيه: المحاضرات أو السكاشن أو الواجبات. للواجبات تقدر تضيف صورة الحل منفصلة عن ملف الـ PDF.</p>
+      <p class="text-sm text-muted mb-2">ارفع ملف جديد أو عدّل أي ملف موجود: الاسم، المادة، القسم، الوصف، أو استبدال الملف نفسه.</p>
       <div id="form-panel" class="card mb-3 hidden">
+        <h3 class="card-title mb-2" id="form-heading">رفع ملف جديد</h3>
         <form id="mat-form">
+          <input type="hidden" id="edit_id" value="" />
           <div class="form-group">
             <label class="form-label" for="title">اسم الملف *</label>
             <input type="text" id="title" class="form-input" required maxlength="180" placeholder="مثال: واجب 1 - مقدمة" />
@@ -42,8 +44,9 @@
             <textarea id="description" class="form-textarea" rows="2" maxlength="1000" placeholder="تفاصيل تساعد الطالب يعرف الملف"></textarea>
           </div>
           <div class="form-group">
-            <label class="form-label" for="file">الملف *</label>
-            <input type="file" id="file" class="form-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,.jpg,.jpeg,.png,.webp,.xls,.xlsx" required />
+            <label class="form-label" for="file" id="file-label">الملف *</label>
+            <input type="file" id="file" class="form-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,.jpg,.jpeg,.png,.webp,.xls,.xlsx" />
+            <p class="form-hint" id="file-hint">عند التعديل: اتركه فاضي لو مش عايز تغيّر الملف، أو اختار ملف جديد للاستبدال.</p>
           </div>
           <div class="form-group" id="solution-group">
             <label class="form-label" for="solution_image">صورة الحل (اختياري — للواجبات)</label>
@@ -51,7 +54,7 @@
             <p class="form-hint">صورة منفصلة عن ملف الواجب. الطالب هيشوفها بزر «عرض الحل».</p>
           </div>
           <div class="flex gap-1">
-            <button type="submit" class="btn btn-primary">ارفع الملف</button>
+            <button type="submit" class="btn btn-primary" id="submit-btn">ارفع الملف</button>
             <button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button>
           </div>
         </form>
@@ -60,7 +63,6 @@
     </div>
   </main>
 
-  <!-- Hidden input for attaching solution to existing assignment -->
   <input type="file" id="solution-attach-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" style="display:none" />
 
   <script type="module">
@@ -71,15 +73,68 @@
     let profile = null;
     let subjectNames = new Map();
     let attachTargetId = null;
-    const typeLabels = { lecture: 'المحاضرات', section: 'السكاشن', assignment: 'الواجبات', notes: 'المحاضرات', exam: 'المحاضرات', other: 'المحاضرات', pdf: 'المحاضرات', slides: 'المحاضرات' };
+    let materialsCache = [];
+    let editingId = null;
+    let editingOriginal = null;
+
+    const typeLabels = {
+      lecture: 'المحاضرات',
+      section: 'السكاشن',
+      assignment: 'الواجبات',
+      notes: 'المحاضرات',
+      exam: 'المحاضرات',
+      other: 'المحاضرات',
+      pdf: 'المحاضرات',
+      slides: 'المحاضرات'
+    };
+
+    function resetFormMode() {
+      editingId = null;
+      editingOriginal = null;
+      document.getElementById('edit_id').value = '';
+      document.getElementById('form-heading').textContent = 'رفع ملف جديد';
+      document.getElementById('submit-btn').textContent = 'ارفع الملف';
+      document.getElementById('file-label').textContent = 'الملف *';
+      document.getElementById('file').required = true;
+      document.getElementById('mat-form').reset();
+      document.getElementById('material_type').value = 'lecture';
+    }
+
+    function openCreateForm() {
+      resetFormMode();
+      document.getElementById('form-panel').classList.remove('hidden');
+      document.getElementById('title').focus();
+    }
+
+    function openEditForm(item) {
+      editingId = item.id;
+      editingOriginal = item;
+      document.getElementById('edit_id').value = item.id;
+      document.getElementById('form-heading').textContent = 'تعديل ملف';
+      document.getElementById('submit-btn').textContent = 'حفظ التعديلات';
+      document.getElementById('file-label').textContent = 'استبدال الملف (اختياري)';
+      document.getElementById('file').required = false;
+      document.getElementById('file').value = '';
+      document.getElementById('solution_image').value = '';
+      document.getElementById('title').value = item.title || '';
+      document.getElementById('subject_id').value = item.subject_id || '';
+      document.getElementById('material_type').value = item.material_type || 'lecture';
+      document.getElementById('description').value = item.description || '';
+      document.getElementById('form-panel').classList.remove('hidden');
+      document.getElementById('form-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById('title').focus();
+    }
 
     async function init() {
       const result = await protectAdminPage();
       if (!result) return;
       profile = result.profile;
       initIcons();
-      document.getElementById('add-btn').addEventListener('click', () => document.getElementById('form-panel').classList.remove('hidden'));
-      document.getElementById('cancel-btn').addEventListener('click', () => document.getElementById('form-panel').classList.add('hidden'));
+      document.getElementById('add-btn').addEventListener('click', openCreateForm);
+      document.getElementById('cancel-btn').addEventListener('click', () => {
+        document.getElementById('form-panel').classList.add('hidden');
+        resetFormMode();
+      });
       document.getElementById('mat-form').addEventListener('submit', save);
       document.getElementById('solution-attach-input').addEventListener('change', onAttachSolution);
       await loadSubjects();
@@ -102,16 +157,34 @@
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase.from('materials')
-          .select('id, title, subject_id, material_type, file_type, file_path, file_size, solution_image_path, created_at, is_published')
-          .order('created_at', { ascending: false }).limit(100);
-        if (error) throw error;
-        if (!data?.length) { showEmpty(el, 'لسه مفيش ملفات مرفوعة. اضغط «رفع ملف» عشان تبدأ.'); return; }
-        el.innerHTML = data.map((item) => {
-          const label = typeLabels[item.material_type] || 'المحاضرات';
-          const isAssignment = item.material_type === 'assignment';
-          const hasSolution = !!item.solution_image_path;
-          return `<article class="card mb-2">
+        let result = await supabase
+          .from('materials')
+          .select('id, title, description, subject_id, material_type, file_type, file_path, file_name, file_size, solution_image_path, created_at, is_published')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        if (result.error && /description|file_name/i.test(String(result.error.message || ''))) {
+          result = await supabase
+            .from('materials')
+            .select('id, title, subject_id, material_type, file_type, file_path, file_size, solution_image_path, created_at, is_published')
+            .order('created_at', { ascending: false })
+            .limit(100);
+        }
+        if (result.error) throw result.error;
+
+        const data = result.data || [];
+        materialsCache = data;
+        if (!data.length) {
+          showEmpty(el, 'لسه مفيش ملفات مرفوعة. اضغط «رفع ملف» عشان تبدأ.');
+          return;
+        }
+
+        el.innerHTML = data
+          .map((item) => {
+            const label = typeLabels[item.material_type] || 'المحاضرات';
+            const isAssignment = item.material_type === 'assignment';
+            const hasSolution = !!item.solution_image_path;
+            return `<article class="card mb-2">
             <div class="flex justify-between items-center flex-wrap gap-1">
               <div>
                 <h3 class="card-title">${escapeHtml(item.title)}</h3>
@@ -121,12 +194,21 @@
               </div>
               <div class="flex gap-1 items-center flex-wrap">
                 <span class="badge ${item.is_published === false ? 'badge-warning' : 'badge-success'}">${item.is_published === false ? 'مسودة' : 'منشور'}</span>
+                <button type="button" class="btn btn-sm btn-outline" data-edit="${item.id}">تعديل</button>
                 ${isAssignment ? `<button type="button" class="btn btn-sm btn-secondary" data-sol="${item.id}">${hasSolution ? 'تغيير صورة الحل' : 'إضافة صورة الحل'}</button>` : ''}
                 <button type="button" class="btn btn-sm btn-danger" data-del="${item.id}">حذف</button>
               </div>
             </div>
           </article>`;
-        }).join('');
+          })
+          .join('');
+
+        el.querySelectorAll('[data-edit]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const item = materialsCache.find((entry) => String(entry.id) === String(button.dataset.edit));
+            if (item) openEditForm(item);
+          });
+        });
 
         el.querySelectorAll('[data-sol]').forEach((button) => {
           button.addEventListener('click', () => {
@@ -139,9 +221,12 @@
         el.querySelectorAll('[data-del]').forEach((button) => {
           button.addEventListener('click', async () => {
             if (!confirm('متأكد إنك عايز تحذف الملف ده؟')) return;
-            const item = data.find((entry) => String(entry.id) === String(button.dataset.del));
+            const item = materialsCache.find((entry) => String(entry.id) === String(button.dataset.del));
             const { error: deleteError } = await supabase.from('materials').delete().eq('id', button.dataset.del);
-            if (deleteError) { showToast(deleteError.message, 'error'); return; }
+            if (deleteError) {
+              showToast(deleteError.message, 'error');
+              return;
+            }
             const paths = [];
             if (item?.file_path) paths.push(item.file_path);
             if (item?.solution_image_path) paths.push(item.solution_image_path);
@@ -170,11 +255,15 @@
       }
       try {
         const path = await uploadSolutionImage(file);
-        const { data: existing } = await supabase.from('materials').select('solution_image_path').eq('id', materialId).maybeSingle();
+        const { data: existing } = await supabase
+          .from('materials')
+          .select('solution_image_path')
+          .eq('id', materialId)
+          .maybeSingle();
         const { error } = await supabase.from('materials').update({ solution_image_path: path }).eq('id', materialId);
         if (error) {
           await supabase.storage.from('materials').remove([path]);
-          showToast(error.message || 'تعذر حفظ صورة الحل. نفّذ supabase/fix_solution_images.sql', 'error');
+          showToast(error.message || 'تعذر حفظ صورة الحل.', 'error');
           return;
         }
         if (existing?.solution_image_path && existing.solution_image_path !== path) {
@@ -191,35 +280,36 @@
     async function uploadSolutionImage(file) {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const path = `solutions/${profile.id}/${Date.now()}_${safeName}`;
-      const { error } = await supabase.storage.from('materials').upload(path, file, { contentType: file.type || 'image/jpeg', upsert: false });
+      const { error } = await supabase.storage.from('materials').upload(path, file, {
+        contentType: file.type || 'image/jpeg',
+        upsert: false
+      });
       if (error) throw error;
       return path;
     }
 
     function isMissingMaterialColumn(error, column) {
       const text = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
-      return text.includes(`could not find the '${column.toLowerCase()}' column`) ||
+      return (
+        text.includes(`could not find the '${column.toLowerCase()}' column`) ||
         text.includes(`column "${column.toLowerCase()}" does not exist`) ||
         text.includes(`column ${column.toLowerCase()} does not exist`) ||
-        text.includes(`materials.${column.toLowerCase()}`);
+        text.includes(`materials.${column.toLowerCase()}`)
+      );
     }
 
     async function insertMaterial(payload) {
       const candidate = { ...payload };
       for (let attempt = 0; attempt < 9; attempt += 1) {
-        const result = await supabase.from('materials')
-          .insert(candidate)
-          .select('id, title, subject_id')
-          .single();
+        const result = await supabase.from('materials').insert(candidate).select('id, title, subject_id').single();
         if (!result.error) return result;
 
-        const message = String(result.error.message || '').toLowerCase();
         if (candidate.created_by && isMissingMaterialColumn(result.error, 'created_by')) {
           candidate.uploaded_by = candidate.created_by;
           delete candidate.created_by;
           continue;
         }
-        if (message.includes('uploaded_by') && result.error.code === '23502' && profile?.id) {
+        if (String(result.error.message || '').toLowerCase().includes('uploaded_by') && result.error.code === '23502' && profile?.id) {
           candidate.uploaded_by = profile.id;
           continue;
         }
@@ -228,9 +318,18 @@
           continue;
         }
 
-        const optionalColumns = ['description', 'file_name', 'file_type', 'file_size', 'material_type', 'is_published', 'created_by', 'solution_image_path'];
-        const missingOptional = optionalColumns.find(column =>
-          Object.prototype.hasOwnProperty.call(candidate, column) && isMissingMaterialColumn(result.error, column)
+        const optionalColumns = [
+          'description',
+          'file_name',
+          'file_type',
+          'file_size',
+          'material_type',
+          'is_published',
+          'created_by',
+          'solution_image_path'
+        ];
+        const missingOptional = optionalColumns.find(
+          (column) => Object.prototype.hasOwnProperty.call(candidate, column) && isMissingMaterialColumn(result.error, column)
         );
         if (missingOptional) {
           delete candidate[missingOptional];
@@ -241,27 +340,141 @@
       return { data: null, error: { message: 'تعذر حفظ سجل الملف بسبب اختلاف أعمدة قاعدة البيانات.' } };
     }
 
+    async function updateMaterial(id, payload) {
+      const candidate = { ...payload };
+      for (let attempt = 0; attempt < 9; attempt += 1) {
+        const result = await supabase.from('materials').update(candidate).eq('id', id).select('id').single();
+        if (!result.error) return result;
+
+        const optionalColumns = [
+          'description',
+          'file_name',
+          'file_type',
+          'file_size',
+          'material_type',
+          'is_published',
+          'solution_image_path',
+          'file_path'
+        ];
+        const missingOptional = optionalColumns.find(
+          (column) => Object.prototype.hasOwnProperty.call(candidate, column) && isMissingMaterialColumn(result.error, column)
+        );
+        if (missingOptional) {
+          delete candidate[missingOptional];
+          continue;
+        }
+        return result;
+      }
+      return { data: null, error: { message: 'تعذر تحديث سجل الملف.' } };
+    }
+
     async function save(event) {
       event.preventDefault();
       const fileInput = document.getElementById('file');
-      const file = fileInput.files?.[0];
+      const file = fileInput.files?.[0] || null;
       const solutionInput = document.getElementById('solution_image');
       const solutionFile = solutionInput.files?.[0] || null;
       const subjectId = document.getElementById('subject_id').value;
-      if (!subjectId) { showToast('اختار المادة الأول.', 'error'); return; }
-      if (!file) { showToast('اختار الملف اللي هترفعه.', 'error'); return; }
+      const title = document.getElementById('title').value.trim();
+      const materialType = document.getElementById('material_type').value;
+      const description = document.getElementById('description').value.trim() || null;
+
+      if (!title) {
+        showToast('اكتب اسم الملف.', 'error');
+        return;
+      }
+      if (!subjectId) {
+        showToast('اختار المادة الأول.', 'error');
+        return;
+      }
+
       const allowed = /\.(pdf|doc|docx|ppt|pptx|zip|rar|jpg|jpeg|png|webp|xls|xlsx)$/i;
-      if (!allowed.test(file.name)) { showToast('نوع الملف ده مش مدعوم.', 'error'); return; }
+      if (file && !allowed.test(file.name)) {
+        showToast('نوع الملف ده مش مدعوم.', 'error');
+        return;
+      }
+      if (!editingId && !file) {
+        showToast('اختار الملف اللي هترفعه.', 'error');
+        return;
+      }
       if (solutionFile && !/^image\/(jpeg|png|webp)$/i.test(solutionFile.type) && !/\.(jpe?g|png|webp)$/i.test(solutionFile.name)) {
         showToast('صورة الحل لازم تكون JPG أو PNG أو WebP.', 'error');
         return;
       }
 
       await withLoading(event.target.querySelector('[type=submit]'), async () => {
+        // ===== UPDATE =====
+        if (editingId) {
+          const payload = {
+            title,
+            description,
+            subject_id: subjectId,
+            material_type: materialType
+          };
+
+          let newPath = null;
+          let newSolutionPath = null;
+          const oldPath = editingOriginal?.file_path || null;
+          const oldSolution = editingOriginal?.solution_image_path || null;
+
+          if (file) {
+            const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            newPath = `${profile.id}/${Date.now()}_${safeName}`;
+            const { error: uploadError } = await supabase.storage.from('materials').upload(newPath, file);
+            if (uploadError) {
+              showToast(uploadError.message, 'error');
+              return;
+            }
+            payload.file_path = newPath;
+            payload.file_name = file.name;
+            payload.file_type = file.type || file.name.split('.').pop().toLowerCase();
+            payload.file_size = file.size;
+          }
+
+          if (solutionFile) {
+            try {
+              newSolutionPath = await uploadSolutionImage(solutionFile);
+              payload.solution_image_path = newSolutionPath;
+            } catch (solErr) {
+              if (newPath) await supabase.storage.from('materials').remove([newPath]).catch(() => {});
+              showToast(solErr.message || 'فشل رفع صورة الحل.', 'error');
+              return;
+            }
+          }
+
+          const { error } = await updateMaterial(editingId, payload);
+          if (error) {
+            const cleanup = [];
+            if (newPath) cleanup.push(newPath);
+            if (newSolutionPath) cleanup.push(newSolutionPath);
+            if (cleanup.length) await supabase.storage.from('materials').remove(cleanup).catch(() => {});
+            showToast(error.message || 'تعذر حفظ التعديلات.', 'error');
+            return;
+          }
+
+          // cleanup old storage only after successful DB update
+          const toRemove = [];
+          if (newPath && oldPath && oldPath !== newPath) toRemove.push(oldPath);
+          if (newSolutionPath && oldSolution && oldSolution !== newSolutionPath) toRemove.push(oldSolution);
+          if (toRemove.length) {
+            await supabase.storage.from('materials').remove(toRemove).catch(() => {});
+          }
+
+          showToast('تم حفظ التعديلات.', 'success');
+          document.getElementById('form-panel').classList.add('hidden');
+          resetFormMode();
+          await load();
+          return;
+        }
+
+        // ===== CREATE =====
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const path = `${profile.id}/${Date.now()}_${safeName}`;
         const { error: uploadError } = await supabase.storage.from('materials').upload(path, file);
-        if (uploadError) { showToast(uploadError.message, 'error'); return; }
+        if (uploadError) {
+          showToast(uploadError.message, 'error');
+          return;
+        }
 
         let solutionPath = null;
         if (solutionFile) {
@@ -275,10 +488,10 @@
         }
 
         const payload = {
-          title: document.getElementById('title').value.trim(),
-          description: document.getElementById('description').value.trim() || null,
+          title,
+          description,
           subject_id: subjectId,
-          material_type: document.getElementById('material_type').value,
+          material_type: materialType,
           file_name: file.name,
           file_path: path,
           file_type: file.type || file.name.split('.').pop().toLowerCase(),
@@ -293,14 +506,13 @@
           const cleanup = [path];
           if (solutionPath) cleanup.push(solutionPath);
           await supabase.storage.from('materials').remove(cleanup).catch(() => {});
-          console.error('Material insert failed:', error);
-          showToast(error?.message || 'لم يتم تأكيد حفظ سجل الملف. لو المشكلة في صورة الحل نفّذ supabase/fix_solution_images.sql', 'error');
+          showToast(error?.message || 'لم يتم حفظ الملف.', 'error');
           return;
         }
+
         showToast('الملف اترفع واتحفظ في القسم المحدد.', 'success');
         document.getElementById('form-panel').classList.add('hidden');
-        event.target.reset();
-        document.getElementById('material_type').value = 'lecture';
+        resetFormMode();
         await load();
       });
     }
