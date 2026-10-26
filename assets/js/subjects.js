@@ -3,9 +3,7 @@
  * NUSC Student Hub - Subjects Page
  */
 
-import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
-
 import {
   escapeHtml,
   showEmpty,
@@ -14,6 +12,8 @@ import {
   setActiveNav,
   debounce
 } from './utils.js';
+import { cachedStaleWhileRevalidate } from './cache.js';
+import { fetchSubjects } from './data-api.js';
 
 let allSubjects = [];
 
@@ -46,6 +46,27 @@ async function init() {
   }
 }
 
+function applySubjects(data) {
+  const el = document.getElementById('subjects-grid');
+  if (!el) return;
+
+  allSubjects = (data || []).slice().sort((a, b) => {
+    const orderA = Number(a.sort_order ?? 9999);
+    const orderB = Number(b.sort_order ?? 9999);
+    if (orderA !== orderB) return orderA - orderB;
+    return String(a.name || '').localeCompare(String(b.name || ''), 'ar');
+  });
+
+  if (!allSubjects.length) {
+    showEmpty(el, 'لا توجد مواد نشطة متاحة حاليًا.');
+    return;
+  }
+
+  const count = document.getElementById('subjects-count');
+  if (count) count.textContent = String(allSubjects.length);
+  renderSubjects(allSubjects);
+}
+
 async function loadSubjects() {
   const el = document.getElementById('subjects-grid');
 
@@ -54,48 +75,16 @@ async function loadSubjects() {
     return;
   }
 
-  el.innerHTML =
-    '<div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>';
-
   try {
-    const { data, error } = await supabase
-      .from('subjects')
-      .select('*');
-
-    if (error) throw error;
-
-    // Support both schema variants: some installations use is_active, others use is_published.
-    allSubjects = (data || []).filter(
-      (subject) => (subject.is_active ?? subject.is_published ?? true) !== false
+    const data = await cachedStaleWhileRevalidate(
+      'page:subjects',
+      () => fetchSubjects(100),
+      { ttlMs: 2 * 60 * 1000, onUpdate: applySubjects }
     );
-
-    allSubjects.sort((a, b) => {
-      const orderA = Number(a.sort_order ?? 9999);
-      const orderB = Number(b.sort_order ?? 9999);
-
-      if (orderA !== orderB) return orderA - orderB;
-
-      return String(a.name || '').localeCompare(
-        String(b.name || ''),
-        'ar'
-      );
-    });
-
-    if (!allSubjects.length) {
-      showEmpty(el, 'لا توجد مواد نشطة متاحة حاليًا.');
-      return;
-    }
-
-    const count = document.getElementById('subjects-count');
-    if (count) count.textContent = String(allSubjects.length);
-    renderSubjects(allSubjects);
+    applySubjects(data);
   } catch (error) {
     console.error('Subjects loading error:', error);
-
-    showError(
-      el,
-      'تعذر تحميل المواد. افتح Console لمعرفة خطأ Supabase بالتحديد.'
-    );
+    showError(el, 'تعذر تحميل المواد. حاول مرة أخرى.');
   }
 }
 
@@ -134,7 +123,9 @@ function renderSubjects(subjects) {
 
   const count = document.getElementById('subjects-count');
   if (count) count.textContent = String(subjects.length);
-  el.innerHTML = subjects.map((subject) => `
+  el.innerHTML = subjects
+    .map(
+      (subject) => `
     <article class="card subject-card">
       <h3 class="card-title">
         ${escapeHtml(subject.name || 'مادة دراسية')}
@@ -169,7 +160,9 @@ function renderSubjects(subjects) {
         فتح المادة
       </a>
     </article>
-  `).join('');
+  `
+    )
+    .join('');
 
   initIcons();
 }
