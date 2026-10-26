@@ -50,13 +50,76 @@ const supabaseUrl = normalizeUrl(rawUrl);
 
 console.info('[NUSC] Supabase connected:', supabaseUrl);
 
+// Some mobile browsers (especially private/restricted browsing modes) can throw
+// when localStorage is accessed. Keep auth initialization from breaking every page.
+function createSafeAuthStorage() {
+  const memory = new Map();
+
+  function read(storage, key) {
+    try { return storage?.getItem(key) ?? null; } catch { return null; }
+  }
+
+  function write(storage, key, value) {
+    try {
+      if (!storage) return false;
+      storage.setItem(key, value);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function remove(storage, key) {
+    try { storage?.removeItem(key); } catch { /* storage may be unavailable */ }
+  }
+
+  function getStorage(name) {
+    try {
+      if (typeof window === 'undefined') return null;
+      return window[name];
+    } catch {
+      return null;
+    }
+  }
+
+  const local = getStorage('localStorage');
+  const session = getStorage('sessionStorage');
+
+  return {
+    getItem(key) {
+      const localValue = read(local, key);
+      if (localValue !== null) return localValue;
+      const sessionValue = read(session, key);
+      if (sessionValue !== null) return sessionValue;
+      return memory.get(key) ?? null;
+    },
+    setItem(key, value) {
+      if (write(local, key, value)) {
+        remove(session, key);
+        memory.delete(key);
+        return;
+      }
+      if (write(session, key, value)) {
+        memory.delete(key);
+        return;
+      }
+      memory.set(key, value);
+    },
+    removeItem(key) {
+      remove(local, key);
+      remove(session, key);
+      memory.delete(key);
+    }
+  };
+}
+
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
     storageKey: 'nusc-auth-token',
-    storage: typeof localStorage !== 'undefined' ? localStorage : undefined,
+    storage: createSafeAuthStorage(),
     flowType: 'pkce'
   },
   global: {
