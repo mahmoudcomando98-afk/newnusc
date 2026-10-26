@@ -1,10 +1,11 @@
 /**
  * In-app file viewer — PDF via PDF.js (canvas), images inline.
- * Open/download use the signed storage URL so mobile browsers actually respond.
+ * Download waits for 100% with progress overlay.
  */
 import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
 import { escapeHtml, showToast, initIcons, formatFileSize, timeAgo } from './utils.js';
+import { downloadFileComplete } from './download-file.js';
 
 const params = new URLSearchParams(window.location.search);
 const materialId = params.get('id');
@@ -55,34 +56,25 @@ function openSignedInNewTab() {
     showToast('رابط الملف مش جاهز دلوقتي.', 'error');
     return;
   }
-  // window.open is more reliable than <a> with blob: on mobile
   const win = window.open(signedFileUrl, '_blank', 'noopener,noreferrer');
-  if (!win) {
-    // popup blocked — navigate same tab as last resort
-    window.location.href = signedFileUrl;
-  }
+  if (!win) window.location.href = signedFileUrl;
 }
 
-async function downloadSigned() {
+async function downloadSigned(button) {
   if (!signedFileUrl) {
     showToast('رابط الملف مش جاهز دلوقتي.', 'error');
     return;
   }
   try {
-    const res = await fetch(signedFileUrl, { mode: 'cors', credentials: 'omit' });
-    if (!res.ok) throw new Error('status ' + res.status);
-    const blob = await res.blob();
-    const obj = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = obj;
-    a.download = materialMeta?.file_name || materialMeta?.title || 'file.pdf';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(obj), 2000);
+    await downloadFileComplete({
+      url: signedFileUrl,
+      filename: materialMeta?.file_name || materialMeta?.title || 'file.pdf',
+      button
+    });
+    showToast('تم تنزيل الملف.', 'success');
   } catch (err) {
-    console.warn('[NUSC] download fetch failed, opening tab', err);
-    openSignedInNewTab();
+    console.warn('[NUSC] download failed', err);
+    showToast('ما قدرناش نكمّل التنزيل. جرّب تاني.', 'error');
   }
 }
 
@@ -94,7 +86,6 @@ async function renderPdfWithPdfJs(viewer, url) {
   const loadingTask = pdfjsLib.getDocument({
     url,
     withCredentials: false,
-    // avoid range requests that some mobile networks break
     disableRange: true,
     disableStream: true
   });
@@ -115,7 +106,6 @@ async function renderPdfWithPdfJs(viewer, url) {
   viewer.innerHTML = '';
   viewer.appendChild(wrap);
 
-  // Render page by page (cap very large files for memory)
   const maxPages = Math.min(total, 40);
   for (let pageNum = 1; pageNum <= maxPages; pageNum += 1) {
     const page = await pdf.getPage(pageNum);
@@ -137,7 +127,7 @@ async function renderPdfWithPdfJs(viewer, url) {
     const more = document.createElement('p');
     more.className = 'text-sm text-muted';
     more.style.textAlign = 'center';
-    more.textContent = `عرضنا أول ${maxPages} صفحة. باقي الصفحات من «فتح في تاب» أو التنزيل.`;
+    more.textContent = `عرضنا أول ${maxPages} صفحة. باقي الصفحات من «فتح» أو التنزيل.`;
     wrap.appendChild(more);
   }
 }
@@ -225,7 +215,7 @@ async function init() {
       <button type="button" class="btn btn-sm btn-primary" id="btn-open">فتح</button>
       <button type="button" class="btn btn-sm btn-secondary" id="btn-download">
         <span class="dl-spinner hidden" aria-hidden="true"></span>
-        <span>تنزيل</span>
+        <span class="material-dl-label">تنزيل</span>
       </button>
       <button type="button" class="btn btn-sm btn-outline" id="btn-copy">نسخ رابط المنصة</button>
       <button type="button" class="btn btn-sm btn-outline" id="btn-share">مشاركة</button>
@@ -247,16 +237,7 @@ async function init() {
 
     document.getElementById('btn-open')?.addEventListener('click', openSignedInNewTab);
     document.getElementById('btn-download')?.addEventListener('click', async (e) => {
-      const btn = e.currentTarget;
-      const spinner = btn.querySelector('.dl-spinner');
-      try {
-        btn.disabled = true;
-        spinner?.classList.remove('hidden');
-        await downloadSigned();
-      } finally {
-        btn.disabled = false;
-        spinner?.classList.add('hidden');
-      }
+      await downloadSigned(e.currentTarget);
     });
     document.getElementById('btn-copy')?.addEventListener('click', async () => {
       try {
