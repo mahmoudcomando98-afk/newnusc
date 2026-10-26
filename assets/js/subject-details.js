@@ -4,6 +4,7 @@
 import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
 import { escapeHtml, formatDate, timeAgo, showEmpty, showError, initIcons, formatFileSize, showToast } from './utils.js';
+import { downloadFileComplete } from './download-file.js';
 
 function safeHttpUrl(raw) {
   if (raw && typeof raw === 'object') raw = raw.url || raw.href || '';
@@ -355,42 +356,22 @@ async function loadAnnouncements(el) {
 
 async function downloadMaterial(id, path, button) {
   if (!path) { showToast('مسار الملف مش متاح دلوقتي.', 'error'); return; }
-  const spinner = button?.querySelector('.dl-spinner');
-  const icon = button?.querySelector('[data-icon]');
-  const label = button?.querySelector('.material-dl-label');
   try {
-    if (button) {
-      button.disabled = true;
-      button.classList.add('is-loading');
-    }
-    if (spinner) spinner.classList.remove('hidden');
-    if (icon) icon.classList.add('hidden');
-    if (label) label.textContent = 'جاري…';
-
-    const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 60);
+    const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 120);
     if (error) throw error;
     try { await supabase.rpc('increment_download_count', { p_material_id: id }); }
     catch (countError) { console.warn('Could not count file download:', countError); }
 
-    const a = document.createElement('a');
-    a.href = data.signedUrl;
-    a.target = '_blank';
-    a.rel = 'noopener';
-    a.download = '';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    const nameGuess = (path.split('/').pop() || 'file').split('?')[0];
+    await downloadFileComplete({
+      url: data.signedUrl,
+      filename: nameGuess,
+      button
+    });
+    showToast('تم تنزيل الملف.', 'success');
   } catch (error) {
     console.error('Material download failed:', error);
     showToast('مش قادرين ننزّل الملف. ممكن يكون مش متاح دلوقتي.', 'error');
-  } finally {
-    if (button) {
-      button.disabled = false;
-      button.classList.remove('is-loading');
-    }
-    if (spinner) spinner.classList.add('hidden');
-    if (icon) icon.classList.remove('hidden');
-    if (label) label.textContent = 'تنزيل';
   }
 }
 
