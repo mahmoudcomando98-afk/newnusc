@@ -1,0 +1,94 @@
+/* Home important-notice card — simple and clean */
+.important-notice {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+  padding: 14px 14px 14px 12px !important;
+  margin: 0 0 14px !important;
+  background: #fff !important;
+  border: 1px solid var(--border, #e8e4df) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+.important-notice.hidden {
+  display: none !important;
+}
+.notice-icon-wrap {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f2ee;
+  border: 1px solid var(--border, #e8e4df);
+  border-radius: 8px;
+  color: #5c564f;
+}
+.notice-icon-wrap .notice-icon,
+.notice-icon-wrap [data-icon],
+.notice-icon-wrap svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+.notice-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.notice-kicker {
+  display: block !important;
+  margin: 0 0 2px !important;
+  font-size: 0.7rem !important;
+  font-weight: 600 !important;
+  color: var(--text-muted, #6b645c) !important;
+}
+.notice-title,
+.important-notice #notice-title {
+  display: block;
+  margin: 0 0 4px !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  color: var(--text, #2c2a28) !important;
+}
+.notice-text,
+.important-notice #notice-text {
+  margin: 0 !important;
+  font-size: 0.84rem !important;
+  line-height: 1.55 !important;
+  color: var(--text-muted, #6b645c) !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.notice-open {
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: var(--text, #2c2a28) !important;
+  text-decoration: none !important;
+  background: #f7f5f2 !important;
+  border: 1px solid var(--border, #e8e4df) !important;
+  border-radius: 8px !important;
+  white-space: nowrap;
+}
+.notice-open:hover {
+  background: #f0ebe4 !important;
+}
+@media (max-width: 520px) {
+  .important-notice {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+  .notice-open {
+    width: 100%;
+    justify-content: center;
+  }
+}
