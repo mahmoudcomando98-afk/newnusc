@@ -40,7 +40,10 @@
         </select>
       </div>
 
-      <p class="text-sm text-muted mb-2" id="count-label">—</p>
+      <div class="flex justify-between items-center flex-wrap gap-1 mb-2">
+        <p class="text-sm text-muted" id="count-label" style="margin:0">—</p>
+        <button type="button" class="btn btn-sm btn-outline" id="export-btn">تصدير CSV</button>
+      </div>
       <div id="list">
         <div class="skeleton-card"><div class="skeleton skeleton-title"></div></div>
       </div>
@@ -71,6 +74,7 @@
 
       document.getElementById('search').addEventListener('input', render);
       document.getElementById('filter-status').addEventListener('change', render);
+      document.getElementById('export-btn')?.addEventListener('click', exportCsv);
 
       await load();
     }
@@ -81,8 +85,7 @@
         const { data, error } = await supabase
           .from('profiles')
           .select('id, full_name, email, student_id, role, is_active, created_at')
-          .order('created_at', { ascending: false })
-          .limit(500);
+          .order('created_at', { ascending: false });
 
         if (error) throw error;
         students = data || [];
@@ -93,26 +96,20 @@
       }
     }
 
-    function filtered() {
+    function render() {
+      const el = document.getElementById('list');
       const q = (document.getElementById('search').value || '').trim().toLowerCase();
       const status = document.getElementById('filter-status').value;
 
-      return students.filter((p) => {
-        const active = p.is_active !== false;
-        if (status === 'active' && !active) return false;
-        if (status === 'banned' && active) return false;
+      let rows = students.slice();
+      if (q) {
+        rows = rows.filter((p) =>
+          [p.full_name, p.email, p.student_id].some((v) => String(v || '').toLowerCase().includes(q))
+        );
+      }
+      if (status === 'active') rows = rows.filter((p) => p.is_active !== false);
+      if (status === 'banned') rows = rows.filter((p) => p.is_active === false);
 
-        if (!q) return true;
-        const name = String(p.full_name || '').toLowerCase();
-        const email = String(p.email || '').toLowerCase();
-        const sid = String(p.student_id || '').toLowerCase();
-        return name.includes(q) || email.includes(q) || sid.includes(q);
-      });
-    }
-
-    function render() {
-      const el = document.getElementById('list');
-      const rows = filtered();
       const bannedCount = students.filter((p) => p.is_active === false).length;
 
       document.getElementById('count-label').textContent =
@@ -163,6 +160,43 @@
         btn.addEventListener('click', () => setBanned(btn.dataset.unban, false));
       });
       initIcons();
+    }
+
+    function exportCsv() {
+      const status = document.getElementById('filter-status').value;
+      const q = (document.getElementById('search').value || '').trim().toLowerCase();
+      let rows = students.slice();
+      if (q) {
+        rows = rows.filter((p) =>
+          [p.full_name, p.email, p.student_id].some((v) => String(v || '').toLowerCase().includes(q))
+        );
+      }
+      if (status === 'active') rows = rows.filter((p) => p.is_active !== false);
+      if (status === 'banned') rows = rows.filter((p) => p.is_active === false);
+      if (!rows.length) {
+        showToast('مفيش بيانات للتصدير.', 'info');
+        return;
+      }
+      const header = ['name', 'email', 'student_id', 'role', 'status', 'created_at'];
+      const lines = [header.join(',')];
+      rows.forEach((p) => {
+        const cells = [
+          p.full_name || '',
+          p.email || '',
+          p.student_id || '',
+          p.role || 'student',
+          p.is_active === false ? 'banned' : 'active',
+          p.created_at || ''
+        ].map((c) => '"' + String(c).replace(/"/g, '""') + '"');
+        lines.push(cells.join(','));
+      });
+      const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'nusc-students.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('تم تصدير الملف.', 'success');
     }
 
     async function setBanned(userId, ban) {
