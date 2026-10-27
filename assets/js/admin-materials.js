@@ -187,6 +187,9 @@ async function load() {
               ${hasSolution ? '<p class="text-sm mt-1"><span class="badge badge-success">فيه صورة حل</span></p>' : ''}
             </div>
             <div class="flex gap-1 flex-wrap">
+              ${isAssignment ? (item.is_delivered
+                ? `<button type="button" class="btn btn-sm btn-outline" data-toggle-delivered="${item.id}" data-delivered="1">إلغاء تم التسليم</button>`
+                : `<button type="button" class="btn btn-sm btn-primary" data-toggle-delivered="${item.id}" data-delivered="0">تم التسليم</button>`) : ''}
               ${isAssignment ? `<button type="button" class="btn btn-sm btn-outline" data-edit-due="${item.id}">تعديل الموعد</button>` : ''}
               <button type="button" class="btn btn-sm btn-outline" data-edit="${item.id}">تعديل</button>
               ${isAssignment && !hasSolution ? `<button type="button" class="btn btn-sm btn-outline" data-attach-solution="${item.id}">صورة الحل</button>` : ''}
@@ -203,6 +206,37 @@ async function load() {
         if (item) openEditForm(item);
       });
     });
+
+    el.querySelectorAll('[data-toggle-delivered]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const id = button.dataset.toggleDelivered;
+        const currently = button.dataset.delivered === '1';
+        const next = !currently;
+        button.disabled = true;
+        try {
+          const { error } = await supabase
+            .from('materials')
+            .update({ is_delivered: next })
+            .eq('id', id);
+          if (error) {
+            if (isMissingMaterialColumn(error, 'is_delivered')) {
+              showToast('لازم تضيف عمود is_delivered في Supabase. نفّذ SQL اللي في الشات.', 'error');
+            } else {
+              showToast(error.message || 'تعذر تحديث الحالة.', 'error');
+            }
+            return;
+          }
+          showToast(next ? 'اتعلّم: تم التسليم.' : 'اتشالت حالة تم التسليم.', 'success');
+          await load();
+        } catch (err) {
+          console.error(err);
+          showToast('تعذر تحديث الحالة.', 'error');
+        } finally {
+          button.disabled = false;
+        }
+      });
+    });
+
     el.querySelectorAll('[data-edit-due]').forEach((button) => {
       button.addEventListener('click', () => {
         const item = materialsCache.find((entry) => String(entry.id) === String(button.dataset.editDue));
