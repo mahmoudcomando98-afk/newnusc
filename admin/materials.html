@@ -48,8 +48,11 @@
             <div class="flex gap-1 items-center flex-wrap">
               <input type="datetime-local" id="due_at" class="form-input" style="flex:1;min-width:180px" />
               <button type="button" class="btn btn-sm btn-outline" id="clear-due-at">مسح الموعد</button>
+              <button type="button" class="btn btn-sm btn-primary" id="mark-delivered">تم التسليم</button>
             </div>
-            <p class="form-hint">تقدر تغيّر الموعد في أي وقت من «تعديل الموعد» أو «تعديل». التغيير يظهر للطالب فور الحفظ.</p>
+            <input type="hidden" id="is_delivered" value="0" />
+            <p class="form-hint" id="due-hint">تقدر تغيّر الموعد أو تضغط «تم التسليم» لما الاستلام يخلص. التغيير يظهر للطالب بعد الحفظ.</p>
+            <p class="form-hint hidden" id="delivered-hint" style="color:#2f6b3a;font-weight:600">الحالة: تم التسليم — الطالب هيشوف الشارة دي.</p>
           </div>
           <div class="form-group">
             <label class="form-label" for="file" id="file-label">الملف *</label>
@@ -73,6 +76,6 @@
 
   <input type="file" id="solution-attach-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" style="display:none" />
 
-  <script type="module" src="/assets/js/admin-materials.js?v=due-1"></script>
+  <script type="module" src="/assets/js/admin-materials.js?v=due-2"></script>
 </body>
 </html>
