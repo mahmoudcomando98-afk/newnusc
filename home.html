@@ -25,43 +25,46 @@
       <nav class="desktop-nav">
         <a href="/home.html" data-nav="home" class="active">الرئيسية</a>
         <a href="/subjects.html" data-nav="subjects">المواد</a>
+        <a href="/past-exams.html" data-nav="past-exams">امتحانات سابقة</a>
         <a href="/quizzes.html" data-nav="quizzes">الكويزات</a>
         <a href="/schedule.html" data-nav="schedule">الجدول</a>
         <a href="/announcements.html" data-nav="announcements">الإعلانات</a>
       </nav>
       <div class="header-actions">
         <a href="/notifications.html" class="header-btn notification-header-btn" title="الإشعارات" aria-label="الإشعارات" id="notif-btn">
-          <span data-icon="bell"></span><span class="badge hidden" id="notif-badge">0</span>
+          <span data-icon="bell"></span>
+          <span class="notification-dot hidden" id="notif-dot"></span>
         </a>
-        <button type="button" class="user-chip" id="user-chip" title="الملف الشخصي">
-          <span class="user-avatar" id="user-avatar">؟</span><span id="user-name-short"></span>
-        </button>
         <a href="/profile.html" class="header-btn mobile-only" title="حسابي"><span data-icon="user"></span></a>
       </div>
     </div>
   </header>
   <main class="page">
-    <div class="container page-content home-content">
+    <div class="container page-content">
       <section class="home-hero">
-        <div class="hero-copy">
-          <span class="hero-eyebrow"><span class="hero-dot"></span> كلية الحاسبات والمعلومات</span>
-          <h1 id="welcome-text">أهلاً بك في NUSC</h1>
+        <div class="home-hero-content">
+          <p class="home-kicker">منصة الطلاب</p>
+          <h1 id="welcome-name">مرحبًا</h1>
           <p>ملفات المواد، مواعيد الكويزات، وإعلانات الدكاترة.</p>
-          <div class="hero-actions">
+          <div class="home-hero-actions">
             <a href="/subjects.html" class="btn btn-gold"><span data-icon="book"></span> المواد</a>
+            <a href="/past-exams.html" class="hero-secondary-link"><span data-icon="clipboard"></span> امتحانات سابقة</a>
             <a href="/updates.html" class="hero-secondary-link"><span data-icon="clipboard"></span> آخر التحديثات</a>
           </div>
         </div>
       </section>
 
       <section id="important-notice" class="important-notice hidden" aria-live="polite">
-        <div class="notice-symbol"><span data-icon="bell"></span></div>
-        <div class="notice-copy"><span class="notice-kicker">من الإدارة</span><h2 id="important-notice-title"></h2><p id="important-notice-content"></p><span id="important-notice-time" class="notice-time"></span></div>
+        <div class="notice-body">
+          <strong id="notice-title"></strong>
+          <p id="notice-text"></p>
+        </div>
         <a href="/notifications.html" class="notice-open">الإشعارات <span aria-hidden="true">←</span></a>
       </section>
 
       <section class="dashboard-shortcuts" aria-label="اختصارات">
         <a href="/subjects.html" class="shortcut-card shortcut-subjects"><span class="shortcut-icon" data-icon="book"></span><span class="shortcut-text"><strong>المواد</strong><small>محاضرات وملفات</small></span><span class="shortcut-arrow">←</span></a>
+        <a href="/past-exams.html" class="shortcut-card"><span class="shortcut-icon" data-icon="clipboard"></span><span class="shortcut-text"><strong>امتحانات سابقة</strong><small>اختار المادة وشوف الامتحانات</small></span><span class="shortcut-arrow">←</span></a>
         <a href="/quizzes.html" class="shortcut-card"><span class="shortcut-icon" data-icon="clipboard"></span><span class="shortcut-text"><strong>الكويزات</strong><small>المواعيد والتعليمات</small></span><span class="shortcut-arrow">←</span></a>
         <a href="/schedule.html" class="shortcut-card"><span class="shortcut-icon" data-icon="calendar"></span><span class="shortcut-text"><strong>الجدول</strong><small>مواعيد الأسبوع</small></span><span class="shortcut-arrow">←</span></a>
         <a href="/notifications.html" class="shortcut-card"><span class="shortcut-icon" data-icon="bell"></span><span class="shortcut-text"><strong>الإشعارات</strong><small>آخر التنبيهات</small></span><span class="shortcut-arrow">←</span></a>
@@ -70,39 +73,36 @@
 
       <section class="section home-section">
         <div class="section-header"><div><h2>المواد</h2></div><a href="/subjects.html" class="section-more">الكل</a></div>
-        <div class="card-grid home-subject-grid" id="subjects-list"><div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div></div>
+        <div id="subjects-list" class="home-subject-grid"></div>
       </section>
 
-      <div class="home-lower-grid">
+      <div class="home-two-col">
         <section class="section home-section">
           <div class="section-header"><div><h2>آخر المحاضرات</h2></div><a href="/subjects.html" class="section-more">المزيد</a></div>
-          <div class="feed-panel" id="lectures-list"><div class="skeleton skeleton-title"></div></div>
+          <div id="lectures-list" class="card"></div>
         </section>
         <section class="section home-section">
           <div class="section-header"><div><h2>الكويزات</h2></div><a href="/quizzes.html" class="section-more">الكل</a></div>
-          <div class="feed-panel" id="quizzes-list"><div class="skeleton skeleton-title"></div></div>
+          <div id="quizzes-list" class="card"></div>
         </section>
       </div>
 
       <section class="section home-section">
         <div class="section-header"><div><h2>الإعلانات</h2></div><a href="/announcements.html" class="section-more">الكل</a></div>
-        <div class="feed-panel announcements-feed" id="announcements-list"><div class="skeleton skeleton-title"></div></div>
+        <div id="announcements-list" class="card"></div>
       </section>
       <section class="section home-section">
         <div class="section-header"><div><h2>أحدث الملفات</h2></div><a href="/updates.html" class="section-more">التحديثات</a></div>
-        <div class="feed-panel" id="materials-list"><div class="skeleton skeleton-title"></div></div>
+        <div id="materials-list" class="card"></div>
       </section>
 
-      <footer class="home-footer">
-        <span class="footer-brand">NUSC</span>
-        <span>كلية الحاسبات والمعلومات</span>
-        <span>ملفات · كويزات · إعلانات</span>
-        <span class="footer-credit">تم التطوير بواسطة Mahmoud Oshiba</span>
-        <span class="footer-links" style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:8px;font-size:0.85rem">
+      <footer class="site-footer text-sm text-muted">
+        <p>تم التطوير بواسطة Mahmoud Oshiba</p>
+        <div class="footer-links">
           <a href="/about.html">عن المنصة</a>
           <a href="/contact.html">تواصل</a>
           <a href="/privacy.html">الخصوصية</a>
-        </span>
+        </div>
       </footer>
     </div>
   </main>
@@ -113,6 +113,6 @@
     <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
     <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
-  <script type="module" src="/assets/js/home.js"></script>
+  <script type="module" src="/assets/js/home.js?v=ui-polish-2"></script>
 </body>
 </html>

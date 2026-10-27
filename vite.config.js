@@ -39,6 +39,8 @@ export default defineConfig(({ mode }) => {
           'reset-password': resolve(__dirname, 'reset-password.html'),
           home: resolve(__dirname, 'home.html'),
           subjects: resolve(__dirname, 'subjects.html'),
+          'past-exams': resolve(__dirname, 'past-exams.html'),
+          'past-exam-subject': resolve(__dirname, 'past-exam-subject.html'),
           'subject-details': resolve(__dirname, 'subject-details.html'),
           'file-view': resolve(__dirname, 'file-view.html'),
           'lecture-details': resolve(__dirname, 'lecture-details.html'),
