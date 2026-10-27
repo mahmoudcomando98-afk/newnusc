@@ -207,6 +207,7 @@ function materialCard(material, badgeLabel) {
             ${material.created_at ? `<span>${escapeHtml(timeAgo(material.created_at))}</span>` : ''}
           </div>
           ${material.description ? `<p class="material-card-desc">${escapeHtml(material.description)}</p>` : ''}
+          ${material.admin_note ? `<p class="material-card-note"><span class="material-note-badge">${escapeHtml(material.admin_note)}</span></p>` : ''}
           ${isDelivered ? `<p class="material-card-due"><span class="badge badge-success">تم التسليم</span></p>` : (dueDate ? `<p class="material-card-due"><strong>موعد التسليم:</strong> ${escapeHtml(dueDate)}</p>` : '')}
           ${hasSolution ? '<p class="material-card-due"><span class="badge badge-success">فيه صورة حل</span></p>' : ''}
         </div>
