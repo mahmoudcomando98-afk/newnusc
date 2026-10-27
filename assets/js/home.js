@@ -1,8 +1,5 @@
 /**
  * NUSC Student Hub - Home Page (fast path)
- * - Paint from local cache immediately when available
- * - Refresh in background (stale-while-revalidate)
- * - Parallel network requests; one failure doesn't block others
  */
 
 import { protectPage } from './auth.js';
@@ -27,7 +24,7 @@ import {
   fetchSubjectNames
 } from './data-api.js';
 
-const TTL = 2 * 60 * 1000; // 2 min fresh
+const TTL = 2 * 60 * 1000;
 let profile = null;
 
 async function init() {
@@ -283,6 +280,7 @@ async function loadImportantNotice() {
     if (t) t.textContent = notice.title || 'إشعار مهم';
     if (c) c.textContent = notice.content || notice.body || '';
     if (tm) tm.textContent = timeAgo(notice.created_at);
+    try { initIcons(); } catch { /* ignore */ }
   } catch (error) {
     console.warn('[NUSC] loadImportantNotice:', error);
   }
