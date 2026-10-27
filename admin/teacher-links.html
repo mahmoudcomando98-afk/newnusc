@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ar-EG" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <style>html.admin-auth-pending body{visibility:hidden!important}</style>
+  <script>document.documentElement.classList.add('admin-auth-pending')</script>
+  <title>روابط رفع المدرّس | NUSC</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=ui-polish-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=ui-polish-2" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo"><span data-icon="chevronLeft" style="display:flex;width:22px;height:22px"></span><span>روابط رفع المدرّس</span></a>
+      <button type="button" class="btn btn-sm btn-primary" id="add-btn">+ رابط جديد</button>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:24px">
+    <div class="container page-content">
+      <p class="text-sm text-muted mb-2">اعمل رابط لمادة معيّنة وابعتُه للمدرّس. يدخل من غير تسجيل ويقدر يرفع ملفات المادة دي فقط.</p>
+
+      <div id="form-panel" class="card mb-3 hidden">
+        <h3 class="card-title mb-2">إنشاء رابط رفع</h3>
+        <form id="link-form">
+          <div class="form-group">
+            <label class="form-label" for="subject_id">المادة *</label>
+            <select id="subject_id" class="form-select" required><option value="">— اختار المادة —</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="label">اسم المدرّس / ملاحظة (اختياري)</label>
+            <input type="text" id="label" class="form-input" maxlength="120" placeholder="مثال: د. أحمد" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">الأقسام المسموح رفعها</label>
+            <div class="flex flex-wrap gap-1" style="gap:8px">
+              <label class="form-check"><input type="checkbox" name="types" value="lecture" checked /> المحاضرات</label>
+              <label class="form-check"><input type="checkbox" name="types" value="section" checked /> السكاشن</label>
+              <label class="form-check"><input type="checkbox" name="types" value="assignment" /> الواجبات</label>
+              <label class="form-check"><input type="checkbox" name="types" value="past_exam" /> امتحانات سابقة</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="expires_at">صلاحية الرابط (اختياري)</label>
+            <input type="datetime-local" id="expires_at" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="max_uses">حد أقصى لعدد الرفعات (اختياري)</label>
+            <input type="number" id="max_uses" class="form-input" min="1" placeholder="بدون حد" />
+          </div>
+          <div class="flex gap-1">
+            <button type="submit" class="btn btn-primary">إنشاء الرابط</button>
+            <button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="created-box" class="card mb-3 hidden">
+        <h3 class="card-title mb-1">الرابط جاهز</h3>
+        <p class="text-sm text-muted mb-1">انسخ وابعت للمدرّس:</p>
+        <input type="text" id="created-url" class="form-input mb-1" readonly />
+        <button type="button" class="btn btn-sm btn-primary" id="copy-btn">نسخ الرابط</button>
+      </div>
+
+      <div id="list"></div>
+    </div>
+  </main>
+  <script type="module" src="/assets/js/admin-teacher-links.js?v=1"></script>
+</body>
+</html>

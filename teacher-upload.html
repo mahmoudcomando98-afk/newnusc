@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ar-EG" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>رفع ملف للمادة | NUSC</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=ui-polish-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=ui-polish-2" />
+  <style>
+    body { background: #f7f5f2; }
+    .tu-wrap { max-width: 480px; margin: 0 auto; padding: 24px 16px 40px; }
+    .tu-card { background: #fff; border: 1px solid #e8e4df; border-radius: 12px; padding: 20px 18px; }
+    .tu-card h1 { margin: 0 0 6px; font-size: 1.15rem; }
+    .tu-meta { margin: 0 0 16px; color: #6b645c; font-size: 0.88rem; line-height: 1.5; }
+    .tu-note { margin: 12px 0 0; font-size: 0.8rem; color: #8a8278; }
+    .tu-error { background: #faf2f2; border: 1px solid #e8d5d5; color: #8a3a3a; border-radius: 10px; padding: 14px; }
+  </style>
+</head>
+<body>
+  <div class="tu-wrap">
+    <div id="state-loading" class="tu-card">
+      <p class="text-sm text-muted" style="margin:0">جاري التحقق من الرابط...</p>
+    </div>
+    <div id="state-error" class="tu-error hidden"></div>
+    <div id="state-form" class="tu-card hidden">
+      <h1 id="subject-title">رفع ملف</h1>
+      <p class="tu-meta" id="subject-meta"></p>
+      <form id="upload-form">
+        <div class="form-group">
+          <label class="form-label" for="title">اسم الملف *</label>
+          <input type="text" id="title" class="form-input" required maxlength="180" placeholder="مثال: محاضرة 3" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="material_type">القسم</label>
+          <select id="material_type" class="form-select"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="description">وصف (اختياري)</label>
+          <textarea id="description" class="form-textarea" rows="2" maxlength="1000"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="file">الملف *</label>
+          <input type="file" id="file" class="form-input" required accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,.jpg,.jpeg,.png,.webp,.xls,.xlsx" />
+        </div>
+        <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%">رفع الملف</button>
+        <p class="tu-note">الرابط مخصص لرفع ملفات المادة دي فقط. مفيش وصول لأي جزء تاني من المنصة.</p>
+      </form>
+    </div>
+    <div id="state-done" class="tu-card hidden">
+      <h1>تم الرفع</h1>
+      <p class="tu-meta">الملف اتضاف للمادة. تقدر ترفع ملف كمان أو تقفل الصفحة.</p>
+      <button type="button" class="btn btn-primary" id="again-btn" style="width:100%">رفع ملف آخر</button>
+    </div>
+  </div>
+  <script type="module" src="/assets/js/teacher-upload.js?v=1"></script>
+</body>
+</html>
