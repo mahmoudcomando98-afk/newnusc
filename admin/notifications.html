@@ -53,18 +53,17 @@
         </form>
       </div>
 
-      <h2 class="mb-2" style="font-size:1.05rem">آخر الإشعارات المرسلة</h2>
-      <div id="recent-list">
-        <div class="skeleton-card"><div class="skeleton skeleton-title"></div></div>
-      </div>
+      <h2 class="mb-2" style="font-size:1.05rem">آخر الإشعارات</h2>
+      <p class="text-sm text-muted mb-2">تقدر تحذف أي إشعار منزّله من هنا.</p>
+      <div id="recent-list"></div>
     </div>
   </main>
 
   <script type="module">
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
-    import { escapeHtml, timeAgo, showEmpty, showError, showToast, withLoading, initIcons } from '../assets/js/utils.js';
-    import { notifyStudents } from '../assets/js/admin-notify.js';
+    import { escapeHtml, showEmpty, showError, showToast, initIcons, timeAgo } from '../assets/js/utils.js';
+    import { notifyStudents } from '../assets/js/push.js';
 
     async function init() {
       const ok = await protectAdminPage();
@@ -75,66 +74,62 @@
       await loadRecent();
     }
 
-    function normalizeLink(raw) {
-      const v = (raw || '').trim();
-      if (!v) return '/notifications.html';
-      if (v.startsWith('/')) return v;
-      try {
-        const u = new URL(v);
-        if (['http:', 'https:'].includes(u.protocol)) return u.href;
-      } catch {}
-      return '/notifications.html';
-    }
-
-    async function onSend(e) {
+    function onSend(e) {
       e.preventDefault();
-      const btn = document.getElementById('send-btn');
       const title = document.getElementById('title').value.trim();
       const body = document.getElementById('body').value.trim();
-      const link = normalizeLink(document.getElementById('link').value);
+      let link = document.getElementById('link').value.trim() || '/notifications.html';
       const type = document.getElementById('type').value || 'info';
 
       if (!title || !body) {
-        showToast('اكتب العنوان والنص', 'error');
+        showToast('اكتب العنوان والنص.', 'error');
         return;
       }
 
-      await withLoading(btn, async () => {
-        // 1) Save in-app notification (global → every student sees it)
-        const { data, error } = await supabase
-          .from('notifications')
-          .insert({
-            title,
-            body,
-            type,
-            link,
-            is_global: true,
-            user_id: null
-          })
-          .select('id')
-          .maybeSingle();
+      const btn = document.getElementById('send-btn');
+      btn.disabled = true;
+      const prev = btn.textContent;
+      btn.textContent = 'جاري الإرسال...';
 
-        if (error) {
-          console.error(error);
-          showToast(
-            error.message?.includes('relation') || error.code === '42P01'
-              ? 'جدول الإشعارات مش موجود. نفّذ supabase/schema.sql أو fix_notifications.sql'
-              : (error.message || 'فشل حفظ الإشعار'),
-            'error'
-          );
-          return;
+      (async () => {
+        try {
+          const { data, error } = await supabase
+            .from('notifications')
+            .insert({
+              title,
+              body,
+              type,
+              link,
+              is_global: true,
+              user_id: null
+            })
+            .select('id')
+            .maybeSingle();
+
+          if (error) {
+            console.error(error);
+            showToast(
+              error.message?.includes('relation') || error.code === '42P01'
+                ? 'جدول الإشعارات مش موجود. نفّذ supabase/schema.sql أو fix_notifications.sql'
+                : (error.message || 'فشل حفظ الإشعار'),
+              'error'
+            );
+            return;
+          }
+
+          const pushResult = await notifyStudents({ title, body, url: link });
+          if (pushResult?.ok) {
+            showToast('تم الإرسال — هيظهر في لوحة الإشعارات وعلى الأجهزة المشتركة', 'success');
+          } else {
+            showToast('تم حفظ الإشعار في اللوحة. إشعار الهاتف يحتاج تفعيل Push (Edge Function)', 'success');
+          }
+
+          e.target.reset();
+          await loadRecent();
+        } finally {
+          btn.disabled = false;
+          btn.textContent = prev;
         }
-
-        // 2) Try browser push (works if Edge Function + subscriptions exist)
-        const pushResult = await notifyStudents({ title, body, url: link });
-        if (pushResult?.ok) {
-          showToast('تم الإرسال — هيظهر في لوحة الإشعارات وعلى الأجهزة المشتركة', 'success');
-        } else {
-          showToast('تم حفظ الإشعار في اللوحة. إشعار الهاتف يحتاج تفعيل Push (Edge Function)', 'success');
-        }
-
-        e.target.reset();
-        await loadRecent();
       })();
     }
 
@@ -158,15 +153,43 @@
           .map(
             (n) => `
           <article class="card mb-2">
-            <div class="flex justify-between items-center gap-1">
-              <h3 class="card-title" style="margin:0">${escapeHtml(n.title || '')}</h3>
-              <span class="badge">${escapeHtml(n.type || 'info')}</span>
+            <div class="flex justify-between items-start gap-1 flex-wrap">
+              <div style="min-width:0;flex:1">
+                <div class="flex items-center gap-1 flex-wrap">
+                  <h3 class="card-title" style="margin:0">${escapeHtml(n.title || '')}</h3>
+                  <span class="badge">${escapeHtml(n.type || 'info')}</span>
+                </div>
+                <p class="text-sm text-muted mt-1">${escapeHtml(n.body || '')}</p>
+                <p class="text-sm text-muted mt-1">${escapeHtml(timeAgo(n.created_at))}${n.link ? ' · ' + escapeHtml(n.link) : ''}</p>
+              </div>
+              <button type="button" class="btn btn-sm btn-danger" data-delete="${escapeHtml(n.id)}" title="حذف الإشعار">حذف</button>
             </div>
-            <p class="text-sm text-muted mt-1">${escapeHtml(n.body || '')}</p>
-            <p class="text-sm text-muted mt-1">${escapeHtml(timeAgo(n.created_at))}${n.link ? ' · ' + escapeHtml(n.link) : ''}</p>
           </article>`
           )
           .join('');
+
+        el.querySelectorAll('[data-delete]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = btn.dataset.delete;
+            if (!id) return;
+            if (!confirm('متأكد تحذف الإشعار ده؟ مش هيبان للطلاب تاني.')) return;
+            btn.disabled = true;
+            try {
+              const { error } = await supabase.from('notifications').delete().eq('id', id);
+              if (error) {
+                showToast(error.message || 'تعذر حذف الإشعار. تأكد من صلاحيات الأدمن.', 'error');
+                return;
+              }
+              showToast('تم حذف الإشعار.', 'success');
+              await loadRecent();
+            } catch (err) {
+              console.error(err);
+              showToast('تعذر حذف الإشعار.', 'error');
+            } finally {
+              btn.disabled = false;
+            }
+          });
+        });
       } catch (err) {
         console.error(err);
         showError(el, 'تعذر تحميل الإشعارات السابقة. تأكد من وجود جدول notifications وصلاحيات الأدمن.');
