@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-cache" />
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>إرسال إشعارات | NUSC</title>
@@ -54,8 +55,10 @@
       </div>
 
       <h2 class="mb-2" style="font-size:1.05rem">آخر الإشعارات</h2>
-      <p class="text-sm text-muted mb-2">تقدر تحذف أي إشعار منزّله من هنا.</p>
-      <div id="recent-list"></div>
+      <p class="text-sm text-muted mb-2">اضغط «حذف» جنب أي إشعار عشان تشيله من المنصة.</p>
+      <div id="recent-list">
+        <div class="card"><div class="skeleton skeleton-title"></div></div>
+      </div>
     </div>
   </main>
 
@@ -74,7 +77,7 @@
       await loadRecent();
     }
 
-    function onSend(e) {
+    async function onSend(e) {
       e.preventDefault();
       const title = document.getElementById('title').value.trim();
       const body = document.getElementById('body').value.trim();
@@ -91,69 +94,108 @@
       const prev = btn.textContent;
       btn.textContent = 'جاري الإرسال...';
 
-      (async () => {
-        try {
-          const { data, error } = await supabase
-            .from('notifications')
-            .insert({
-              title,
-              body,
-              type,
-              link,
-              is_global: true,
-              user_id: null
-            })
-            .select('id')
-            .maybeSingle();
+      try {
+        const { error } = await supabase
+          .from('notifications')
+          .insert({
+            title,
+            body,
+            type,
+            link,
+            is_global: true,
+            user_id: null
+          })
+          .select('id')
+          .maybeSingle();
 
-          if (error) {
-            console.error(error);
-            showToast(
-              error.message?.includes('relation') || error.code === '42P01'
-                ? 'جدول الإشعارات مش موجود. نفّذ supabase/schema.sql أو fix_notifications.sql'
-                : (error.message || 'فشل حفظ الإشعار'),
-              'error'
-            );
-            return;
-          }
-
-          const pushResult = await notifyStudents({ title, body, url: link });
-          if (pushResult?.ok) {
-            showToast('تم الإرسال — هيظهر في لوحة الإشعارات وعلى الأجهزة المشتركة', 'success');
-          } else {
-            showToast('تم حفظ الإشعار في اللوحة. إشعار الهاتف يحتاج تفعيل Push (Edge Function)', 'success');
-          }
-
-          e.target.reset();
-          await loadRecent();
-        } finally {
-          btn.disabled = false;
-          btn.textContent = prev;
+        if (error) {
+          console.error(error);
+          showToast(
+            error.message?.includes('relation') || error.code === '42P01'
+              ? 'جدول الإشعارات مش موجود. نفّذ supabase/schema.sql أو fix_notifications.sql'
+              : (error.message || 'فشل حفظ الإشعار'),
+            'error'
+          );
+          return;
         }
-      })();
+
+        const pushResult = await notifyStudents({ title, body, url: link });
+        if (pushResult?.ok) {
+          showToast('تم الإرسال — هيظهر في لوحة الإشعارات وعلى الأجهزة المشتركة', 'success');
+        } else {
+          showToast('تم حفظ الإشعار في اللوحة. إشعار الهاتف يحتاج تفعيل Push (Edge Function)', 'success');
+        }
+
+        e.target.reset();
+        await loadRecent();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = prev;
+      }
+    }
+
+    async function deleteNotification(id, button) {
+      if (!id) return;
+      if (!confirm('متأكد تحذف الإشعار ده؟ مش هيبان للطلاب تاني.')) return;
+      if (button) button.disabled = true;
+      try {
+        const { error } = await supabase.from('notifications').delete().eq('id', id);
+        if (error) {
+          showToast(error.message || 'تعذر حذف الإشعار. تأكد من صلاحيات الأدمن في Supabase.', 'error');
+          return;
+        }
+        showToast('تم حذف الإشعار.', 'success');
+        await loadRecent();
+      } catch (err) {
+        console.error(err);
+        showToast('تعذر حذف الإشعار.', 'error');
+      } finally {
+        if (button) button.disabled = false;
+      }
     }
 
     async function loadRecent() {
       const el = document.getElementById('recent-list');
       try {
-        const { data, error } = await supabase
+        // نجيب الإشعارات العامة، ولو فاضي نجيب آخر الإشعارات كلها
+        let result = await supabase
           .from('notifications')
           .select('id, title, body, type, link, is_global, created_at')
           .eq('is_global', true)
           .order('created_at', { ascending: false })
-          .limit(20);
+          .limit(30);
 
-        if (error) throw error;
-        if (!data?.length) {
+        if (result.error && /is_global/i.test(String(result.error.message || ''))) {
+          result = await supabase
+            .from('notifications')
+            .select('id, title, body, type, link, created_at')
+            .order('created_at', { ascending: false })
+            .limit(30);
+        }
+
+        if (result.error) throw result.error;
+
+        let data = result.data || [];
+        if (!data.length) {
+          const fallback = await supabase
+            .from('notifications')
+            .select('id, title, body, type, link, created_at')
+            .order('created_at', { ascending: false })
+            .limit(30);
+          if (!fallback.error && fallback.data?.length) data = fallback.data;
+        }
+
+        if (!data.length) {
           showEmpty(el, 'لسه مفيش إشعارات مرسلة');
           return;
         }
 
         el.innerHTML = data
-          .map(
-            (n) => `
+          .map((n) => {
+            const id = String(n.id || '');
+            return `
           <article class="card mb-2">
-            <div class="flex justify-between items-start gap-1 flex-wrap">
+            <div class="flex justify-between items-start gap-2 flex-wrap">
               <div style="min-width:0;flex:1">
                 <div class="flex items-center gap-1 flex-wrap">
                   <h3 class="card-title" style="margin:0">${escapeHtml(n.title || '')}</h3>
@@ -162,33 +204,19 @@
                 <p class="text-sm text-muted mt-1">${escapeHtml(n.body || '')}</p>
                 <p class="text-sm text-muted mt-1">${escapeHtml(timeAgo(n.created_at))}${n.link ? ' · ' + escapeHtml(n.link) : ''}</p>
               </div>
-              <button type="button" class="btn btn-sm btn-danger" data-delete="${escapeHtml(n.id)}" title="حذف الإشعار">حذف</button>
+              <button
+                type="button"
+                class="btn btn-sm btn-danger"
+                data-delete-id="${escapeHtml(id)}"
+                style="flex-shrink:0"
+              >حذف</button>
             </div>
-          </article>`
-          )
+          </article>`;
+          })
           .join('');
 
-        el.querySelectorAll('[data-delete]').forEach((btn) => {
-          btn.addEventListener('click', async () => {
-            const id = btn.dataset.delete;
-            if (!id) return;
-            if (!confirm('متأكد تحذف الإشعار ده؟ مش هيبان للطلاب تاني.')) return;
-            btn.disabled = true;
-            try {
-              const { error } = await supabase.from('notifications').delete().eq('id', id);
-              if (error) {
-                showToast(error.message || 'تعذر حذف الإشعار. تأكد من صلاحيات الأدمن.', 'error');
-                return;
-              }
-              showToast('تم حذف الإشعار.', 'success');
-              await loadRecent();
-            } catch (err) {
-              console.error(err);
-              showToast('تعذر حذف الإشعار.', 'error');
-            } finally {
-              btn.disabled = false;
-            }
-          });
+        el.querySelectorAll('[data-delete-id]').forEach((btn) => {
+          btn.addEventListener('click', () => deleteNotification(btn.getAttribute('data-delete-id'), btn));
         });
       } catch (err) {
         console.error(err);
