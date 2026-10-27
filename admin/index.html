@@ -61,7 +61,7 @@
           </a>
           <a href="/admin/students.html" class="card" style="text-decoration:none;color:inherit">
             <h3 class="card-title">الطلاب</h3>
-            <p class="text-sm text-muted">عرض الحسابات المسجلة</p>
+            <p class="text-sm text-muted">عرض الحسابات المسجلة وتصدير القائمة</p>
           </a>
           <a href="/admin/faq.html" class="card" style="text-decoration:none;color:inherit">
             <h3 class="card-title">الأسئلة الشائعة</h3>
@@ -87,17 +87,33 @@
       initIcons();
       const el = document.getElementById('stats');
       try {
-        const [students, subjects, quizzes, announcements] = await Promise.all([
+        const [students, subjects, quizzes, announcements, materials] = await Promise.all([
           supabase.from('profiles').select('id', { count: 'exact', head: true }),
           supabase.from('subjects').select('id', { count: 'exact', head: true }),
           supabase.from('quizzes').select('id', { count: 'exact', head: true }),
-          supabase.from('announcements').select('id', { count: 'exact', head: true }).eq('is_published', true)
+          supabase.from('announcements').select('id', { count: 'exact', head: true }),
+          supabase.from('materials').select('id', { count: 'exact', head: true })
         ]);
+        let topSubjectLabel = '—';
+        try {
+          const { data: mats } = await supabase.from('materials').select('subject_id').limit(500);
+          const { data: subs } = await supabase.from('subjects').select('id, name').limit(200);
+          const names = Object.fromEntries((subs || []).map((s) => [s.id, s.name]));
+          const counts = {};
+          (mats || []).forEach((m) => {
+            if (!m.subject_id) return;
+            counts[m.subject_id] = (counts[m.subject_id] || 0) + 1;
+          });
+          const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+          if (top) topSubjectLabel = `${names[top[0]] || 'مادة'} (${top[1]} ملف)`;
+        } catch (e) { console.warn(e); }
         el.innerHTML = `
           <div class="card text-center"><p class="text-muted text-sm">الطلاب</p><p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${students.count ?? 0}</p></div>
           <div class="card text-center"><p class="text-muted text-sm">المواد</p><p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${subjects.count ?? 0}</p></div>
+          <div class="card text-center"><p class="text-muted text-sm">الملفات</p><p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${materials.count ?? 0}</p></div>
           <div class="card text-center"><p class="text-muted text-sm">الكويزات</p><p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${quizzes.count ?? 0}</p></div>
-          <div class="card text-center"><p class="text-muted text-sm">الإعلانات</p><p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${announcements.count ?? 0}</p></div>`;
+          <div class="card text-center"><p class="text-muted text-sm">الإعلانات</p><p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${announcements.count ?? 0}</p></div>
+          <div class="card text-center"><p class="text-muted text-sm">أكثر مادة ملفات</p><p style="font-size:0.95rem;font-weight:700;color:var(--primary);line-height:1.35">${topSubjectLabel}</p></div>`;
       } catch (e) {
         console.warn(e);
         el.innerHTML = '';
