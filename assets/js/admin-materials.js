@@ -32,6 +32,25 @@ function formatDateTimeLocal(value) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
+function setDeliveredUI(delivered) {
+  const flag = document.getElementById('is_delivered');
+  const hint = document.getElementById('delivered-hint');
+  const dueHint = document.getElementById('due-hint');
+  const btn = document.getElementById('mark-delivered');
+  if (flag) flag.value = delivered ? '1' : '0';
+  if (hint) hint.classList.toggle('hidden', !delivered);
+  if (dueHint) dueHint.classList.toggle('hidden', !!delivered);
+  if (btn) {
+    btn.textContent = delivered ? 'إلغاء تم التسليم' : 'تم التسليم';
+    btn.classList.toggle('btn-primary', !delivered);
+    btn.classList.toggle('btn-outline', !!delivered);
+  }
+}
+
+function isDeliveredFlag() {
+  return document.getElementById('is_delivered')?.value === '1';
+}
+
 function resetFormMode() {
   editingId = null;
   editingOriginal = null;
@@ -43,6 +62,7 @@ function resetFormMode() {
   document.getElementById('mat-form').reset();
   document.getElementById('material_type').value = 'lecture';
   document.getElementById('due_at').value = '';
+  setDeliveredUI(false);
   updateDueDateVisibility();
 }
 
@@ -67,6 +87,7 @@ function openEditForm(item) {
   document.getElementById('material_type').value = item.material_type || 'lecture';
   document.getElementById('description').value = item.description || '';
   document.getElementById('due_at').value = formatDateTimeLocal(item.due_at);
+  setDeliveredUI(!!item.is_delivered);
   updateDueDateVisibility();
   document.getElementById('form-panel').classList.remove('hidden');
   document.getElementById('form-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -92,6 +113,16 @@ async function init() {
     document.getElementById('due_at').value = '';
     showToast('اتمسّح الموعد من النموذج. احفظ التعديلات عشان يثبت.', 'info');
   });
+  document.getElementById('mark-delivered')?.addEventListener('click', () => {
+    const next = !isDeliveredFlag();
+    setDeliveredUI(next);
+    showToast(
+      next
+        ? 'اتعلّم الحالة «تم التسليم». احفظ التعديلات عشان تظهر للطالب.'
+        : 'اتشالت حالة «تم التسليم». احفظ التعديلات.',
+      'info'
+    );
+  });
   document.getElementById('solution-attach-input').addEventListener('change', onAttachSolution);
   await loadSubjects();
   await load();
@@ -115,11 +146,11 @@ async function load() {
   try {
     let result = await supabase
       .from('materials')
-      .select('id, title, description, subject_id, material_type, file_type, file_path, file_name, file_size, solution_image_path, due_at, created_at, is_published')
+      .select('id, title, description, subject_id, material_type, file_type, file_path, file_name, file_size, solution_image_path, due_at, is_delivered, created_at, is_published')
       .order('created_at', { ascending: false })
       .limit(100);
 
-    if (result.error && /description|file_name|due_at/i.test(String(result.error.message || ''))) {
+    if (result.error && /description|file_name|due_at|is_delivered/i.test(String(result.error.message || ''))) {
       result = await supabase
         .from('materials')
         .select('id, title, subject_id, material_type, file_type, file_path, file_size, solution_image_path, created_at, is_published')
@@ -146,9 +177,13 @@ async function load() {
               <h3 class="card-title">${escapeHtml(item.title)}</h3>
               <p class="text-sm text-muted">${escapeHtml(subjectNames.get(item.subject_id) || 'مادة غير محددة')} · ${label}</p>
               <p class="text-sm text-muted">${escapeHtml(item.file_type || 'ملف')} ${item.file_size ? '· ' + escapeHtml(formatFileSize(item.file_size)) : ''} · ${escapeHtml(timeAgo(item.created_at))}</p>
-              ${isAssignment ? (item.due_at
-                ? `<p class="text-sm mt-1"><strong>موعد التسليم:</strong> ${escapeHtml(new Date(item.due_at).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }))}</p>`
-                : `<p class="text-sm mt-1 text-muted">مفيش موعد تسليم محدد</p>`) : ''}
+              ${isAssignment ? (
+                item.is_delivered
+                  ? `<p class="text-sm mt-1"><span class="badge badge-success">تم التسليم</span></p>`
+                  : item.due_at
+                    ? `<p class="text-sm mt-1"><strong>موعد التسليم:</strong> ${escapeHtml(new Date(item.due_at).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }))}</p>`
+                    : `<p class="text-sm mt-1 text-muted">مفيش موعد تسليم محدد</p>`
+              ) : ''}
               ${hasSolution ? '<p class="text-sm mt-1"><span class="badge badge-success">فيه صورة حل</span></p>' : ''}
             </div>
             <div class="flex gap-1 flex-wrap">
@@ -284,7 +319,7 @@ async function insertMaterial(payload) {
 
     const optionalColumns = [
       'description', 'file_name', 'file_type', 'file_size', 'material_type',
-      'is_published', 'created_by', 'solution_image_path', 'due_at'
+      'is_published', 'created_by', 'solution_image_path', 'due_at', 'is_delivered'
     ];
     const missingOptional = optionalColumns.find(
       (column) => Object.prototype.hasOwnProperty.call(candidate, column) && isMissingMaterialColumn(result.error, column)
@@ -306,7 +341,7 @@ async function updateMaterial(id, payload) {
 
     const optionalColumns = [
       'description', 'file_name', 'file_type', 'file_size', 'material_type',
-      'is_published', 'solution_image_path', 'file_path', 'due_at'
+      'is_published', 'solution_image_path', 'file_path', 'due_at', 'is_delivered'
     ];
     const missingOptional = optionalColumns.find(
       (column) => Object.prototype.hasOwnProperty.call(candidate, column) && isMissingMaterialColumn(result.error, column)
@@ -332,6 +367,7 @@ async function save(event) {
   const description = document.getElementById('description').value.trim() || null;
   const dueAtValue = document.getElementById('due_at').value;
   const dueAt = materialType === 'assignment' && dueAtValue ? new Date(dueAtValue).toISOString() : null;
+  const isDelivered = materialType === 'assignment' && isDeliveredFlag();
 
   if (!title) { showToast('اكتب اسم الملف.', 'error'); return; }
   if (!subjectId) { showToast('اختار المادة الأول.', 'error'); return; }
@@ -357,7 +393,8 @@ async function save(event) {
         description,
         subject_id: subjectId,
         material_type: materialType,
-        due_at: dueAt
+        due_at: dueAt,
+        is_delivered: isDelivered
       };
 
       let newPath = null;
@@ -396,8 +433,8 @@ async function save(event) {
         if (newPath) cleanup.push(newPath);
         if (newSolutionPath) cleanup.push(newSolutionPath);
         if (cleanup.length) await supabase.storage.from('materials').remove(cleanup).catch(() => {});
-        if (isMissingMaterialColumn(error, 'due_at')) {
-          showToast('عمود موعد التسليم (due_at) مش موجود في قاعدة البيانات. نفّذ SQL إضافة العمود في Supabase.', 'error');
+        if (isMissingMaterialColumn(error, 'due_at') || isMissingMaterialColumn(error, 'is_delivered')) {
+          showToast('عمود due_at أو is_delivered مش موجود. نفّذ SQL في Supabase.', 'error');
         } else {
           showToast(error.message || 'تعذر حفظ التعديلات.', 'error');
         }
@@ -409,12 +446,13 @@ async function save(event) {
       if (newSolutionPath && oldSolution && oldSolution !== newSolutionPath) toRemove.push(oldSolution);
       if (toRemove.length) await supabase.storage.from('materials').remove(toRemove).catch(() => {});
 
-      showToast(
-        materialType === 'assignment'
-          ? (dueAt ? 'تم حفظ التعديلات وتحديث موعد التسليم.' : 'تم حفظ التعديلات. مفيش موعد تسليم محدد.')
-          : 'تم حفظ التعديلات.',
-        'success'
-      );
+      let msg = 'تم حفظ التعديلات.';
+      if (materialType === 'assignment') {
+        if (isDelivered) msg = 'تم الحفظ — الحالة: تم التسليم.';
+        else if (dueAt) msg = 'تم حفظ التعديلات وتحديث موعد التسليم.';
+        else msg = 'تم حفظ التعديلات. مفيش موعد تسليم محدد.';
+      }
+      showToast(msg, 'success');
       document.getElementById('form-panel').classList.add('hidden');
       resetFormMode();
       await load();
@@ -446,6 +484,7 @@ async function save(event) {
       subject_id: subjectId,
       material_type: materialType,
       due_at: dueAt,
+      is_delivered: isDelivered,
       file_path: path,
       file_name: file.name,
       file_type: file.type || file.name.split('.').pop().toLowerCase(),
