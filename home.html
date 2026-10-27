@@ -14,7 +14,7 @@
   <link rel="icon" href="/nusc.png.jpeg" type="image/jpeg" />
   <title>الرئيسية | NUSC</title>
   <link rel="stylesheet" href="/assets/css/main.css?v=ui-polish-2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=ui-polish-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=notice-1" />
   <link rel="stylesheet" href="/assets/css/home-subjects.css?v=3" />
 </head>
 <body class="home-page">
@@ -54,11 +54,15 @@
       </section>
 
       <section id="important-notice" class="important-notice hidden" aria-live="polite">
-        <div class="notice-body">
-          <strong id="notice-title"></strong>
-          <p id="notice-text"></p>
+        <div class="notice-icon-wrap" aria-hidden="true">
+          <span class="notice-icon" data-icon="bell"></span>
         </div>
-        <a href="/notifications.html" class="notice-open">الإشعارات <span aria-hidden="true">←</span></a>
+        <div class="notice-body">
+          <span class="notice-kicker">إشعار</span>
+          <strong id="notice-title" class="notice-title"></strong>
+          <p id="notice-text" class="notice-text"></p>
+        </div>
+        <a href="/notifications.html" class="notice-open">عرض <span aria-hidden="true">←</span></a>
       </section>
 
       <section class="dashboard-shortcuts" aria-label="اختصارات">
@@ -112,6 +116,6 @@
     <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
     <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
-  <script type="module" src="/assets/js/home.js?v=fix-name-1"></script>
+  <script type="module" src="/assets/js/home.js?v=notice-1"></script>
 </body>
 </html>
