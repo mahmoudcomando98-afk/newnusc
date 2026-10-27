@@ -1,0 +1,124 @@
+/* Mobile usability polish — touch targets, spacing, no horizontal overflow */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+@media (max-width: 768px) {
+  .container,
+  .page-content {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .app-header .container {
+    min-height: 52px !important;
+    gap: 8px;
+  }
+
+  .app-header .logo span:not(.logo-icon) {
+    font-size: 0.95rem;
+  }
+
+  .btn,
+  .btn-sm,
+  .header-btn,
+  .material-action-btn,
+  .subject-tile-btn,
+  .notice-open {
+    min-height: 40px !important;
+    min-width: 40px;
+  }
+
+  .btn-sm {
+    padding: 8px 12px !important;
+    font-size: 0.84rem !important;
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    font-size: 16px !important; /* avoid iOS zoom */
+    min-height: 44px;
+  }
+
+  .form-textarea {
+    min-height: 88px;
+  }
+
+  .dashboard-shortcuts {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px !important;
+  }
+
+  .shortcut-card {
+    padding: 12px 10px !important;
+  }
+
+  .shortcut-text small {
+    display: none;
+  }
+
+  .home-two-col {
+    display: block !important;
+  }
+
+  .home-two-col > * + * {
+    margin-top: 12px;
+  }
+
+  .section-header h2 {
+    font-size: 1.05rem !important;
+  }
+
+  .material-card-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px !important;
+  }
+
+  .material-card-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .list-item {
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  .bottom-nav a {
+    font-size: 0.68rem !important;
+    gap: 2px;
+    padding: 6px 2px !important;
+  }
+
+  .card-grid {
+    gap: 10px !important;
+  }
+
+  .subjects-toolbar {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .subjects-toolbar .search-box,
+  .subjects-toolbar input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .dashboard-shortcuts {
+    grid-template-columns: 1fr;
+  }
+
+  .material-card-actions {
+    grid-template-columns: 1fr;
+  }
+}
