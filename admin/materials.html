@@ -18,14 +18,14 @@
   </header>
   <main class="page" style="padding-bottom:24px">
     <div class="container page-content">
-      <p class="text-sm text-muted mb-2">ارفع ملف جديد أو عدّل أي ملف موجود: الاسم، المادة، القسم، الوصف، موعد التسليم، أو استبدال الملف.</p>
+      <p class="text-sm text-muted mb-2">ارفع ملف جديد أو عدّل أي ملف موجود. للامتحانات السابقة اختار القسم «امتحانات سابقة».</p>
       <div id="form-panel" class="card mb-3 hidden">
         <h3 class="card-title mb-2" id="form-heading">رفع ملف جديد</h3>
         <form id="mat-form">
           <input type="hidden" id="edit_id" value="" />
           <div class="form-group">
             <label class="form-label" for="title">اسم الملف *</label>
-            <input type="text" id="title" class="form-input" required maxlength="180" placeholder="مثال: واجب 1 - مقدمة" />
+            <input type="text" id="title" class="form-input" required maxlength="180" placeholder="مثال: امتحان نهائي 2023" />
           </div>
           <div class="form-group">
             <label class="form-label" for="subject_id">المادة *</label>
@@ -37,6 +37,7 @@
               <option value="lecture">المحاضرات</option>
               <option value="section">السكاشن</option>
               <option value="assignment">الواجبات</option>
+              <option value="past_exam">امتحانات سابقة</option>
             </select>
           </div>
           <div class="form-group">
@@ -51,18 +52,17 @@
               <button type="button" class="btn btn-sm btn-primary" id="mark-delivered">تم التسليم</button>
             </div>
             <input type="hidden" id="is_delivered" value="0" />
-            <p class="form-hint" id="due-hint">تقدر تغيّر الموعد أو تضغط «تم التسليم» لما الاستلام يخلص. التغيير يظهر للطالب بعد الحفظ.</p>
-            <p class="form-hint hidden" id="delivered-hint" style="color:#2f6b3a;font-weight:600">الحالة: تم التسليم — الطالب هيشوف الشارة دي.</p>
+            <p class="form-hint" id="due-hint">تقدر تغيّر الموعد أو تضغط «تم التسليم» لما الاستلام يخلص.</p>
+            <p class="form-hint hidden" id="delivered-hint" style="color:#2f6b3a;font-weight:600">الحالة: تم التسليم</p>
           </div>
           <div class="form-group">
             <label class="form-label" for="file" id="file-label">الملف *</label>
             <input type="file" id="file" class="form-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,.jpg,.jpeg,.png,.webp,.xls,.xlsx" />
-            <p class="form-hint" id="file-hint">عند التعديل: اتركه فاضي لو مش عايز تغيّر الملف، أو اختار ملف جديد للاستبدال.</p>
+            <p class="form-hint" id="file-hint">عند التعديل: اتركه فاضي لو مش عايز تغيّر الملف.</p>
           </div>
           <div class="form-group" id="solution-group">
             <label class="form-label" for="solution_image">صورة الحل (اختياري — للواجبات)</label>
             <input type="file" id="solution_image" class="form-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
-            <p class="form-hint">صورة منفصلة عن ملف الواجب. الطالب هيشوفها بزر «عرض الحل».</p>
           </div>
           <div class="flex gap-1">
             <button type="submit" class="btn btn-primary" id="submit-btn">ارفع الملف</button>
@@ -73,9 +73,7 @@
       <div id="list"></div>
     </div>
   </main>
-
   <input type="file" id="solution-attach-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" style="display:none" />
-
-  <script type="module" src="/assets/js/admin-materials.js?v=due-2"></script>
+  <script type="module" src="/assets/js/admin-materials.js?v=past-1"></script>
 </body>
 </html>
