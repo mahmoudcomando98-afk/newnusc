@@ -1,4 +1,4 @@
--- Pin materials so they stay at the top of a subject section
+-- Pin materials so they stay at the top of subject lists
 ALTER TABLE public.materials
   ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN NOT NULL DEFAULT false;
 
