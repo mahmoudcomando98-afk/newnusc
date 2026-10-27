@@ -7,7 +7,35 @@
   <meta name="description" content="الجدول الدراسي على منصة NUSC" />
   <title>الجدول | NUSC</title>
   <link rel="stylesheet" href="/assets/css/main.css?v=ui-polish-2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=ui-polish-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=schedule-polish-3" />
+  <style>
+    /* Schedule page polish — uses the same NUSC terracotta, warm white and beige palette. */
+    .schedule-page .page-content { max-width: 1040px; }
+    .schedule-page .section-header { margin: 8px 0 18px !important; padding: 18px 20px; background: #fff; border: 1px solid var(--border); border-radius: 10px; }
+    .schedule-page .section-header h1 { font-size: 1.35rem !important; }
+    .schedule-page .section-header h1::after { content: "رتّب محاضراتك ومواعيدك في مكان واحد"; display: block; margin-top: 5px; color: var(--text-muted); font-size: .84rem; font-weight: 400; }
+    .schedule-page #view-tabs { display: inline-flex; padding: 4px; gap: 4px !important; margin-bottom: 16px !important; border: 1px solid var(--border); border-radius: 9px; background: #f5f0eb; }
+    .schedule-page #view-tabs .tab { min-width: 100px; border: 0 !important; background: transparent !important; border-radius: 6px !important; padding: 8px 16px !important; }
+    .schedule-page #view-tabs .tab.active { background: #fff !important; color: var(--primary-dark) !important; border: 1px solid #ebe0d7 !important; }
+    .schedule-page .schedule-card, .schedule-page #schedule-content > .card { padding: 14px 16px !important; margin-bottom: 10px !important; transition: border-color .15s ease; }
+    .schedule-page .schedule-card:hover, .schedule-page #schedule-content > .card:hover { border-color: #d9b8a3 !important; }
+    .schedule-page .schedule-card .list-item, .schedule-page #schedule-content > .card .list-item { gap: 12px; }
+    .schedule-page .schedule-card .list-item-icon, .schedule-page #schedule-content > .card .list-item-icon { width: 42px; height: 42px; min-width: 42px; display: grid; place-items: center; color: var(--primary-dark); background: #f8efe8 !important; border: 1px solid #eee0d5 !important; }
+    .schedule-page .list-item-title { color: var(--text); font-size: .98rem; font-weight: 700; line-height: 1.5; margin-bottom: 5px; }
+    .schedule-page .list-item-desc { color: var(--text-muted); font-size: .82rem; line-height: 1.9; }
+    .schedule-page .badge { display: inline-flex; align-items: center; padding: 2px 9px; margin-inline-end: 3px; font-size: .72rem; }
+    .schedule-page #schedule-content > .card > .card-title { padding-bottom: 10px; margin-bottom: 4px !important; border-bottom: 1px solid var(--border); color: var(--primary-dark); }
+    .schedule-page .skeleton-card { padding: 18px !important; }
+    @media (max-width: 640px) {
+      .schedule-page .section-header { padding: 15px 14px; margin-bottom: 14px !important; }
+      .schedule-page .section-header h1 { font-size: 1.18rem !important; }
+      .schedule-page .section-header h1::after { font-size: .78rem; }
+      .schedule-page #view-tabs { display: flex; width: 100%; }
+      .schedule-page #view-tabs .tab { flex: 1; min-width: 0; }
+      .schedule-page .schedule-card, .schedule-page #schedule-content > .card { padding: 12px !important; }
+      .schedule-page .schedule-card .list-item-icon, .schedule-page #schedule-content > .card .list-item-icon { width: 36px; height: 36px; min-width: 36px; }
+    }
+  </style>
 </head>
 <body class="schedule-page">
   <header class="app-header">
