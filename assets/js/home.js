@@ -1,4 +1,3 @@
-
 /**
  * NUSC Student Hub - Home Page (fast path)
  * - Paint from local cache immediately when available
@@ -45,9 +44,12 @@ async function init() {
       if (banner) banner.classList.toggle('hidden', online);
     });
 
-    const name = profile?.full_name || 'طالب';
-    const welcome = document.getElementById('welcome-text');
-    if (welcome) welcome.textContent = `أهلاً، ${name}`;
+    const name = (profile?.full_name || profile?.name || 'طالب').trim() || 'طالب';
+    const welcomeName = document.getElementById('welcome-name');
+    if (welcomeName) welcomeName.textContent = `أهلاً، ${name}`;
+
+    const welcomeText = document.getElementById('welcome-text');
+    if (welcomeText) welcomeText.textContent = `أهلاً، ${name}`;
 
     const short = document.getElementById('user-name-short');
     if (short) short.textContent = name.split(' ')[0] || name;
@@ -55,14 +57,12 @@ async function init() {
     const avatar = document.getElementById('user-avatar');
     if (avatar) avatar.textContent = (name.trim()[0] || '؟').toUpperCase();
 
-    // Priority: subjects + announcements first (visible above the fold)
     await Promise.all([
       loadSubjects(),
       loadAnnouncements(),
       loadImportantNotice()
     ]);
 
-    // Secondary sections — still parallel, but after first paint path
     await Promise.all([
       loadLectures(),
       loadQuizzes(),
@@ -94,7 +94,7 @@ function renderSubjects(rows) {
     .map((s) => {
       const title = s.name || s.title || 'مادة';
       const code = s.code || s.subject_code || '';
-      const instructor = s.instructor || s.doctor || s.teacher || '';
+      const instructor = s.instructor || s.doctor_name || '';
       return `
       <a class="card subject-card home-subject-card" href="/subject-details.html?id=${encodeURIComponent(s.id)}">
         <div class="home-subject-card-top">
@@ -116,7 +116,7 @@ async function loadSubjects() {
   try {
     const data = await cachedStaleWhileRevalidate(
       'home:subjects',
-      () => fetchSubjects(50),
+      () => fetchSubjects(12),
       { ttlMs: TTL, onUpdate: renderSubjects }
     );
     renderSubjects(data);
@@ -131,16 +131,16 @@ function renderLectures(feed) {
   if (!el) return;
   const list = (feed || []).slice(0, 3);
   if (!list.length) {
-    showEmpty(el, 'لا توجد محاضرات بعد');
+    showEmpty(el, 'لا توجد محاضرات حديثة.');
     return;
   }
   el.innerHTML = list
     .map(
       (item) => `
-      <a class="list-item" href="${escapeHtml(item.href)}" style="text-decoration:none;color:inherit">
+      <a class="list-item" href="${item.href || '/subjects.html'}" style="text-decoration:none;color:inherit">
         <div class="list-item-icon" data-icon="book-open"></div>
         <div class="list-item-body">
-          <div class="list-item-title">${escapeHtml(item.title)}</div>
+          <div class="list-item-title">${escapeHtml(item.title)} ${freshnessBadgesHtml(item)}</div>
           <div class="list-item-desc">${escapeHtml(item.subject)} · ${timeAgo(item.created_at)}</div>
         </div>
       </a>`
@@ -168,9 +168,9 @@ async function loadLectures() {
 function renderQuizzes(rows, subjectNames = {}) {
   const el = document.getElementById('quizzes-list');
   if (!el) return;
-  const list = (rows || []).slice(0, 5);
+  const list = (rows || []).slice(0, 3);
   if (!list.length) {
-    showEmpty(el, 'لا توجد كويزات حالياً');
+    showEmpty(el, 'لا توجد كويزات حالياً.');
     return;
   }
   el.innerHTML = list
@@ -196,7 +196,7 @@ async function loadQuizzes() {
     const data = await cachedStaleWhileRevalidate(
       'home:quizzes',
       async () => {
-        const rows = await fetchQuizzes(15);
+        const rows = await fetchQuizzes(10);
         const ids = [...new Set(rows.map((q) => q.subject_id).filter(Boolean))];
         const names = await fetchSubjectNames(ids);
         return { rows, names };
@@ -218,23 +218,18 @@ function renderAnnouncements(rows) {
   if (!el) return;
   const list = (rows || []).slice(0, 2);
   if (!list.length) {
-    showEmpty(el, 'لا توجد إعلانات منشورة حالياً');
+    showEmpty(el, 'لا توجد إعلانات.');
     return;
   }
   el.innerHTML = list
-    .map((announcement) => {
-      const level = String(announcement.importance || announcement.priority || 'normal').toLowerCase();
-      const body = announcement.content || announcement.body || announcement.description || '';
+    .map((a) => {
+      const level = String(a.importance || a.priority || 'normal');
       return `
         <div class="list-item announcement-item ${['urgent', 'high'].includes(level) ? 'announcement-important' : ''}">
           <div class="list-item-icon" data-icon="megaphone"></div>
           <div class="list-item-body">
-            <div class="list-item-title">
-              ${announcement.is_pinned ? '📌 ' : ''}${escapeHtml(announcement.title || 'إعلان')}
-              ${freshnessBadgesHtml(announcement)}
-            </div>
-            <div class="list-item-desc">${escapeHtml(String(body).slice(0, 100))}${announcement.created_at ? ' · ' + timeAgo(announcement.created_at) : ''}</div>
-            <a href="/announcements.html" class="btn btn-sm btn-outline mt-1">عرض الإعلان</a>
+            <div class="list-item-title">${a.is_pinned ? '📌 ' : ''}${escapeHtml(a.title || 'إعلان')}</div>
+            <div class="list-item-desc">${escapeHtml((a.content || a.body || '').slice(0, 120))} · ${timeAgo(a.created_at)}</div>
           </div>
         </div>`;
     })
@@ -267,17 +262,25 @@ async function loadImportantNotice() {
       () => fetchAnnouncements(30),
       { ttlMs: TTL }
     );
-    const notice = (data || []).find((n) => {
-      if (n.is_published === false) return false;
+    const visible = (data || []).filter((n) => n && n.is_published !== false);
+    let notice = visible.find((n) => {
       const level = String(n.importance || n.priority || '');
       return n.is_pinned || ['high', 'urgent'].includes(level);
     });
-    if (!notice) return;
+    if (!notice && visible.length) notice = visible[0];
+    if (!notice) {
+      box.classList.add('hidden');
+      return;
+    }
     box.classList.remove('hidden');
-    const t = document.getElementById('important-notice-title');
-    const c = document.getElementById('important-notice-content');
+    const t =
+      document.getElementById('notice-title') ||
+      document.getElementById('important-notice-title');
+    const c =
+      document.getElementById('notice-text') ||
+      document.getElementById('important-notice-content');
     const tm = document.getElementById('important-notice-time');
-    if (t) t.textContent = notice.title || '';
+    if (t) t.textContent = notice.title || 'إشعار مهم';
     if (c) c.textContent = notice.content || notice.body || '';
     if (tm) tm.textContent = timeAgo(notice.created_at);
   } catch (error) {
@@ -342,7 +345,9 @@ async function loadMaterials() {
 }
 
 async function loadNotifCount() {
-  const badge = document.getElementById('notif-badge');
+  const badge =
+    document.getElementById('notif-badge') ||
+    document.getElementById('notif-dot');
   if (!badge) return;
   try {
     const data = await cachedStaleWhileRevalidate(
@@ -362,7 +367,9 @@ async function loadNotifCount() {
     const readSet = new Set(readIds);
     const unreadCount = (data || []).filter((item) => !readSet.has(String(item.id))).length;
     if (unreadCount > 0) {
-      badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+      if (badge.id === 'notif-badge') {
+        badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+      }
       badge.classList.remove('hidden');
     } else {
       badge.classList.add('hidden');
