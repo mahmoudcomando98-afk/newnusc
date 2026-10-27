@@ -179,9 +179,10 @@ function shortFileType(raw) {
 function materialCard(material, badgeLabel) {
   const hasSolution = !!(material.solution_image_path);
   const isAssignment = badgeLabel === 'واجب' || material.material_type === 'assignment';
+  const isDelivered = isAssignment && !!material.is_delivered;
   const dueRaw = material.due_at || material.deadline_at || material.due_date || null;
   let dueDate = '';
-  if (isAssignment && dueRaw) {
+  if (isAssignment && !isDelivered && dueRaw) {
     try {
       dueDate = new Date(dueRaw).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
     } catch {
@@ -206,7 +207,7 @@ function materialCard(material, badgeLabel) {
             ${material.created_at ? `<span>${escapeHtml(timeAgo(material.created_at))}</span>` : ''}
           </div>
           ${material.description ? `<p class="material-card-desc">${escapeHtml(material.description)}</p>` : ''}
-          ${dueDate ? `<p class="material-card-due"><strong>موعد التسليم:</strong> ${escapeHtml(dueDate)}</p>` : ''}
+          ${isDelivered ? `<p class="material-card-due"><span class="badge badge-success">تم التسليم</span></p>` : (dueDate ? `<p class="material-card-due"><strong>موعد التسليم:</strong> ${escapeHtml(dueDate)}</p>` : '')}
           ${hasSolution ? '<p class="material-card-due"><span class="badge badge-success">فيه صورة حل</span></p>' : ''}
         </div>
       </div>
