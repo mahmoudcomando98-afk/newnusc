@@ -44,6 +44,11 @@
             <label class="form-label" for="description">وصف مختصر (اختياري)</label>
             <textarea id="description" class="form-textarea" rows="2" maxlength="1000" placeholder="تفاصيل تساعد الطالب يعرف الملف"></textarea>
           </div>
+          <div class="form-group">
+            <label class="form-label" for="admin_note">ملاحظة للأدمن (تظهر للطالب)</label>
+            <input type="text" id="admin_note" class="form-input" maxlength="120" placeholder="مثال: مهم للامتحان — أو: اتلغى" />
+            <p class="form-hint">اختياري. جملة قصيرة واضحة تحت اسم الملف.</p>
+          </div>
           <div class="form-group hidden" id="due-date-group">
             <label class="form-label" for="due_at">موعد تسليم الواجب (اختياري)</label>
             <div class="flex gap-1 items-center flex-wrap">
@@ -74,6 +79,6 @@
     </div>
   </main>
   <input type="file" id="solution-attach-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" style="display:none" />
-  <script type="module" src="/assets/js/admin-materials.js?v=past-1"></script>
+  <script type="module" src="/assets/js/admin-materials.js?v=note-1"></script>
 </body>
 </html>
