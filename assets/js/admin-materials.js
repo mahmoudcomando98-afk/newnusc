@@ -13,6 +13,7 @@ const typeLabels = {
   lecture: 'المحاضرات',
   section: 'السكاشن',
   assignment: 'الواجبات',
+  past_exam: 'امتحانات سابقة',
   notes: 'المحاضرات',
   exam: 'المحاضرات',
   other: 'المحاضرات',
@@ -220,7 +221,7 @@ async function load() {
             .eq('id', id);
           if (error) {
             if (isMissingMaterialColumn(error, 'is_delivered')) {
-              showToast('لازم تضيف عمود is_delivered في Supabase. نفّذ SQL اللي في الشات.', 'error');
+              showToast('لازم تضيف عمود is_delivered في Supabase.', 'error');
             } else {
               showToast(error.message || 'تعذر تحديث الحالة.', 'error');
             }
@@ -467,11 +468,7 @@ async function save(event) {
         if (newPath) cleanup.push(newPath);
         if (newSolutionPath) cleanup.push(newSolutionPath);
         if (cleanup.length) await supabase.storage.from('materials').remove(cleanup).catch(() => {});
-        if (isMissingMaterialColumn(error, 'due_at') || isMissingMaterialColumn(error, 'is_delivered')) {
-          showToast('عمود due_at أو is_delivered مش موجود. نفّذ SQL في Supabase.', 'error');
-        } else {
-          showToast(error.message || 'تعذر حفظ التعديلات.', 'error');
-        }
+        showToast(error.message || 'تعذر حفظ التعديلات.', 'error');
         return;
       }
 
@@ -480,13 +477,7 @@ async function save(event) {
       if (newSolutionPath && oldSolution && oldSolution !== newSolutionPath) toRemove.push(oldSolution);
       if (toRemove.length) await supabase.storage.from('materials').remove(toRemove).catch(() => {});
 
-      let msg = 'تم حفظ التعديلات.';
-      if (materialType === 'assignment') {
-        if (isDelivered) msg = 'تم الحفظ — الحالة: تم التسليم.';
-        else if (dueAt) msg = 'تم حفظ التعديلات وتحديث موعد التسليم.';
-        else msg = 'تم حفظ التعديلات. مفيش موعد تسليم محدد.';
-      }
-      showToast(msg, 'success');
+      showToast(materialType === 'assignment' && isDelivered ? 'تم الحفظ — تم التسليم.' : 'تم حفظ التعديلات.', 'success');
       document.getElementById('form-panel').classList.add('hidden');
       resetFormMode();
       await load();
@@ -546,5 +537,5 @@ async function save(event) {
 
 init().catch((error) => {
   console.error(error);
-  showError(document.getElementById('list'), 'مش قادرين نجهّز صفحة رفع الملفات. راجع إعدادات قاعدة البيانات.');
+  showError(document.getElementById('list'), 'مش قادرين نجهّز صفحة رفع الملفات.');
 });
