@@ -1,0 +1,70 @@
+/* Live online section join banner on home */
+
+.live-online-sections {
+  margin-bottom: 16px;
+}
+
+.live-os-card {
+  background: #fff;
+  border: 1px solid var(--border, #ebe6e1);
+  border-radius: 10px;
+  padding: 12px 14px;
+  border-right: 3px solid var(--primary, #c56a3a);
+}
+
+.live-os-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 0.88rem;
+  color: var(--text, #2c2a28);
+}
+
+.live-os-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c45c4a;
+  box-shadow: 0 0 0 3px rgba(196, 92, 74, 0.18);
+  flex: 0 0 auto;
+}
+
+.live-os-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.live-os-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.live-os-info {
+  min-width: 0;
+  flex: 1 1 140px;
+}
+
+.live-os-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text, #2c2a28);
+  line-height: 1.35;
+}
+
+.live-os-meta {
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--text-muted, #7a736c);
+}
+
+.live-os-item .btn {
+  flex: 0 0 auto;
+}
