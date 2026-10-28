@@ -7,8 +7,8 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>إرسال إشعارات | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=no-wa-1" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=no-wa-1" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=push-3" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=push-3" />
 </head>
 <body>
   <header class="app-header">
@@ -24,7 +24,7 @@
     <div class="container page-content" style="max-width:640px">
       <h1 class="mb-2" style="font-size:1.25rem">إرسال إشعار للطلاب</h1>
       <p class="text-sm text-muted mb-3">
-        الإشعار يظهر في لوحة إشعارات الطالب، ولو الطالب فعّل إشعارات المتصفح يوصله على الهاتف كمان.
+        الإشعار يظهر في لوحة إشعارات الطالب، ولو الطالب فعّل إشعارات المتصفح يوصله على شريط إشعارات التليفون.
       </p>
 
       <div class="card mb-3">
@@ -118,9 +118,24 @@
 
         const pushResult = await sendPushToAll({ title, body, url: link });
         if (pushResult?.ok) {
-          showToast('تم الإرسال — هيظهر في لوحة الإشعارات وعلى الأجهزة المشتركة', 'success');
+          if (pushResult.noDevices || (pushResult.total || 0) === 0) {
+            showToast('اتحفظ في لوحة الإشعارات. مفيش أجهزة مفعّلة إشعارات تليفون لسه.', 'info');
+          } else {
+            showToast(
+              'تم — اللوحة + شريط التليفون: ' +
+                (pushResult.sent || 0) +
+                ' من ' +
+                (pushResult.total || 0) +
+                ' جهاز',
+              'success'
+            );
+          }
         } else {
-          showToast('تم حفظ الإشعار في اللوحة. إشعار الهاتف يحتاج تفعيل Push', 'success');
+          showToast(
+            'اتحفظ في اللوحة. إشعار التليفون فشل: ' +
+              (pushResult?.error || 'انشر send-push واضبط VAPID'),
+            'info'
+          );
         }
 
         document.getElementById('notif-form').reset();
