@@ -1,5 +1,6 @@
 /**
  * NUSC Student Hub - Subject Details
+ * (submission_url support for assignments)
  */
 import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
@@ -184,6 +185,10 @@ function shortFileType(raw) {
 function materialCard(material, badgeLabel) {
   const hasSolution = !!(material.solution_image_path);
   const isAssignment = badgeLabel === 'واجب' || material.material_type === 'assignment';
+  let submitLink = '';
+  if (isAssignment && material.submission_url) {
+    submitLink = safeHttpUrl(material.submission_url);
+  }
   const isDelivered = isAssignment && !!material.is_delivered;
   const dueRaw = material.due_at || material.deadline_at || material.due_date || null;
   let dueDate = '';
@@ -221,6 +226,7 @@ function materialCard(material, badgeLabel) {
       <div class="material-card-actions">
         <button type="button" class="btn btn-sm btn-primary material-action-btn" data-view="${escapeHtml(material.id || '')}">عرض</button>
         ${solutionBtn}
+        ${submitLink ? `<a class="btn btn-sm btn-primary material-action-btn" href="${escapeHtml(submitLink)}" target="_blank" rel="noopener noreferrer">تسليم الواجب</a>` : ''}
         <button type="button" class="btn btn-sm btn-outline material-action-btn" data-copy-link="${escapeHtml(platformLink)}">نسخ الرابط</button>
         <button type="button" class="btn btn-sm btn-outline material-action-btn" data-share-link="${escapeHtml(platformLink)}" data-title="${escapeHtml(material.title || 'ملف')}">مشاركة</button>
         <button type="button" class="btn btn-sm btn-secondary material-action-btn" data-download="${escapeHtml(material.id)}" data-path="${escapeHtml(material.file_path || '')}" aria-label="تنزيل الملف" title="تنزيل">
@@ -394,12 +400,11 @@ async function copyPlatformLink(url) {
       document.body.appendChild(ta);
       ta.select();
       document.execCommand('copy');
-      document.body.removeChild(ta);
+      ta.remove();
     }
-    showToast('تم نسخ رابط الملف داخل المنصة.', 'success');
-  } catch (error) {
-    console.error('Copy link failed:', error);
-    showToast('ما قدرناش ننسخ الرابط.', 'error');
+    showToast('تم نسخ رابط المنصة.', 'success');
+  } catch {
+    showToast('تعذر نسخ الرابط.', 'error');
   }
 }
 
@@ -407,53 +412,47 @@ async function sharePlatformLink(url, title) {
   if (!url) { showToast('مفيش رابط للمشاركة.', 'error'); return; }
   try {
     if (navigator.share) {
-      await navigator.share({
-        title: title || 'ملف NUSC',
-        text: (title || 'ملف') + ' على منصة NUSC',
-        url
-      });
+      await navigator.share({ title: title || 'ملف NUSC', url });
       return;
     }
-    await copyPlatformLink(url);
-  } catch (error) {
-    if (error && error.name === 'AbortError') return;
-    console.error('Share link failed:', error);
-    showToast('ما قدرناش نشارك الرابط.', 'error');
+  } catch (e) {
+    if (e?.name === 'AbortError') return;
   }
+  await copyPlatformLink(url);
 }
 
 async function checkFavorite() {
   if (!profile?.id) return;
-  const { data, error } = await supabase.from('favorites').select('id')
-    .eq('user_id', profile.id).eq('item_type', 'subject').eq('item_id', subjectId).maybeSingle();
-  if (error) { console.warn('Could not check favorite:', error.message); return; }
-  const btn = document.getElementById('fav-btn');
-  if (data && btn) { btn.classList.add('active'); btn.style.color = 'var(--warning)'; }
+  try {
+    const { data, error } = await supabase.from('favorites').select('id')
+      .eq('user_id', profile.id).eq('item_type', 'subject').eq('item_id', subjectId).maybeSingle();
+    if (error) return;
+    const btn = document.getElementById('fav-btn');
+    if (btn && data) btn.classList.add('active');
+  } catch { /* ignore */ }
 }
 
 async function toggleFavorite() {
+  if (!profile?.id) return;
   const btn = document.getElementById('fav-btn');
-  if (!profile?.id || !btn) return;
   try {
     const { data, error } = await supabase.from('favorites').select('id')
       .eq('user_id', profile.id).eq('item_type', 'subject').eq('item_id', subjectId).maybeSingle();
     if (error) throw error;
-    if (data) {
+    if (data?.id) {
       const { error: deleteError } = await supabase.from('favorites').delete().eq('id', data.id);
       if (deleteError) throw deleteError;
-      btn.style.color = '';
-      btn.classList.remove('active');
-      showToast('شيلنا المادة من المفضلة.', 'info');
+      btn?.classList.remove('active');
+      showToast('اتشالت من المفضلة.', 'success');
     } else {
       const { error: insertError } = await supabase.from('favorites').insert({ user_id: profile.id, item_type: 'subject', item_id: subjectId });
       if (insertError) throw insertError;
-      btn.style.color = 'var(--warning)';
-      btn.classList.add('active');
-      showToast('ضفنا المادة للمفضلة.', 'success');
+      btn?.classList.add('active');
+      showToast('اتضافت للمفضلة.', 'success');
     }
   } catch (error) {
-    console.error('Favorite update failed:', error);
-    showToast('مش قادرين نحدّث المفضلة دلوقتي.', 'error');
+    console.error(error);
+    showToast('تعذر تحديث المفضلة.', 'error');
   }
 }
 
