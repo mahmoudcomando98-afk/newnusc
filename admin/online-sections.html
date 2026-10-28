@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <style>html.admin-auth-pending body{visibility:hidden!important}</style>
+  <script>document.documentElement.classList.add('admin-auth-pending')</script>
+  <title>سكاشن أونلاين | NUSC</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=os-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=os-1" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>سكاشن أونلاين</span>
+      </a>
+      <button type="button" class="btn btn-sm btn-primary" id="add-btn">+ إضافة</button>
+    </div>
+  </header>
+
+  <main class="page" style="padding-bottom:32px">
+    <div class="container page-content" style="max-width:640px">
+      <p class="text-sm text-muted mb-3">أضف مواعيد السكاشن الأونلاين (اليوم · الوقت · المقرر · المعيد). هتظهر للطلاب في صفحة سكاشن أونلاين.</p>
+
+      <div id="form-panel" class="card mb-3 hidden">
+        <h3 class="card-title mb-2" id="form-heading">موعد جديد</h3>
+        <form id="os-form">
+          <input type="hidden" id="edit_id" value="" />
+          <div class="form-group">
+            <label class="form-label" for="day_of_week">اليوم *</label>
+            <select id="day_of_week" class="form-select" required>
+              <option value="0">الأحد</option>
+              <option value="1">الإثنين</option>
+              <option value="2">الثلاثاء</option>
+              <option value="3">الأربعاء</option>
+              <option value="4">الخميس</option>
+              <option value="5">الجمعة</option>
+              <option value="6">السبت</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="start_time">من الساعة *</label>
+            <input type="time" id="start_time" class="form-input" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="end_time">إلى الساعة</label>
+            <input type="time" id="end_time" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="course_name">المقرر *</label>
+            <input type="text" id="course_name" class="form-input" required maxlength="120" placeholder="مثال: Math - 1" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="instructor">المعيد</label>
+            <input type="text" id="instructor" class="form-input" maxlength="120" placeholder="مثال: م. آية الملاح" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="sort_order">ترتيب داخل اليوم</label>
+            <input type="number" id="sort_order" class="form-input" value="0" />
+          </div>
+          <div class="form-group">
+            <label class="flex items-center gap-1">
+              <input type="checkbox" id="is_published" checked />
+              <span>ظاهر للطلاب</span>
+            </label>
+          </div>
+          <div class="flex gap-1">
+            <button type="submit" class="btn btn-primary" id="submit-btn">حفظ</button>
+            <button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="list"></div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase } from '../assets/js/supabase.js';
+    import { protectAdminPage } from '../assets/js/auth.js';
+    import { escapeHtml, formatTime, showEmpty, showError, showToast, initIcons, WEEKDAYS_AR } from '../assets/js/utils.js';
+
+    let cache = [];
+    let editingId = null;
+
+    async function init() {
+      const ok = await protectAdminPage();
+      if (!ok) return;
+      document.documentElement.classList.remove('admin-auth-pending');
+      initIcons();
+      document.getElementById('add-btn').addEventListener('click', openCreate);
+      document.getElementById('cancel-btn').addEventListener('click', closeForm);
+      document.getElementById('os-form').addEventListener('submit', onSave);
+      await load();
+    }
+
+    function openCreate() {
+      editingId = null;
+      document.getElementById('edit_id').value = '';
+      document.getElementById('form-heading').textContent = 'موعد جديد';
+      document.getElementById('os-form').reset();
+      document.getElementById('is_published').checked = true;
+      document.getElementById('sort_order').value = '0';
+      document.getElementById('form-panel').classList.remove('hidden');
+    }
+
+    function openEdit(item) {
+      editingId = item.id;
+      document.getElementById('edit_id').value = item.id;
+      document.getElementById('form-heading').textContent = 'تعديل موعد';
+      document.getElementById('day_of_week').value = String(item.day_of_week ?? 3);
+      document.getElementById('start_time').value = String(item.start_time || '').slice(0, 5);
+      document.getElementById('end_time').value = item.end_time ? String(item.end_time).slice(0, 5) : '';
+      document.getElementById('course_name').value = item.course_name || '';
+      document.getElementById('instructor').value = item.instructor || '';
+      document.getElementById('sort_order').value = item.sort_order ?? 0;
+      document.getElementById('is_published').checked = item.is_published !== false;
+      document.getElementById('form-panel').classList.remove('hidden');
+      document.getElementById('form-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function closeForm() {
+      editingId = null;
+      document.getElementById('form-panel').classList.add('hidden');
+      document.getElementById('os-form').reset();
+    }
+
+    async function load() {
+      const el = document.getElementById('list');
+      try {
+        const { data, error } = await supabase
+          .from('online_sections')
+          .select('*')
+          .order('day_of_week', { ascending: true })
+          .order('start_time', { ascending: true });
+        if (error) throw error;
+        cache = data || [];
+        if (!cache.length) {
+          showEmpty(el, 'لسه مفيش مواعيد. اضغط «إضافة».');
+          return;
+        }
+        el.innerHTML = cache
+          .map((item) => {
+            const day = WEEKDAYS_AR[item.day_of_week] || '';
+            const time =
+              formatTime(item.start_time) +
+              (item.end_time ? ' – ' + formatTime(item.end_time) : '');
+            return `
+            <article class="card mb-2">
+              <div class="flex justify-between items-start gap-1 flex-wrap">
+                <div>
+                  <h3 class="card-title" style="margin:0">${escapeHtml(item.course_name || '')}</h3>
+                  <p class="text-sm text-muted mt-1">${escapeHtml(day)} · ${escapeHtml(time)}</p>
+                  <p class="text-sm text-muted">${escapeHtml(item.instructor || '—')}</p>
+                  <p class="text-sm mt-1">
+                    <span class="badge ${item.is_published !== false ? 'badge-success' : 'badge-danger'}">
+                      ${item.is_published !== false ? 'ظاهر' : 'مخفي'}
+                    </span>
+                  </p>
+                </div>
+                <div class="flex gap-1">
+                  <button type="button" class="btn btn-sm btn-outline" data-edit="${escapeHtml(item.id)}">تعديل</button>
+                  <button type="button" class="btn btn-sm btn-danger" data-del="${escapeHtml(item.id)}">حذف</button>
+                </div>
+              </div>
+            </article>`;
+          })
+          .join('');
+
+        el.querySelectorAll('[data-edit]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const item = cache.find((x) => String(x.id) === String(btn.dataset.edit));
+            if (item) openEdit(item);
+          });
+        });
+        el.querySelectorAll('[data-del]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            if (!confirm('تحذف الموعد ده؟')) return;
+            const { error } = await supabase.from('online_sections').delete().eq('id', btn.dataset.del);
+            if (error) {
+              showToast(error.message || 'تعذر الحذف', 'error');
+              return;
+            }
+            showToast('اتحذف.', 'success');
+            await load();
+          });
+        });
+      } catch (err) {
+        console.error(err);
+        showError(
+          el,
+          err.message?.includes('relation') || err.code === '42P01'
+            ? 'نفّذ supabase/online_sections.sql في Supabase أولًا.'
+            : 'تعذر تحميل المواعيد.'
+        );
+      }
+    }
+
+    async function onSave(e) {
+      e.preventDefault();
+      const payload = {
+        day_of_week: Number(document.getElementById('day_of_week').value),
+        start_time: document.getElementById('start_time').value,
+        end_time: document.getElementById('end_time').value || null,
+        course_name: document.getElementById('course_name').value.trim(),
+        instructor: document.getElementById('instructor').value.trim() || null,
+        sort_order: Number(document.getElementById('sort_order').value) || 0,
+        is_published: document.getElementById('is_published').checked,
+        updated_at: new Date().toISOString()
+      };
+      if (!payload.course_name || !payload.start_time) {
+        showToast('أكمل المقرر ووقت البداية.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      try {
+        let error;
+        if (editingId) {
+          ({ error } = await supabase.from('online_sections').update(payload).eq('id', editingId));
+        } else {
+          ({ error } = await supabase.from('online_sections').insert(payload));
+        }
+        if (error) {
+          showToast(error.message || 'فشل الحفظ', 'error');
+          return;
+        }
+        showToast('تم الحفظ.', 'success');
+        closeForm();
+        await load();
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
