@@ -52,16 +52,13 @@ body {
 
   .dashboard-shortcuts {
     display: grid !important;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr !important;
     gap: 8px !important;
   }
 
   .shortcut-card {
-    padding: 12px 10px !important;
-  }
-
-  .shortcut-text small {
-    display: none;
+    padding: 10px 8px !important;
+    min-height: 68px !important;
   }
 
   .home-two-col {
@@ -114,10 +111,6 @@ body {
 }
 
 @media (max-width: 380px) {
-  .dashboard-shortcuts {
-    grid-template-columns: 1fr;
-  }
-
   .material-card-actions {
     grid-template-columns: 1fr;
   }
