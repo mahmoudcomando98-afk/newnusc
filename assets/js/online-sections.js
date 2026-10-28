@@ -5,13 +5,6 @@ import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
 import { escapeHtml, formatTime, showEmpty, showError, initIcons, setActiveNav, WEEKDAYS_AR } from './utils.js';
 
-function formatRange(start, end) {
-  if (!start) return '—';
-  const s = formatTime(start);
-  if (!end) return s;
-  return `${s}\n${formatTime(end)}`;
-}
-
 function sortRows(rows) {
   return [...rows].sort((a, b) => {
     const da = Number(a.day_of_week);
@@ -22,7 +15,7 @@ function sortRows(rows) {
   });
 }
 
-function renderTable(rows) {
+function renderSchedule(rows) {
   const byDay = new Map();
   sortRows(rows).forEach((row) => {
     const day = Number(row.day_of_week);
@@ -30,37 +23,49 @@ function renderTable(rows) {
     byDay.get(day).push(row);
   });
 
-  const body = [];
-  [...byDay.keys()].sort((a, b) => a - b).forEach((day) => {
-    const dayName = WEEKDAYS_AR[day] || `يوم ${day}`;
-    body.push(`<tr class="os-day-row"><td colspan="3">${escapeHtml(dayName)}</td></tr>`);
-    byDay.get(day).forEach((row) => {
-      const timeHtml = formatRange(row.start_time, row.end_time)
-        .split('\n')
-        .map((line) => escapeHtml(line))
-        .join('<br />');
-      body.push(`
-        <tr class="os-item">
-          <td class="os-time">${timeHtml}</td>
-          <td class="os-course">${escapeHtml(row.course_name || '—')}</td>
-          <td class="os-instructor">${escapeHtml(row.instructor || '—')}</td>
-        </tr>`);
-    });
-  });
+  const daysHtml = [...byDay.keys()]
+    .sort((a, b) => a - b)
+    .map((day) => {
+      const items = byDay.get(day);
+      const dayName = WEEKDAYS_AR[day] || `يوم ${day}`;
+      const countLabel = items.length === 1 ? 'سكشن واحد' : `${items.length} سكاشن`;
+
+      const itemsHtml = items
+        .map((row) => {
+          const start = row.start_time ? formatTime(row.start_time) : '—';
+          const end = row.end_time ? formatTime(row.end_time) : '';
+          const instructor = row.instructor
+            ? `<p class="os-instructor"><strong>المعيد:</strong> ${escapeHtml(row.instructor)}</p>`
+            : '';
+
+          return `
+            <li class="os-item">
+              <div class="os-time">
+                <span class="os-time-label">من</span>
+                <span class="os-time-start">${escapeHtml(start)}</span>
+                ${end ? `<span class="os-time-label">إلى</span><span class="os-time-end">${escapeHtml(end)}</span>` : ''}
+              </div>
+              <div class="os-body">
+                <p class="os-course">${escapeHtml(row.course_name || '—')}</p>
+                ${instructor}
+              </div>
+            </li>`;
+        })
+        .join('');
+
+      return `
+        <section class="os-day" aria-label="${escapeHtml(dayName)}">
+          <header class="os-day-head">
+            <h2 class="os-day-name">${escapeHtml(dayName)}</h2>
+            <span class="os-day-count">${escapeHtml(countLabel)}</span>
+          </header>
+          <ul class="os-list">${itemsHtml}</ul>
+        </section>`;
+    })
+    .join('');
 
   return `
-    <div class="os-table-wrap">
-      <table class="os-table">
-        <thead>
-          <tr>
-            <th>الوقت</th>
-            <th>المقرر</th>
-            <th>المعيد</th>
-          </tr>
-        </thead>
-        <tbody>${body.join('')}</tbody>
-      </table>
-    </div>
+    <div class="os-days">${daysHtml}</div>
     <p class="os-footer">الأوقات بتوقيت القاهرة</p>`;
 }
 
@@ -79,7 +84,7 @@ async function load() {
       showEmpty(el, 'لسه مفيش جدول سكاشن أونلاين. الأدمن هيضيفه قريب.');
       return;
     }
-    el.innerHTML = renderTable(data);
+    el.innerHTML = renderSchedule(data);
   } catch (err) {
     console.error(err);
     showError(
