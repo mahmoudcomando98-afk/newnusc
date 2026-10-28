@@ -62,6 +62,10 @@ function renderProfile() {
   `;
 
   document.getElementById('full_name').value = profile.full_name || '';
+  const waPhone = document.getElementById('whatsapp_phone');
+  const waOpt = document.getElementById('whatsapp_opt_in');
+  if (waPhone) waPhone.value = profile.whatsapp_phone || '';
+  if (waOpt) waOpt.checked = !!profile.whatsapp_opt_in;
   document.getElementById('student_id').value = profile.student_id || '';
   document.getElementById('email').value = profile.email || '';
 }
@@ -74,6 +78,8 @@ function setupForms() {
     const handler = withLoading(btn, async () => {
       const full_name = document.getElementById('full_name').value.trim();
       const student_id = document.getElementById('student_id').value.trim() || null;
+      const whatsapp_phone = document.getElementById('whatsapp_phone')?.value.trim() || null;
+      const whatsapp_opt_in = !!document.getElementById('whatsapp_opt_in')?.checked;
 
       if (!full_name) {
         showToast('الاسم مطلوب', 'error');
@@ -82,7 +88,7 @@ function setupForms() {
 
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name, student_id })
+        .update({ full_name, student_id, whatsapp_phone, whatsapp_opt_in })
         .eq('id', profile.id);
 
       if (error) {
@@ -91,9 +97,11 @@ function setupForms() {
       }
 
       profile.full_name = full_name;
+      profile.whatsapp_phone = whatsapp_phone;
+      profile.whatsapp_opt_in = whatsapp_opt_in;
       profile.student_id = student_id;
       renderProfile();
-      showToast('تم حفظ التعديلات', 'success');
+      showToast('تم حفظ البيانات', 'success');
     });
     await handler();
   });
@@ -101,25 +109,26 @@ function setupForms() {
   const passwordForm = document.getElementById('password-form');
   passwordForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const newPass = document.getElementById('new_password').value;
-    const confirm = document.getElementById('confirm_password').value;
-
-    if (newPass !== confirm) {
-      showToast('كلمتا المرور غير متطابقتين', 'error');
-      return;
-    }
-
     const btn = passwordForm.querySelector('[type="submit"]');
-    const handler = withLoading(btn, async () => {
+    await withLoading(btn, async () => {
+      const newPass = document.getElementById('new_password').value;
+      const confirm = document.getElementById('confirm_password').value;
+      if (newPass.length < 6) {
+        showToast('كلمة المرور 6 أحرف على الأقل', 'error');
+        return;
+      }
+      if (newPass !== confirm) {
+        showToast('كلمة المرور غير متطابقة', 'error');
+        return;
+      }
       try {
         await updatePassword(newPass);
         passwordForm.reset();
         showToast('تم تحديث كلمة المرور', 'success');
       } catch (err) {
-        showToast(err.message, 'error');
+        showToast(err.message || 'فشل تحديث كلمة المرور', 'error');
       }
     });
-    await handler();
   });
 }
 
