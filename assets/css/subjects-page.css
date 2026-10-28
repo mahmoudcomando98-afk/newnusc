@@ -1,4 +1,4 @@
-/* Subjects catalog — compact, 2 columns, full-width search */
+/* Subjects catalog — compact 2-col mobile, equal tiles */
 
 .subjects-page .page-content {
   max-width: 960px;
@@ -6,7 +6,6 @@
   padding-bottom: 12px;
 }
 
-/* Simple header — not a tall card */
 .subjects-page .subjects-intro {
   display: flex;
   flex-wrap: wrap;
@@ -61,10 +60,9 @@
   height: 14px;
 }
 
-/* Search full width, shorter height */
 .subjects-page .subjects-toolbar {
   display: block !important;
-  margin-bottom: 10px !important;
+  margin-bottom: 12px !important;
   width: 100%;
 }
 
@@ -79,16 +77,16 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 5px 10px;
-  min-height: 34px;
+  padding: 6px 12px;
+  min-height: 40px;
   background: #fff;
   border: 1px solid var(--border, #e8e4df);
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .subjects-page .subjects-toolbar .search-box:focus-within {
-  border-color: #c4bbb0;
-  box-shadow: 0 0 0 3px rgba(92, 86, 80, 0.07);
+  border-color: #d4a078;
+  box-shadow: 0 0 0 2px rgba(197, 106, 58, 0.12);
 }
 
 .subjects-page .subjects-toolbar .search-box input {
@@ -97,71 +95,64 @@
   background: transparent;
   width: 100%;
   min-width: 0;
-  font-size: 0.84rem;
+  font-size: 0.88rem;
   line-height: 1.3;
   box-shadow: none !important;
   padding: 0 !important;
-  height: 22px;
+  height: 24px;
 }
 
-/* Always 2 subjects side by side */
 .subjects-page .subjects-grid.card-grid,
 .subjects-page #subjects-grid {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 8px !important;
+  gap: 10px !important;
+  align-items: stretch !important;
 }
 
-/* Compact tiles */
 .subjects-page .subject-tile {
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  height: 100%;
+  min-height: 148px;
   min-width: 0;
   margin: 0;
-  padding: 0;
+  padding: 12px;
   background: #fff;
-  border: 1px solid var(--border, #e8e4df);
+  border: 1px solid var(--border, #ebe6e1);
   border-radius: 10px;
-  overflow: hidden;
-  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+  text-decoration: none;
+  color: inherit;
 }
 
 .subjects-page .subject-tile:hover {
-  border-color: #d4ccc3;
-  box-shadow: none;
-}
-
-.subjects-page .subject-tile-accent {
-  height: 3px;
-  background: #b8aea3;
+  border-color: #dfd6ce;
 }
 
 .subjects-page .subject-tile-body {
   display: flex;
   flex-direction: column;
+  gap: 8px;
   flex: 1;
-  gap: 6px;
-  padding: 10px;
   min-width: 0;
 }
 
-.subjects-page .subject-tile-top {
+.subjects-page .subject-tile-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 6px;
 }
 
-/* Full subject code — no ellipsis cut-off */
 .subjects-page .subject-tile-code {
   display: inline-block;
   max-width: calc(100% - 32px);
   padding: 3px 8px;
   border-radius: 6px;
-  background: #f3efe9;
-  border: 1px solid #e4ddd4;
-  color: #3f3a35;
+  background: var(--primary-light, #f8efe8);
+  border: 1px solid var(--border, #ebe6e1);
+  color: var(--primary-dark, #9a4f2b);
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 1.35;
@@ -172,16 +163,16 @@
 }
 
 .subjects-page .subject-tile-icon {
-  flex: 0 0 26px;
-  width: 26px;
-  height: 26px;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 7px;
-  background: #f7f4f0;
-  border: 1px solid #ebe5de;
-  color: #6b645c;
+  border-radius: 8px;
+  background: var(--surface-soft, #f5f0eb);
+  border: 1px solid var(--border, #ebe6e1);
+  color: var(--primary-dark, #9a4f2b);
 }
 
 .subjects-page .subject-tile-icon svg {
@@ -200,6 +191,7 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: 2.5em;
 }
 
 .subjects-page .subject-tile-instructor {
@@ -210,6 +202,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-height: 1.3em;
 }
 
 .subjects-page .subject-tile-desc {
@@ -218,7 +211,7 @@
 
 .subjects-page .subject-tile-footer {
   margin-top: auto;
-  padding-top: 2px;
+  padding-top: 8px;
 }
 
 .subjects-page .subject-tile-btn {
@@ -226,10 +219,10 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 32px;
+  min-height: 34px;
   padding: 6px 8px;
   border-radius: 8px;
-  border: 1px solid #d8d0c6;
+  border: 1px solid #e0d4ca;
   background: #faf8f5;
   color: #3a3632;
   font-size: 0.78rem;
@@ -243,9 +236,34 @@
   color: #2c2a28;
 }
 
+@media (max-width: 420px) {
+  .subjects-page .subjects-grid.card-grid,
+  .subjects-page #subjects-grid {
+    gap: 8px !important;
+  }
+
+  .subjects-page .subject-tile {
+    min-height: 140px;
+    padding: 10px;
+  }
+
+  .subjects-page .subject-tile-title {
+    font-size: 0.82rem;
+  }
+
+  .subjects-page .subject-tile-btn {
+    min-height: 32px;
+    font-size: 0.74rem;
+  }
+}
+
 @media (min-width: 720px) {
   .subjects-page .subjects-intro h1 {
     font-size: 1.2rem;
+  }
+  .subjects-page .subject-tile {
+    min-height: 160px;
+    padding: 14px;
   }
   .subjects-page .subject-tile-title {
     font-size: 0.95rem;
@@ -262,7 +280,7 @@
   }
   .subjects-page .subjects-grid.card-grid,
   .subjects-page #subjects-grid {
-    gap: 10px !important;
+    gap: 12px !important;
   }
 }
 
