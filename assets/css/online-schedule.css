@@ -1,0 +1,155 @@
+/* Online sections schedule — dark card style */
+
+.online-schedule-page {
+  background: #0f1220;
+  min-height: 100vh;
+  color: #e8eaf2;
+}
+
+.online-schedule-page .app-header {
+  background: #151a2c;
+  border-bottom: 1px solid #252b40;
+}
+
+.online-schedule-page .app-header .logo,
+.online-schedule-page .app-header a {
+  color: #e8eaf2;
+}
+
+.online-schedule-wrap {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}
+
+.online-schedule-hero {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.online-schedule-hero h1 {
+  margin: 0 0 8px;
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #f4f5fb;
+}
+
+.online-schedule-hero .subtitle {
+  margin: 0 0 10px;
+  font-size: 0.92rem;
+  color: #a8b0c8;
+}
+
+.online-schedule-hero .note {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #c5cbe0;
+  line-height: 1.5;
+}
+
+.online-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #1a2035;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.online-table thead th {
+  background: #7b6cff;
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 14px 12px;
+  text-align: center;
+}
+
+.online-table tbody td {
+  padding: 14px 12px;
+  text-align: center;
+  vertical-align: middle;
+  border-bottom: 1px solid #252b40;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.online-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.online-table .day-row td {
+  background: #222841;
+  color: #9aa6ff;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 12px;
+  letter-spacing: 0.02em;
+}
+
+.online-table .session-row td {
+  background: #171c2e;
+  color: #e8eaf2;
+}
+
+.online-table .session-row:nth-child(even of .session-row) td,
+.online-table tr.session-row.alt td {
+  background: #1c2338;
+}
+
+.online-table .time-cell {
+  font-weight: 700;
+  color: #9aa6ff;
+  white-space: nowrap;
+  direction: ltr;
+}
+
+.online-table .course-cell {
+  font-weight: 600;
+  color: #fff;
+}
+
+.online-table .instructor-cell {
+  color: #c5cbe0;
+}
+
+.online-table .session-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  color: #a99bff;
+  text-decoration: none;
+}
+
+.online-table .session-link:hover {
+  text-decoration: underline;
+}
+
+.online-schedule-footer {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.85rem;
+  color: #8b93ad;
+}
+
+.online-schedule-empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: #a8b0c8;
+  background: #1a2035;
+  border-radius: 16px;
+}
+
+@media (max-width: 420px) {
+  .online-schedule-hero h1 {
+    font-size: 1.45rem;
+  }
+
+  .online-table thead th,
+  .online-table tbody td {
+    padding: 12px 8px;
+    font-size: 0.82rem;
+  }
+}
