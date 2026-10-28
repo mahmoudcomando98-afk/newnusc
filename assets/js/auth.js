@@ -123,12 +123,8 @@ export async function protectPage({ adminOnly = false } = {}) {
   }
   try {
     const uid = session.user?.id || profile?.id;
-    if (uid) {
-      // Presence only — never signs out if it fails
-      import('./presence.js').then((m) => m.startPresence(uid)).catch(() => {});
-      if (!adminOnly) {
-        import('./push.js').then((m) => m.initPushNotifications(uid)).catch(() => {});
-      }
+    if (uid && !adminOnly) {
+      import('./push.js').then((m) => m.initPushNotifications(uid)).catch(() => {});
     }
   } catch { /* ignore */ }
   return { session, user: session.user, profile };
