@@ -38,6 +38,7 @@ async function init() {
     setActiveNav('home');
     initIcons();
     setupUserChip();
+    setupPushBanner(result.user?.id || result.session?.user?.id);
     onConnectivityChange((online) => {
       const banner = document.getElementById('offline-banner');
       if (banner) banner.classList.toggle('hidden', online);
@@ -72,6 +73,49 @@ async function init() {
   } catch (error) {
     console.error('[NUSC] home init:', error);
   }
+}
+
+function setupPushBanner(userId) {
+  const banner = document.getElementById('push-enable-banner');
+  const btn = document.getElementById('enable-push-btn');
+  if (!banner || !btn || !userId) return;
+
+  import('./push.js')
+    .then(async (m) => {
+      if (!m.pushSupported()) {
+        banner.classList.add('hidden');
+        return;
+      }
+      const perm = m.notificationPermission();
+      if (perm === 'granted') {
+        m.initPushNotifications(userId).catch(() => {});
+        banner.classList.add('hidden');
+        return;
+      }
+      if (perm === 'denied') {
+        banner.classList.remove('hidden');
+        btn.textContent = 'مرفوض من الإعدادات';
+        btn.disabled = true;
+        return;
+      }
+      banner.classList.remove('hidden');
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = '...';
+        const res = await m.enablePushFromUserGesture(userId);
+        if (res.ok) {
+          banner.classList.add('hidden');
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'تفعيل';
+          if (res.reason === 'denied') {
+            btn.textContent = 'مرفوض من الإعدادات';
+            btn.disabled = true;
+          }
+        }
+      });
+    })
+    .catch(() => {});
 }
 
 function setupUserChip() {
