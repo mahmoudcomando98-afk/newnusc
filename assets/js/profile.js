@@ -19,7 +19,17 @@ let profile = null;
 async function init() {
   const result = await protectPage();
   if (!result) return;
-  profile = result.profile;
+  profile = result.profile || null;
+  if (!profile) {
+    const el = document.getElementById('profile-card');
+    if (el) {
+      el.innerHTML =
+        '<p class="text-muted">تعذر تحميل بيانات الحساب. حدّث الصفحة أو سجّل دخول مرة أخرى.</p>';
+    }
+    setActiveNav('profile');
+    initIcons();
+    return;
+  }
 
   setActiveNav('profile');
   initIcons();
@@ -62,10 +72,6 @@ function renderProfile() {
   `;
 
   document.getElementById('full_name').value = profile.full_name || '';
-  const waPhone = document.getElementById('whatsapp_phone');
-  const waOpt = document.getElementById('whatsapp_opt_in');
-  if (waPhone) waPhone.value = profile.whatsapp_phone || '';
-  if (waOpt) waOpt.checked = !!profile.whatsapp_opt_in;
   document.getElementById('student_id').value = profile.student_id || '';
   document.getElementById('email').value = profile.email || '';
 }
@@ -78,8 +84,6 @@ function setupForms() {
     const handler = withLoading(btn, async () => {
       const full_name = document.getElementById('full_name').value.trim();
       const student_id = document.getElementById('student_id').value.trim() || null;
-      const whatsapp_phone = document.getElementById('whatsapp_phone')?.value.trim() || null;
-      const whatsapp_opt_in = !!document.getElementById('whatsapp_opt_in')?.checked;
 
       if (!full_name) {
         showToast('الاسم مطلوب', 'error');
@@ -88,7 +92,7 @@ function setupForms() {
 
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name, student_id, whatsapp_phone, whatsapp_opt_in })
+        .update({ full_name, student_id })
         .eq('id', profile.id);
 
       if (error) {
@@ -97,8 +101,6 @@ function setupForms() {
       }
 
       profile.full_name = full_name;
-      profile.whatsapp_phone = whatsapp_phone;
-      profile.whatsapp_opt_in = whatsapp_opt_in;
       profile.student_id = student_id;
       renderProfile();
       showToast('تم حفظ البيانات', 'success');

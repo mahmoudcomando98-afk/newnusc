@@ -7,8 +7,8 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>إرسال إشعارات | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=wa-1" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=wa-1" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=no-wa-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=no-wa-1" />
 </head>
 <body>
   <header class="app-header">
@@ -24,7 +24,7 @@
     <div class="container page-content" style="max-width:640px">
       <h1 class="mb-2" style="font-size:1.25rem">إرسال إشعار للطلاب</h1>
       <p class="text-sm text-muted mb-3">
-        الإشعار يظهر في لوحة الطالب، ولو فعّل إشعارات المتصفح يوصله على الهاتف. واتساب اختياري للطلاب اللي سجّلوا رقمهم ووافقوا.
+        الإشعار يظهر في لوحة إشعارات الطالب، ولو الطالب فعّل إشعارات المتصفح يوصله على الهاتف كمان.
       </p>
 
       <div class="card mb-3">
@@ -50,13 +50,6 @@
               <option value="success">مهم / إيجابي</option>
             </select>
           </div>
-          <div class="form-group">
-            <label class="flex items-center gap-1">
-              <input type="checkbox" id="send_whatsapp" />
-              <span>أرسل كمان على واتساب (للطلاب اللي موافقين)</span>
-            </label>
-            <p class="text-sm text-muted mt-1">يحتاج إعداد Twilio + Edge Function — شوف supabase/WHATSAPP_SETUP.md</p>
-          </div>
           <button type="submit" class="btn btn-primary" id="send-btn">إرسال لجميع الطلاب</button>
         </form>
       </div>
@@ -71,7 +64,6 @@
     import { protectAdminPage } from '../assets/js/auth.js';
     import { escapeHtml, showEmpty, showError, showToast, initIcons, timeAgo } from '../assets/js/utils.js';
     import { sendPushToAll } from '../assets/js/push.js';
-    import { sendWhatsAppBroadcast } from '../assets/js/whatsapp.js';
 
     async function init() {
       const ok = await protectAdminPage();
@@ -125,19 +117,10 @@
         }
 
         const pushResult = await sendPushToAll({ title, body, url: link });
-        let waMsg = '';
-        if (document.getElementById('send_whatsapp')?.checked) {
-          const wa = await sendWhatsAppBroadcast({ title, body, link });
-          if (wa.ok) {
-            waMsg = ` · واتساب: ${wa.data?.sent ?? 0}/${wa.data?.targets ?? 0}`;
-          } else {
-            waMsg = ' · واتساب: ' + (wa.error || 'فشل');
-          }
-        }
         if (pushResult?.ok) {
-          showToast('تم الإرسال — هيظهر في لوحة الإشعارات وعلى الأجهزة المشتركة' + waMsg, 'success');
+          showToast('تم الإرسال — هيظهر في لوحة الإشعارات وعلى الأجهزة المشتركة', 'success');
         } else {
-          showToast('تم حفظ الإشعار في اللوحة. إشعار الهاتف يحتاج تفعيل Push' + waMsg, 'success');
+          showToast('تم حفظ الإشعار في اللوحة. إشعار الهاتف يحتاج تفعيل Push', 'success');
         }
 
         document.getElementById('notif-form').reset();
