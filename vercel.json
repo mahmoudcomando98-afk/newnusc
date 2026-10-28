@@ -7,6 +7,7 @@
     { "source": "/subjects", "destination": "/subjects.html" },
     { "source": "/quizzes", "destination": "/quizzes.html" },
     { "source": "/schedule", "destination": "/schedule.html" },
+    { "source": "/online-sections", "destination": "/online-sections.html" },
     { "source": "/announcements", "destination": "/announcements.html" },
     { "source": "/notifications", "destination": "/notifications.html" },
     { "source": "/profile", "destination": "/profile.html" },
