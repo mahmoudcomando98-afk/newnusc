@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#faf9f7" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="description" content="لوحة الطالب — ملفات المواد، الكويزات، والإعلانات على منصة NUSC." />
   <meta property="og:title" content="NUSC — منصة طلاب الحاسبات" />
   <meta property="og:description" content="ملفات المواد، مواعيد الكويزات، وإعلانات الدكاترة في مكان واحد." />
@@ -13,12 +16,20 @@
   <meta name="twitter:image" content="/nusc.png.jpeg" />
   <link rel="icon" href="/nusc.png.jpeg" type="image/jpeg" />
   <title>الرئيسية | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=live-os-1" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=live-os-1" />
-  <link rel="stylesheet" href="/assets/css/mobile-polish.css?v=live-os-1" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=push-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=push-2" />
+  <link rel="stylesheet" href="/assets/css/mobile-polish.css?v=push-2" />
   <link rel="stylesheet" href="/assets/css/home-subjects.css?v=4" />
   <link rel="stylesheet" href="/assets/css/home-notice.css?v=1" />
   <link rel="stylesheet" href="/assets/css/live-online.css?v=1" />
+  <style>
+    .push-enable-banner { margin-bottom: 12px; }
+    .push-enable-inner {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      padding: 12px 14px; background: #fff; border: 1px solid #ebe6e1; border-radius: 10px;
+    }
+    .push-enable-inner strong { font-size: 0.9rem; color: #2c2a28; }
+  </style>
 </head>
 <body class="home-page">
   <div class="offline-banner" id="offline-banner">لا يوجد اتصال بالإنترنت</div>
@@ -54,6 +65,16 @@
             <a href="/subjects.html" class="btn btn-gold"><span data-icon="book"></span> المواد</a>
             <a href="/updates.html" class="hero-secondary-link"><span data-icon="clipboard"></span> آخر التحديثات</a>
           </div>
+        </div>
+      </section>
+
+      <section id="push-enable-banner" class="push-enable-banner hidden" aria-live="polite">
+        <div class="push-enable-inner">
+          <div>
+            <strong>تفعيل إشعارات التليفون</strong>
+            <p class="text-sm text-muted" style="margin:4px 0 0">عشان يوصلك تنبيه في شريط الإشعارات لما الأدمن يبعت إشعار.</p>
+          </div>
+          <button type="button" class="btn btn-sm btn-primary" id="enable-push-btn">تفعيل</button>
         </div>
       </section>
 
@@ -118,6 +139,6 @@
     <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
     <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
-  <script type="module" src="/assets/js/home.js?v=live-os-1"></script>
+  <script type="module" src="/assets/js/home.js?v=push-2"></script>
 </body>
 </html>
