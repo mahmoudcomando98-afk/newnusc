@@ -6,8 +6,8 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>سكاشن أونلاين | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=os-1" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=os-1" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=os-join-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=os-join-1" />
 </head>
 <body>
   <header class="app-header">
@@ -22,7 +22,7 @@
 
   <main class="page" style="padding-bottom:32px">
     <div class="container page-content" style="max-width:640px">
-      <p class="text-sm text-muted mb-3">أضف مواعيد السكاشن الأونلاين (اليوم · الوقت · المقرر · المعيد). هتظهر للطلاب في صفحة سكاشن أونلاين.</p>
+      <p class="text-sm text-muted mb-3">أضف مواعيد السكاشن. <strong>رابط الدخول</strong> هيظهر للطالب في الرئيسية لما السكشن يبدأ — مش في صفحة الجدول.</p>
 
       <div id="form-panel" class="card mb-3 hidden">
         <h3 class="card-title mb-2" id="form-heading">موعد جديد</h3>
@@ -57,6 +57,11 @@
             <input type="text" id="instructor" class="form-input" maxlength="120" placeholder="مثال: م. آية الملاح" />
           </div>
           <div class="form-group">
+            <label class="form-label" for="join_url">رابط الدخول (Zoom / Meet / Teams)</label>
+            <input type="url" id="join_url" class="form-input" maxlength="500" placeholder="https://..." dir="ltr" />
+            <p class="text-sm text-muted mt-1">هيظهر للطالب في الرئيسية قبل وبعد بداية السكشن بـ 15 دقيقة تقريبًا.</p>
+          </div>
+          <div class="form-group">
             <label class="form-label" for="sort_order">ترتيب داخل اليوم</label>
             <input type="number" id="sort_order" class="form-input" value="0" />
           </div>
@@ -85,6 +90,18 @@
     let cache = [];
     let editingId = null;
 
+    function normalizeJoinUrl(raw) {
+      const s = String(raw || '').trim();
+      if (!s) return null;
+      try {
+        const u = new URL(s);
+        if (!['http:', 'https:'].includes(u.protocol)) return null;
+        return u.href;
+      } catch {
+        return null;
+      }
+    }
+
     async function init() {
       const ok = await protectAdminPage();
       if (!ok) return;
@@ -103,6 +120,7 @@
       document.getElementById('os-form').reset();
       document.getElementById('is_published').checked = true;
       document.getElementById('sort_order').value = '0';
+      document.getElementById('join_url').value = '';
       document.getElementById('form-panel').classList.remove('hidden');
     }
 
@@ -115,6 +133,7 @@
       document.getElementById('end_time').value = item.end_time ? String(item.end_time).slice(0, 5) : '';
       document.getElementById('course_name').value = item.course_name || '';
       document.getElementById('instructor').value = item.instructor || '';
+      document.getElementById('join_url').value = item.join_url || '';
       document.getElementById('sort_order').value = item.sort_order ?? 0;
       document.getElementById('is_published').checked = item.is_published !== false;
       document.getElementById('form-panel').classList.remove('hidden');
@@ -147,6 +166,7 @@
             const time =
               formatTime(item.start_time) +
               (item.end_time ? ' – ' + formatTime(item.end_time) : '');
+            const hasLink = !!item.join_url;
             return `
             <article class="card mb-2">
               <div class="flex justify-between items-start gap-1 flex-wrap">
@@ -158,6 +178,7 @@
                     <span class="badge ${item.is_published !== false ? 'badge-success' : 'badge-danger'}">
                       ${item.is_published !== false ? 'ظاهر' : 'مخفي'}
                     </span>
+                    ${hasLink ? '<span class="badge badge-primary" style="margin-right:6px">فيه رابط دخول</span>' : '<span class="badge" style="margin-right:6px">مفيش رابط</span>'}
                   </p>
                 </div>
                 <div class="flex gap-1">
@@ -200,12 +221,22 @@
 
     async function onSave(e) {
       e.preventDefault();
+      const joinRaw = document.getElementById('join_url').value.trim();
+      let joinUrl = null;
+      if (joinRaw) {
+        joinUrl = normalizeJoinUrl(joinRaw);
+        if (!joinUrl) {
+          showToast('رابط الدخول مش صحيح. لازم يبدأ بـ https://', 'error');
+          return;
+        }
+      }
       const payload = {
         day_of_week: Number(document.getElementById('day_of_week').value),
         start_time: document.getElementById('start_time').value,
         end_time: document.getElementById('end_time').value || null,
         course_name: document.getElementById('course_name').value.trim(),
         instructor: document.getElementById('instructor').value.trim() || null,
+        join_url: joinUrl,
         sort_order: Number(document.getElementById('sort_order').value) || 0,
         is_published: document.getElementById('is_published').checked,
         updated_at: new Date().toISOString()
@@ -225,7 +256,11 @@
           ({ error } = await supabase.from('online_sections').insert(payload));
         }
         if (error) {
-          showToast(error.message || 'فشل الحفظ', 'error');
+          if (/join_url/i.test(String(error.message || ''))) {
+            showToast('نفّذ SQL: ALTER TABLE online_sections ADD COLUMN join_url TEXT;', 'error');
+          } else {
+            showToast(error.message || 'فشل الحفظ', 'error');
+          }
           return;
         }
         showToast('تم الحفظ.', 'success');
