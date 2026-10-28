@@ -1,6 +1,7 @@
-// Supabase Edge Function: send-push
-// Deploy: supabase functions deploy send-push --no-verify-jwt  (or keep JWT + admin check)
-// Secrets: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
+// Deploy:
+//   supabase functions deploy send-push
+// Secrets (must match frontend VAPID_PUBLIC):
+//   supabase secrets set VAPID_PUBLIC_KEY="..." VAPID_PRIVATE_KEY="..." VAPID_SUBJECT="mailto:you@example.com"
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
@@ -23,7 +24,7 @@ Deno.serve(async (req) => {
     if (!vapidPublic || !vapidPrivate) {
       return new Response(
         JSON.stringify({
-          error: 'VAPID keys missing',
+          error: 'VAPID keys missing on server',
           hint: 'supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=...'
         }),
         { status: 503, headers: { ...cors, 'Content-Type': 'application/json' } }
@@ -43,7 +44,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Optional: verify caller is admin when JWT present
+    // Prefer verifying admin JWT when present
     const authHeader = req.headers.get('Authorization') || '';
     if (authHeader.startsWith('Bearer ') && anonKey) {
       const userClient = createClient(supabaseUrl, anonKey, {
@@ -85,7 +86,7 @@ Deno.serve(async (req) => {
       title,
       body: text,
       url,
-      tag: 'nusc-admin',
+      tag: 'nusc-admin-' + Date.now(),
       icon: '/nusc.png.jpeg',
       badge: '/nusc.png.jpeg'
     });
@@ -102,11 +103,8 @@ Deno.serve(async (req) => {
           },
           payload,
           {
-            TTL: 60 * 60 * 12,
-            urgency: 'high',
-            headers: {
-              Urgency: 'high'
-            }
+            TTL: 60 * 60 * 24,
+            urgency: 'high'
           }
         );
         sent++;
@@ -120,7 +118,12 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ ok: true, sent, failed, total: (subs || []).length }),
+      JSON.stringify({
+        ok: true,
+        sent,
+        failed,
+        total: (subs || []).length
+      }),
       { headers: { ...cors, 'Content-Type': 'application/json' } }
     );
   } catch (err) {

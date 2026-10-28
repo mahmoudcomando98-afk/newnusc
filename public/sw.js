@@ -1,12 +1,17 @@
 /* NUSC Service Worker — system notification tray */
 const ICON = '/nusc.png.jpeg';
+const SW_VERSION = 'nusc-sw-v3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      await self.clients.claim();
+    })()
+  );
 });
 
 self.addEventListener('push', (event) => {
@@ -36,19 +41,18 @@ self.addEventListener('push', (event) => {
     body: String(data.body || '').slice(0, 500),
     icon: data.icon || ICON,
     badge: data.badge || ICON,
-    image: data.image || undefined,
     data: { url: data.url || '/notifications.html' },
     tag: data.tag || 'nusc-push',
     renotify: true,
     dir: 'rtl',
     lang: 'ar',
-    vibrate: [120, 60, 120],
+    vibrate: [160, 80, 160],
     requireInteraction: false
   };
 
   event.waitUntil(
     self.registration.showNotification(title, options).catch((err) => {
-      console.error('[NUSC SW] showNotification failed', err);
+      console.error('[NUSC SW]', SW_VERSION, 'showNotification failed', err);
     })
   );
 });
