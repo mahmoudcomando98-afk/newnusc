@@ -88,7 +88,7 @@ function setupPushBanner(userId) {
       }
       const perm = m.notificationPermission();
       if (perm === 'granted') {
-        m.initPushNotifications(userId).catch(() => {});
+        m.initPushNotifications(userId, { welcome: false }).catch(() => {});
         banner.classList.add('hidden');
         return;
       }
@@ -105,11 +105,18 @@ function setupPushBanner(userId) {
         const res = await m.enablePushFromUserGesture(userId);
         if (res.ok) {
           banner.classList.add('hidden');
+          try {
+            const { showToast } = await import('./utils.js');
+            showToast('تم تفعيل إشعارات التليفون', 'success');
+          } catch { /* ignore */ }
         } else {
           btn.disabled = false;
           btn.textContent = 'تفعيل';
           if (res.reason === 'denied') {
             btn.textContent = 'مرفوض من الإعدادات';
+            btn.disabled = true;
+          } else if (res.reason === 'unsupported') {
+            btn.textContent = 'الجهاز لا يدعم';
             btn.disabled = true;
           }
         }
