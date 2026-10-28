@@ -393,9 +393,9 @@ export async function getProfile(userId = null) {
     const { data, error } = await withTimeout(
       supabase
         .from('profiles')
-        .select('id, full_name, email, student_id, college, academic_year, avatar_url, role, is_active, created_at, whatsapp_phone, whatsapp_opt_in')
+        .select('id, full_name, email, student_id, college, academic_year, avatar_url, role, is_active, created_at')
         .eq('id', uid)
-        .single(),
+        .maybeSingle(),
       12000
     );
     if (error) {
