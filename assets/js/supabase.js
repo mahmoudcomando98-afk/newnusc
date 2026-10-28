@@ -50,8 +50,6 @@ const supabaseUrl = normalizeUrl(rawUrl);
 
 console.info('[NUSC] Supabase connected:', supabaseUrl);
 
-// Some mobile browsers (especially private/restricted browsing modes) can throw
-// when localStorage is accessed. Keep auth initialization from breaking every page.
 function createSafeAuthStorage() {
   const memory = new Map();
 
@@ -302,7 +300,6 @@ async function loadPlatformBranding() {
     const redirected = await enforceMaintenanceMode(isMaintenanceEnabled(settings.get('site_maintenance')));
     if (!redirected) startMaintenanceMonitor();
   } catch (error) {
-    // Fail open: network/RLS blips must not log students out or block the app.
     console.warn('[NUSC] Could not load platform settings:', error?.message || error);
   }
 }
@@ -396,7 +393,7 @@ export async function getProfile(userId = null) {
     const { data, error } = await withTimeout(
       supabase
         .from('profiles')
-        .select('id, full_name, email, student_id, college, academic_year, avatar_url, role, is_active, created_at')
+        .select('id, full_name, email, student_id, college, academic_year, avatar_url, role, is_active, created_at, whatsapp_phone, whatsapp_opt_in')
         .eq('id', uid)
         .single(),
       12000
