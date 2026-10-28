@@ -6,6 +6,7 @@ import { protectPage } from './auth.js';
 import {
   escapeHtml,
   timeAgo,
+  formatTime,
   showEmpty,
   showError,
   initIcons,
@@ -13,6 +14,7 @@ import {
   onConnectivityChange,
   quizStatusLabel
 } from './utils.js';
+import { supabase } from './supabase.js';
 import { freshnessBadgesHtml, touchLastVisit } from './freshness.js';
 import { cachedStaleWhileRevalidate } from './cache.js';
 import {
@@ -57,7 +59,8 @@ async function init() {
     await Promise.all([
       loadSubjects(),
       loadAnnouncements(),
-      loadImportantNotice()
+      loadImportantNotice(),
+      loadLiveOnlineSections()
     ]);
 
     await Promise.all([
@@ -339,6 +342,74 @@ async function loadMaterials() {
   } catch (error) {
     console.error('[NUSC] loadMaterials:', error);
     showError(el, 'تعذر تحميل الملفات. حاول مرة أخرى.');
+  }
+}
+
+function parseTimeToMinutes(t) {
+  if (!t) return null;
+  const s = String(t).slice(0, 8);
+  const parts = s.split(':').map(Number);
+  if (parts.length < 2 || Number.isNaN(parts[0])) return null;
+  return parts[0] * 60 + (parts[1] || 0);
+}
+
+function isSectionLiveNow(row, now = new Date()) {
+  const day = Number(row.day_of_week);
+  if (!Number.isInteger(day) || day < 0 || day > 6) return false;
+  if (now.getDay() !== day) return false;
+  const start = parseTimeToMinutes(row.start_time);
+  if (start == null) return false;
+  let end = parseTimeToMinutes(row.end_time);
+  if (end == null) end = start + 120;
+  if (end <= start) end += 24 * 60;
+  const nowM = now.getHours() * 60 + now.getMinutes();
+  return nowM >= start - 15 && nowM <= end + 10;
+}
+
+async function loadLiveOnlineSections() {
+  const el = document.getElementById('live-online-sections');
+  if (!el) return;
+  try {
+    const { data, error } = await supabase
+      .from('online_sections')
+      .select('id, day_of_week, start_time, end_time, course_name, instructor, join_url, is_published')
+      .eq('is_published', true);
+    if (error) throw error;
+    const live = (data || []).filter((row) => row.join_url && isSectionLiveNow(row));
+    if (!live.length) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="live-os-card">
+        <div class="live-os-head">
+          <span class="live-os-dot" aria-hidden="true"></span>
+          <strong>سكاشن شغالة دلوقتي</strong>
+        </div>
+        <ul class="live-os-list">
+          ${live
+            .map((row) => {
+              const time =
+                formatTime(row.start_time) +
+                (row.end_time ? ' – ' + formatTime(row.end_time) : '');
+              const meta = [row.instructor, time].filter(Boolean).join(' · ');
+              return `
+              <li class="live-os-item">
+                <div class="live-os-info">
+                  <div class="live-os-title">${escapeHtml(row.course_name || 'سكشن')}</div>
+                  ${meta ? `<div class="live-os-meta">${escapeHtml(meta)}</div>` : ''}
+                </div>
+                <a class="btn btn-sm btn-primary" href="${escapeHtml(row.join_url)}" target="_blank" rel="noopener noreferrer">دخول السكشن</a>
+              </li>`;
+            })
+            .join('')}
+        </ul>
+      </div>`;
+  } catch (error) {
+    console.warn('[NUSC] loadLiveOnlineSections:', error);
+    el.classList.add('hidden');
   }
 }
 
