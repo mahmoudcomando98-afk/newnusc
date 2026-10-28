@@ -6,8 +6,8 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>لوحة الإدارة | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=online-1" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=online-1" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=ui-polish-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=ui-polish-2" />
 </head>
 <body>
   <header class="app-header">
@@ -84,30 +84,22 @@
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
     import { showError, initIcons } from '../assets/js/utils.js';
-    import { countOnlineUsers, startPresence } from '../assets/js/presence.js';
 
-    async function loadStats() {
+    async function init() {
+      const ok = await protectAdminPage();
+      if (!ok) return;
+      document.documentElement.classList.remove('admin-auth-pending');
+      initIcons();
+
       const el = document.getElementById('stats');
       try {
-        const [students, subjects, quizzes, announcements, online] = await Promise.all([
+        const [students, subjects, quizzes, announcements] = await Promise.all([
           supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'student'),
           supabase.from('subjects').select('id', { count: 'exact', head: true }),
           supabase.from('quizzes').select('id', { count: 'exact', head: true }),
-          supabase.from('announcements').select('id', { count: 'exact', head: true }),
-          countOnlineUsers()
+          supabase.from('announcements').select('id', { count: 'exact', head: true })
         ]);
-
-        const onlineLabel =
-          online == null
-            ? '—'
-            : String(online);
-
         el.innerHTML = `
-          <div class="card text-center">
-            <p class="text-muted text-sm">فاتح المنصة دلوقتي</p>
-            <p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${onlineLabel}</p>
-            <p class="text-sm text-muted" style="margin-top:4px">آخر 3 دقايق</p>
-          </div>
           <div class="card text-center"><p class="text-muted text-sm">الطلاب</p><p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${students.count ?? 0}</p></div>
           <div class="card text-center"><p class="text-muted text-sm">المواد</p><p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${subjects.count ?? 0}</p></div>
           <div class="card text-center"><p class="text-muted text-sm">الكويزات</p><p style="font-size:1.5rem;font-weight:700;color:var(--primary)">${quizzes.count ?? 0}</p></div>
@@ -116,17 +108,6 @@
         console.error(err);
         showError(el, 'تعذر تحميل الإحصائيات.');
       }
-    }
-
-    async function init() {
-      const ok = await protectAdminPage();
-      if (!ok) return;
-      document.documentElement.classList.remove('admin-auth-pending');
-      initIcons();
-      const uid = ok.user?.id || ok.session?.user?.id || ok.profile?.id;
-      if (uid) startPresence(uid);
-      await loadStats();
-      setInterval(loadStats, 30000);
     }
 
     init();
