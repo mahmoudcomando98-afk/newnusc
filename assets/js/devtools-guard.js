@@ -1,10 +1,15 @@
 /**
- * Soft client-side guard: detect DevTools shortcuts and log attempts for admin.
+ * Client-side DevTools guard (deterrent + admin alerts).
+ * Cannot truly hide source files — the browser always downloads JS/CSS.
  */
 import { supabase } from './supabase.js';
 
 const ATTEMPT_KEY = 'nusc_devtools_attempts';
 const PENDING_KEY = 'nusc_devtools_pending';
+const SIZE_THRESHOLD = 160;
+
+let redirecting = false;
+let lastSizeHit = 0;
 
 function isExemptPath() {
   const p = (window.location.pathname || '').toLowerCase();
@@ -22,6 +27,16 @@ function isExemptPath() {
     p === '/' ||
     p.endsWith('/index.html')
   );
+}
+
+function isLikelyMobile() {
+  try {
+    if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return true;
+  } catch {
+    /* ignore */
+  }
+  const ua = String(navigator.userAgent || '');
+  return /Android|iPhone|iPad|iPod|Mobile|webOS|BlackBerry/i.test(ua) || window.innerWidth < 700;
 }
 
 function getAttemptCount() {
@@ -143,6 +158,8 @@ export async function reportDevtoolsAttempt(reason, attemptCount) {
 }
 
 async function goToBlockPage(reason) {
+  if (redirecting || isExemptPath()) return;
+  redirecting = true;
   const count = bumpAttemptCount();
   try {
     await Promise.race([
@@ -160,8 +177,32 @@ async function goToBlockPage(reason) {
   window.location.replace(`/devtools-blocked.html?${q.toString()}`);
 }
 
+function isDevtoolsOpenBySize() {
+  if (isLikelyMobile()) return false;
+  try {
+    const widthGap = Math.abs(window.outerWidth - window.innerWidth);
+    const heightGap = Math.abs(window.outerHeight - window.innerHeight);
+    // Side docked or bottom docked DevTools usually creates a large gap
+    return widthGap > SIZE_THRESHOLD || heightGap > SIZE_THRESHOLD;
+  } catch {
+    return false;
+  }
+}
+
+function checkSizeOpen() {
+  if (redirecting || isExemptPath()) return;
+  if (!isDevtoolsOpenBySize()) return;
+  const now = Date.now();
+  // Require two hits ~1s apart to reduce false positives
+  if (lastSizeHit && now - lastSizeHit < 900) {
+    goToBlockPage('devtools-open');
+    return;
+  }
+  lastSizeHit = now;
+}
+
 function onKeyDown(e) {
-  if (isExemptPath()) return;
+  if (isExemptPath() || redirecting) return;
   const key = e.key || '';
   const code = e.code || '';
   const isF12 = key === 'F12' || code === 'F12';
@@ -171,21 +212,47 @@ function onKeyDown(e) {
     (e.ctrlKey || e.metaKey) && e.shiftKey && (key === 'J' || key === 'j' || code === 'KeyJ');
   const isCtrlShiftC =
     (e.ctrlKey || e.metaKey) && e.shiftKey && (key === 'C' || key === 'c' || code === 'KeyC');
+  const isCtrlShiftK =
+    (e.ctrlKey || e.metaKey) && e.shiftKey && (key === 'K' || key === 'k' || code === 'KeyK');
   const isCtrlU =
     (e.ctrlKey || e.metaKey) && !e.shiftKey && (key === 'u' || key === 'U' || code === 'KeyU');
+  const isCtrlS =
+    (e.ctrlKey || e.metaKey) && !e.shiftKey && (key === 's' || key === 'S' || code === 'KeyS');
 
-  if (isF12 || isCtrlShiftI || isCtrlShiftJ || isCtrlShiftC || isCtrlU) {
+  if (isF12 || isCtrlShiftI || isCtrlShiftJ || isCtrlShiftC || isCtrlShiftK || isCtrlU || isCtrlS) {
     e.preventDefault();
     e.stopPropagation();
-    goToBlockPage(isF12 ? 'F12' : isCtrlU ? 'view-source' : 'devtools-shortcut');
+    goToBlockPage(
+      isF12
+        ? 'F12'
+        : isCtrlU
+          ? 'view-source'
+          : isCtrlS
+            ? 'save-page'
+            : 'devtools-shortcut'
+    );
   }
+}
+
+function onContextMenu(e) {
+  if (isExemptPath() || isLikelyMobile()) return;
+  // Soft block only on desktop student pages
+  e.preventDefault();
 }
 
 export function initDevtoolsGuard() {
   if (typeof window === 'undefined' || isExemptPath()) return;
   if (window.__nuscDevtoolsGuard) return;
   window.__nuscDevtoolsGuard = true;
+
   window.addEventListener('keydown', onKeyDown, true);
+  window.addEventListener('contextmenu', onContextMenu, true);
+  window.addEventListener('resize', checkSizeOpen);
+  window.addEventListener('focus', checkSizeOpen);
+
+  // Continuous scan (desktop): catches DevTools opened from menu / already open
+  window.setInterval(checkSizeOpen, 1200);
+  checkSizeOpen();
 }
 
 export default { initDevtoolsGuard, reportDevtoolsAttempt, flushPendingDevtoolsAlert };
