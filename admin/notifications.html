@@ -7,8 +7,8 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>إرسال إشعارات | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=push-3" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=push-3" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=push-4" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=push-4" />
 </head>
 <body>
   <header class="app-header">
@@ -23,9 +23,18 @@
   <main class="page" style="padding-bottom:32px">
     <div class="container page-content" style="max-width:640px">
       <h1 class="mb-2" style="font-size:1.25rem">إرسال إشعار للطلاب</h1>
-      <p class="text-sm text-muted mb-3">
-        الإشعار يظهر في لوحة إشعارات الطالب، ولو الطالب فعّل إشعارات المتصفح يوصله على شريط إشعارات التليفون.
+      <p class="text-sm text-muted mb-2">
+        الإشعار يتحفظ في لوحة كل الطلاب. شريط التليفون يوصل فقط لمن فعّل إشعارات المتصفح.
       </p>
+
+      <div class="card mb-3" id="push-stats" style="padding:12px 14px">
+        <p class="text-sm" style="margin:0">
+          أجهزة مفعّلة لإشعارات التليفون:
+          <strong id="device-count">…</strong>
+        </p>
+      </div>
+
+      <div id="send-result" class="card mb-3 hidden" style="padding:12px 14px;border-color:var(--primary,#c45c26)"></div>
 
       <div class="card mb-3">
         <form id="notif-form">
@@ -63,7 +72,21 @@
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
     import { escapeHtml, showEmpty, showError, showToast, initIcons, timeAgo } from '../assets/js/utils.js';
-    import { sendPushToAll } from '../assets/js/push.js';
+    import { sendPushToAll, countPushDevices } from '../assets/js/push.js';
+
+    async function refreshDeviceCount() {
+      const el = document.getElementById('device-count');
+      if (!el) return;
+      const n = await countPushDevices();
+      el.textContent = n == null ? '—' : String(n);
+    }
+
+    function showSendResult(html) {
+      const box = document.getElementById('send-result');
+      if (!box) return;
+      box.classList.remove('hidden');
+      box.innerHTML = html;
+    }
 
     async function init() {
       const ok = await protectAdminPage();
@@ -71,7 +94,7 @@
       document.documentElement.classList.remove('admin-auth-pending');
       initIcons();
       document.getElementById('notif-form').addEventListener('submit', onSend);
-      await loadRecent();
+      await Promise.all([loadRecent(), refreshDeviceCount()]);
     }
 
     async function onSend(e) {
@@ -117,29 +140,37 @@
         }
 
         const pushResult = await sendPushToAll({ title, body, url: link });
+        const sent = pushResult?.sent ?? 0;
+        const total = pushResult?.total ?? 0;
+        const failed = pushResult?.failed ?? 0;
+
         if (pushResult?.ok) {
-          if (pushResult.noDevices || (pushResult.total || 0) === 0) {
-            showToast('اتحفظ في لوحة الإشعارات. مفيش أجهزة مفعّلة إشعارات تليفون لسه.', 'info');
+          if (total === 0) {
+            showSendResult(`
+              <p style="margin:0 0 6px"><strong>اتحفظت الرسالة في لوحة كل الطلاب.</strong></p>
+              <p class="text-sm text-muted" style="margin:0">إشعار التليفون: مفيش أجهزة مفعّلة لسه. اطلب من الطلاب تفعيل الإشعارات من الرئيسية.</p>
+            `);
+            showToast('اتحفظت في اللوحة — مفيش أجهزة تليفون مفعّلة', 'info');
           } else {
-            showToast(
-              'تم — اللوحة + شريط التليفون: ' +
-                (pushResult.sent || 0) +
-                ' من ' +
-                (pushResult.total || 0) +
-                ' جهاز',
-              'success'
-            );
+            showSendResult(`
+              <p style="margin:0 0 6px"><strong>الرسالة وصلت لـ ${sent} من ${total} جهاز</strong></p>
+              <p class="text-sm text-muted" style="margin:0">
+                اتحفظت كمان في لوحة إشعارات كل الطلاب.
+                ${failed ? 'فشل على ' + failed + ' جهاز (اشتراكات قديمة اتشالت تلقائي).' : ''}
+              </p>
+            `);
+            showToast('الرسالة وصلت لـ ' + sent + ' من ' + total + ' جهاز', 'success');
           }
         } else {
-          showToast(
-            'اتحفظ في اللوحة. إشعار التليفون فشل: ' +
-              (pushResult?.error || 'انشر send-push واضبط VAPID'),
-            'info'
-          );
+          showSendResult(`
+            <p style="margin:0 0 6px"><strong>اتحفظت في لوحة الطلاب.</strong></p>
+            <p class="text-sm text-muted" style="margin:0">إشعار التليفون فشل: ${escapeHtml(pushResult?.error || 'غير معروف')}</p>
+          `);
+          showToast('اتحفظت في اللوحة. التليفون فشل — راجع send-push', 'info');
         }
 
         document.getElementById('notif-form').reset();
-        await loadRecent();
+        await Promise.all([loadRecent(), refreshDeviceCount()]);
       } catch (err) {
         console.error(err);
         showToast(err.message || 'حصل خطأ أثناء الإرسال.', 'error');
@@ -155,7 +186,7 @@
       try {
         const { error } = await supabase.from('notifications').delete().eq('id', id);
         if (error) {
-          showToast(error.message || 'تعذر حذف الإشعار. تأكد من صلاحيات الأدمن في Supabase.', 'error');
+          showToast(error.message || 'تعذر حذف الإشعار.', 'error');
           return;
         }
         showToast('تم حذف الإشعار.', 'success');
@@ -213,7 +244,7 @@
         });
       } catch (err) {
         console.error(err);
-        showError(el, 'تعذر تحميل الإشعارات السابقة. تأكد من وجود جدول notifications وصلاحيات الأدمن.');
+        showError(el, 'تعذر تحميل الإشعارات السابقة.');
       }
     }
 

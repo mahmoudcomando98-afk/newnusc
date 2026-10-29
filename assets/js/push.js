@@ -11,8 +11,7 @@ const VAPID_PUBLIC =
   'BPMz4yfOTRot0gDUO_0USJVuqzKYhlY7OWcpvproCs1BlfWpwBNCO-ugCrhLdRJXRcDoFGF-Qi9Y7ItaMlaK9xQ';
 
 const WELCOME_TITLE = 'تم تفعيل الإشعارات';
-const WELCOME_BODY =
-  'هيوصلك الجديد أول بأول: الملفات، الإعلانات، والرسائل من المنصة.';
+const WELCOME_BODY = 'سيتم ارسال الاشعارات المهمه اليك';
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -73,7 +72,6 @@ async function saveSubscription(subscription, userId) {
     onConflict: 'endpoint'
   });
 
-  // Fallback if unique on endpoint is missing
   if (error) {
     const del = await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint);
     if (!del.error) {
@@ -119,7 +117,6 @@ export async function showLocalNotification(title, options = {}) {
   } catch (err) {
     console.warn('[NUSC push] local notification:', err);
     try {
-      // Fallback without SW
       // eslint-disable-next-line no-new
       new Notification(title, {
         body: options.body || '',
@@ -138,7 +135,7 @@ export async function showLocalNotification(title, options = {}) {
 /**
  * Register SW + permission + store subscription.
  * @param {string} userId
- * @param {{ welcome?: boolean }} opts — welcome=true shows tray confirmation
+ * @param {{ welcome?: boolean }} opts
  */
 export async function initPushNotifications(userId, opts = {}) {
   if (!pushSupported()) return { ok: false, reason: 'unsupported' };
@@ -189,9 +186,22 @@ export async function initPushNotifications(userId, opts = {}) {
   }
 }
 
-/** Call from a button click (best success rate on mobile). Always shows welcome on success. */
+/** Call from a button click. Always shows welcome on success. */
 export async function enablePushFromUserGesture(userId) {
   return initPushNotifications(userId, { welcome: true });
+}
+
+/** Count registered push devices (admin). */
+export async function countPushDevices() {
+  try {
+    const { count, error } = await supabase
+      .from('push_subscriptions')
+      .select('id', { count: 'exact', head: true });
+    if (error) return null;
+    return count ?? 0;
+  } catch {
+    return null;
+  }
 }
 
 /** Admin: fan-out via Edge Function send-push */
@@ -228,13 +238,13 @@ export async function sendPushToAll({ title, body, url = '/notifications.html' }
 
     const sent = data?.sent ?? 0;
     const total = data?.total ?? 0;
+    const failed = data?.failed ?? 0;
     return {
       ok: true,
       sent,
-      failed: data?.failed ?? 0,
+      failed,
       total,
       data,
-      // zero devices is still "ok" for DB insert, but admin should know
       noDevices: total === 0
     };
   } catch (err) {
@@ -243,7 +253,6 @@ export async function sendPushToAll({ title, body, url = '/notifications.html' }
   }
 }
 
-// Alias used by some admin pages historically
 export async function notifyStudents(payload) {
   return sendPushToAll(payload || {});
 }
