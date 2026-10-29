@@ -11,6 +11,8 @@ import {
   redirectIfAuthenticated
 } from './utils.js';
 
+const REMEMBER_KEY = 'nusc_remember_login';
+
 function getErrorMessage(error, fallback = 'حدث خطأ، حاول مرة أخرى') {
   const message = String(error?.message || '').toLowerCase();
   if (error?.status === 429 || message.includes('rate limit') || message.includes('too many requests') || message.includes('email rate limit')) {
@@ -26,6 +28,46 @@ function getErrorMessage(error, fallback = 'حدث خطأ، حاول مرة أخ
     return 'يرجى تأكيد البريد الإلكتروني قبل تسجيل الدخول.';
   }
   return error?.message || fallback;
+}
+
+function loadRememberedLogin(form) {
+  if (!form) return;
+  try {
+    const raw = localStorage.getItem(REMEMBER_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== 'object') return;
+    const emailEl = form.elements.email || document.getElementById('email');
+    const passEl = form.elements.password || document.getElementById('password');
+    const cb = document.getElementById('remember_me');
+    if (emailEl && data.email) emailEl.value = String(data.email);
+    if (passEl && data.password) passEl.value = String(data.password);
+    if (cb) cb.checked = true;
+  } catch {
+    try {
+      localStorage.removeItem(REMEMBER_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+function saveRememberedLogin(email, password, remember) {
+  try {
+    if (remember && email && password) {
+      localStorage.setItem(
+        REMEMBER_KEY,
+        JSON.stringify({
+          email: String(email).trim().toLowerCase(),
+          password: String(password)
+        })
+      );
+    } else {
+      localStorage.removeItem(REMEMBER_KEY);
+    }
+  } catch {
+    /* private mode / quota */
+  }
 }
 
 export async function register({ fullName, email, password, studentId = null }) {
@@ -137,15 +179,20 @@ export async function protectAdminPage() {
 export function initLoginPage() {
   const form = document.getElementById('login-form');
   if (!form) return;
+
+  loadRememberedLogin(form);
   redirectIfAuthenticated('/home.html');
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = form.elements.email?.value || '';
-    const password = form.elements.password?.value || '';
+    const email = form.elements.email?.value || document.getElementById('email')?.value || '';
+    const password = form.elements.password?.value || document.getElementById('password')?.value || '';
+    const remember = !!document.getElementById('remember_me')?.checked;
     const btn = form.querySelector('button[type="submit"]');
     try {
       await withLoading(btn, async () => {
         await login({ email, password });
+        saveRememberedLogin(email, password, remember);
         const profile = await getProfile();
         if (profile && profile.is_active === false) {
           window.location.href = '/banned.html';
