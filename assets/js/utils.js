@@ -67,10 +67,10 @@ export function escapeHtml(str) {
   if (str == null) return '';
 
   return String(str)
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
 
@@ -83,58 +83,39 @@ export function debounce(fn, wait = 300) {
   };
 }
 
-export function showToast(message, type = 'info', duration = 3800) {
+export function showToast(message, type = 'info', duration = 3500) {
   let container = document.getElementById('toast-container');
+
   if (!container) {
     container = document.createElement('div');
     container.id = 'toast-container';
-    container.setAttribute('aria-live', 'polite');
-    container.setAttribute('aria-atomic', 'true');
+    container.style.cssText =
+      'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;width:90%;max-width:360px;pointer-events:none';
+
     document.body.appendChild(container);
   }
 
-  const kind = ['success', 'error', 'warning', 'info'].includes(type) ? type : 'info';
-  const icons = {
-    success: '✓',
-    error: '!',
-    warning: '!',
-    info: 'i'
+  const toast = document.createElement('div');
+
+  const colors = {
+    success: '#059669',
+    error: '#dc2626',
+    warning: '#d97706',
+    info: '#2563eb'
   };
 
-  const toast = document.createElement('div');
-  toast.className = `nusc-toast nusc-toast--${kind}`;
-  toast.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+  toast.style.cssText =
+    `background:${colors[type] || colors.info};color:#fff;padding:12px 16px;border-radius:10px;font-size:0.9rem;box-shadow:0 4px 12px rgba(0,0,0,.15);pointer-events:auto;text-align:center;width:100%`;
 
-  toast.innerHTML = `
-    <span class="nusc-toast__icon" aria-hidden="true">${icons[kind]}</span>
-    <span class="nusc-toast__text"></span>
-    <span class="nusc-toast__glow" aria-hidden="true"></span>
-    <span class="nusc-toast__bar" aria-hidden="true"></span>
-  `;
-  toast.querySelector('.nusc-toast__text').textContent = String(message || '');
-
+  toast.textContent = message;
   container.appendChild(toast);
 
-  requestAnimationFrame(() => {
-    toast.classList.add('nusc-toast--in');
-  });
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity .3s';
 
-  const bar = toast.querySelector('.nusc-toast__bar');
-  if (bar) {
-    bar.style.animationDuration = `${Math.max(1200, duration)}ms`;
-  }
-
-  const hide = () => {
-    toast.classList.remove('nusc-toast--in');
-    toast.classList.add('nusc-toast--out');
-    setTimeout(() => toast.remove(), 320);
-  };
-
-  const timer = setTimeout(hide, duration);
-  toast.addEventListener('click', () => {
-    clearTimeout(timer);
-    hide();
-  });
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
 }
 
 export function showSkeleton(el, count = 3) {
@@ -321,7 +302,7 @@ export function setActiveNav(key) {
 const ICONS = {
   home: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
   book: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
-  clipboard: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
+  clipboard: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>',
   calendar: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
   user: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
   bell: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
