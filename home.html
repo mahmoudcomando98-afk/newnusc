@@ -3,54 +3,69 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>الرئيسية | NUSC</title>
-  <meta name="description" content="منصة طلاب كلية الحاسبات — ملفات المواد، الكويزات، والإعلانات." />
-  <link rel="icon" href="/nusc.png.jpeg" />
-  <link rel="apple-touch-icon" href="/nusc.png.jpeg" />
-  <meta property="og:title" content="NUSC" />
-  <meta property="og:description" content="منصة طلاب كلية الحاسبات — ملفات المواد، الكويزات، والإعلانات." />
+  <meta name="theme-color" content="#faf9f7" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="description" content="لوحة الطالب — ملفات المواد، الكويزات، والإعلانات على منصة NUSC." />
+  <meta property="og:title" content="NUSC — منصة طلاب الحاسبات" />
+  <meta property="og:description" content="ملفات المواد، مواعيد الكويزات، وإعلانات الدكاترة في مكان واحد." />
   <meta property="og:image" content="/nusc.png.jpeg" />
+  <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
-  <link rel="stylesheet" href="/assets/css/main.css?v=push-4" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=push-4" />
-  <link rel="stylesheet" href="/assets/css/mobile-polish.css?v=push-4" />
+  <meta name="twitter:image" content="/nusc.png.jpeg" />
+  <link rel="icon" href="/nusc.png.jpeg" type="image/jpeg" />
+  <title>الرئيسية | NUSC</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=push-5" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=push-5" />
+  <link rel="stylesheet" href="/assets/css/mobile-polish.css?v=push-5" />
+  <link rel="stylesheet" href="/assets/css/home-subjects.css?v=4" />
+  <link rel="stylesheet" href="/assets/css/home-notice.css?v=1" />
+  <link rel="stylesheet" href="/assets/css/live-online.css?v=1" />
   <style>
     .push-enable-banner { margin-bottom: 12px; }
     .push-enable-inner {
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 12px 14px; border: 1px solid var(--border, #e5e2de); border-radius: 12px;
-      background: var(--surface, #fff);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      padding: 12px 14px; background: #fff; border: 1px solid #ebe6e1; border-radius: 10px;
     }
     .push-enable-inner strong { font-size: 0.9rem; color: #2c2a28; }
   </style>
 </head>
-<body>
-  <div id="offline-banner" class="offline-banner hidden" role="status">لا يوجد اتصال — بعض البيانات قد تكون قديمة</div>
-
+<body class="home-page">
+  <div class="offline-banner" id="offline-banner">لا يوجد اتصال بالإنترنت</div>
   <header class="app-header">
-    <div class="container header-inner">
-      <a href="/home.html" class="logo">
-        <span class="logo-icon">N</span>
-        <span>NUSC</span>
-      </a>
+    <div class="container">
+      <a href="/home.html" class="logo"><span class="logo-icon">N</span><span class="logo-word">NUSC</span></a>
+      <nav class="desktop-nav">
+        <a href="/home.html" data-nav="home" class="active">الرئيسية</a>
+        <a href="/subjects.html" data-nav="subjects">المواد</a>
+        <a href="/past-exams.html" data-nav="past-exams">امتحانات سابقة</a>
+        <a href="/quizzes.html" data-nav="quizzes">الكويزات</a>
+        <a href="/schedule.html" data-nav="schedule">الجدول</a>
+        <a href="/online-sections.html" data-nav="online-sections">سكاشن أونلاين</a>
+        <a href="/announcements.html" data-nav="announcements">الإعلانات</a>
+      </nav>
       <div class="header-actions">
-        <a href="/notifications.html" class="icon-btn" aria-label="الإشعارات" id="notif-link">
+        <a href="/notifications.html" class="header-btn notification-header-btn" title="الإشعارات" aria-label="الإشعارات" id="notif-btn">
           <span data-icon="bell"></span>
-          <span id="notif-badge" class="badge hidden">0</span>
+          <span class="notification-dot hidden" id="notif-dot"></span>
         </a>
-        <button type="button" class="user-chip" id="user-chip" aria-label="حسابي">
-          <span class="user-avatar" id="user-avatar">؟</span>
-          <span class="user-name" id="user-name-short">طالب</span>
-        </button>
+        <a href="/profile.html" class="header-btn mobile-only" title="حسابي"><span data-icon="user"></span></a>
       </div>
     </div>
   </header>
-
   <main class="page">
     <div class="container page-content">
-      <section class="welcome-block mb-3">
-        <h1 class="welcome-title" id="welcome-name">أهلاً</h1>
-        <p class="text-muted text-sm" id="welcome-text">ملفات المواد ومواعيد الكويزات والإعلانات في مكان واحد.</p>
+      <section class="home-hero">
+        <div class="home-hero-content">
+          <p class="home-kicker">منصة الطلاب</p>
+          <h1 id="welcome-name">مرحبًا</h1>
+          <p>ملفات المواد، مواعيد الكويزات، وإعلانات الدكاترة.</p>
+          <div class="home-hero-actions">
+            <a href="/subjects.html" class="btn btn-gold"><span data-icon="book"></span> المواد</a>
+            <a href="/updates.html" class="hero-secondary-link"><span data-icon="clipboard"></span> آخر التحديثات</a>
+          </div>
+        </div>
       </section>
 
       <section id="push-enable-banner" class="push-enable-banner hidden" aria-live="polite">
@@ -70,61 +85,73 @@
           <span class="notice-icon" data-icon="bell"></span>
         </div>
         <div class="notice-body">
-          <h2 class="notice-title" id="notice-title">إشعار مهم</h2>
-          <p class="notice-text" id="notice-text"></p>
-          <p class="text-sm text-muted" id="important-notice-time"></p>
+          <span class="notice-kicker">إشعار</span>
+          <strong id="notice-title" class="notice-title"></strong>
+          <p id="notice-text" class="notice-text"></p>
+          <span id="important-notice-time" class="notice-time"></span>
+        </div>
+      </section>
+
+      <section class="home-shortcuts mb-3" aria-label="اختصارات">
+        <div class="home-shortcuts-grid">
+          <a class="home-shortcut" href="/subjects.html"><span data-icon="book"></span><span>المواد</span></a>
+          <a class="home-shortcut" href="/quizzes.html"><span data-icon="clipboard"></span><span>الكويزات</span></a>
+          <a class="home-shortcut" href="/schedule.html"><span data-icon="calendar"></span><span>الجدول</span></a>
+          <a class="home-shortcut" href="/online-sections.html"><span data-icon="video"></span><span>سكاشن</span></a>
+          <a class="home-shortcut" href="/past-exams.html"><span data-icon="file"></span><span>امتحانات</span></a>
+          <a class="home-shortcut" href="/announcements.html"><span data-icon="megaphone"></span><span>إعلانات</span></a>
         </div>
       </section>
 
       <section class="mb-3">
-        <div class="section-head">
+        <div class="section-header">
           <h2 class="section-title">المواد الدراسية</h2>
-          <a href="/subjects.html" class="text-sm">الكل</a>
+          <a href="/subjects.html" class="section-link">الكل</a>
         </div>
-        <div id="subjects-list" class="card-grid subjects-grid"></div>
+        <div id="subjects-list" class="card-grid subjects-grid home-subjects-grid"></div>
       </section>
 
       <section class="mb-3">
-        <div class="section-head">
+        <div class="section-header">
           <h2 class="section-title">آخر المحاضرات</h2>
         </div>
-        <div id="lectures-list"></div>
+        <div id="lectures-list" class="list-stack"></div>
       </section>
 
       <section class="mb-3">
-        <div class="section-head">
+        <div class="section-header">
           <h2 class="section-title">الإعلانات</h2>
-          <a href="/announcements.html" class="text-sm">الكل</a>
+          <a href="/announcements.html" class="section-link">الكل</a>
         </div>
-        <div id="announcements-list"></div>
+        <div id="announcements-list" class="list-stack"></div>
       </section>
 
       <section class="mb-3">
-        <div class="section-head">
+        <div class="section-header">
           <h2 class="section-title">أحدث الملفات</h2>
         </div>
-        <div id="materials-list"></div>
+        <div id="materials-list" class="list-stack"></div>
       </section>
 
       <section class="mb-3">
-        <div class="section-head">
+        <div class="section-header">
           <h2 class="section-title">الكويزات</h2>
-          <a href="/quizzes.html" class="text-sm">الكل</a>
+          <a href="/quizzes.html" class="section-link">الكل</a>
         </div>
-        <div id="quizzes-list"></div>
+        <div id="quizzes-list" class="list-stack"></div>
       </section>
 
-      <p class="text-center text-sm text-muted" style="margin-top:24px">تم التطوير بواسطة Mahmoud Oshiba</p>
+      <p class="text-center text-sm text-muted" style="margin: 28px 0 8px">تم التطوير بواسطة Mahmoud Oshiba</p>
     </div>
   </main>
 
-  <nav class="bottom-nav" aria-label="التنقل">
-    <a href="/home.html" class="nav-item" data-nav="home"><span data-icon="home"></span><span>الرئيسية</span></a>
+  <nav class="bottom-nav" aria-label="التنقل الرئيسي">
+    <a href="/home.html" class="nav-item active" data-nav="home"><span data-icon="home"></span><span>الرئيسية</span></a>
     <a href="/subjects.html" class="nav-item" data-nav="subjects"><span data-icon="book"></span><span>المواد</span></a>
     <a href="/schedule.html" class="nav-item" data-nav="schedule"><span data-icon="calendar"></span><span>الجدول</span></a>
     <a href="/profile.html" class="nav-item" data-nav="profile"><span data-icon="user"></span><span>حسابي</span></a>
   </nav>
 
-  <script type="module" src="/assets/js/home.js?v=push-4"></script>
+  <script type="module" src="/assets/js/home.js?v=push-5"></script>
 </body>
 </html>
