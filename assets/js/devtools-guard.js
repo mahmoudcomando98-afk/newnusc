@@ -1,5 +1,5 @@
 /**
- * Soft DevTools deterrent: only explicit shortcuts (F12 / Ctrl+Shift+I...).
+ * Soft DevTools deterrent: explicit shortcuts only (F12 / Ctrl+Shift+I / Ctrl+S...).
  * Size-based detection removed — it was falsely blocking normal users.
  */
 import { supabase } from './supabase.js';
@@ -171,12 +171,15 @@ function onKeyDown(e) {
     (e.ctrlKey || e.metaKey) && e.shiftKey && (key === 'C' || key === 'c' || code === 'KeyC');
   const isCtrlU =
     (e.ctrlKey || e.metaKey) && !e.shiftKey && (key === 'u' || key === 'U' || code === 'KeyU');
+  const isCtrlS =
+    (e.ctrlKey || e.metaKey) && !e.shiftKey && (key === 's' || key === 'S' || code === 'KeyS');
 
-  // لا نمنع Ctrl+S — كان يسبب إزعاج بدون فايدة
-  if (isF12 || isCtrlShiftI || isCtrlShiftJ || isCtrlShiftC || isCtrlU) {
+  if (isF12 || isCtrlShiftI || isCtrlShiftJ || isCtrlShiftC || isCtrlU || isCtrlS) {
     e.preventDefault();
     e.stopPropagation();
-    goToBlockPage(isF12 ? 'F12' : isCtrlU ? 'view-source' : 'devtools-shortcut');
+    goToBlockPage(
+      isF12 ? 'F12' : isCtrlU ? 'view-source' : isCtrlS ? 'save-page' : 'devtools-shortcut'
+    );
   }
 }
 
