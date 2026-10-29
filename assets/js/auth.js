@@ -102,18 +102,6 @@ function startStudentDevtoolsGuardEarly() {
   }
 }
 
-function enforceChromeForStudents() {
-  try {
-    import('./chrome-only.js')
-      .then((m) => {
-        if (m.enforceChromeOnly()) return;
-      })
-      .catch(() => {});
-  } catch {
-    /* ignore */
-  }
-}
-
 export async function register({ fullName, email, password, studentId = null }) {
   if (!fullName?.trim() || !email?.trim() || !password) throw new Error('يرجى تعبئة جميع الحقول المطلوبة.');
   if (password.length < 6) throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
@@ -178,10 +166,7 @@ export async function updatePassword(password) {
 }
 
 export async function protectPage({ adminOnly = false } = {}) {
-  if (!adminOnly) {
-    enforceChromeForStudents();
-    startStudentDevtoolsGuardEarly();
-  }
+  if (!adminOnly) startStudentDevtoolsGuardEarly();
 
   let session = await getSession();
   if (!session) {
