@@ -48,13 +48,15 @@ const supabaseKey =
 
 const supabaseUrl = normalizeUrl(rawUrl);
 
-console.info('[NUSC] Supabase connected:', supabaseUrl);
-
 function createSafeAuthStorage() {
   const memory = new Map();
 
   function read(storage, key) {
-    try { return storage?.getItem(key) ?? null; } catch { return null; }
+    try {
+      return storage?.getItem(key) ?? null;
+    } catch {
+      return null;
+    }
   }
 
   function write(storage, key, value) {
@@ -68,7 +70,11 @@ function createSafeAuthStorage() {
   }
 
   function remove(storage, key) {
-    try { storage?.removeItem(key); } catch { /* storage may be unavailable */ }
+    try {
+      storage?.removeItem(key);
+    } catch {
+      /* storage may be unavailable */
+    }
   }
 
   function getStorage(name) {
@@ -126,12 +132,19 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
 });
 
 if (typeof window !== 'undefined') {
-  try { supabase.auth.startAutoRefresh(); } catch {}
+  try {
+    supabase.auth.startAutoRefresh();
+  } catch {
+    /* ignore */
+  }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      supabase.auth.getSession().then(({ data }) => {
-        if (data?.session) supabase.auth.refreshSession().catch(() => {});
-      }).catch(() => {});
+      supabase.auth
+        .getSession()
+        .then(({ data }) => {
+          if (data?.session) supabase.auth.refreshSession().catch(() => {});
+        })
+        .catch(() => {});
     }
   });
 }
@@ -153,10 +166,11 @@ function applyPlatformName(name) {
   const platformName = name.trim();
   if (platformName.length < 2 || platformName.length > 60) return;
   document.querySelectorAll('.auth-brand').forEach((brand) => {
-    const label = Array.from(brand.children).find((child) =>
-      child.tagName === 'SPAN' &&
-      !child.classList.contains('auth-brand-dot') &&
-      !child.classList.contains('auth-brand-logo')
+    const label = Array.from(brand.children).find(
+      (child) =>
+        child.tagName === 'SPAN' &&
+        !child.classList.contains('auth-brand-dot') &&
+        !child.classList.contains('auth-brand-logo')
     );
     if (label) label.textContent = platformName;
   });
@@ -230,10 +244,16 @@ function normalizeSettingBoolean(value) {
 
 async function isActiveContentManager() {
   try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError
+    } = await supabase.auth.getUser();
     if (userError || !user) return false;
-    const { data: profile, error } = await supabase.from('profiles')
-      .select('role, is_active').eq('id', user.id).maybeSingle();
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role, is_active')
+      .eq('id', user.id)
+      .maybeSingle();
     if (error) return false;
     return profile?.role === 'admin' && profile?.is_active === true;
   } catch {
@@ -268,8 +288,11 @@ function startMaintenanceMonitor() {
     const pathname = window.location.pathname.toLowerCase();
     if (pathname === '/maintenance-mode.html' || pathname === '/login.html') return;
     try {
-      const { data, error } = await supabase.from('platform_settings')
-        .select('value').eq('key', 'site_maintenance').maybeSingle();
+      const { data, error } = await supabase
+        .from('platform_settings')
+        .select('value')
+        .eq('key', 'site_maintenance')
+        .maybeSingle();
       if (error) throw error;
       if (isMaintenanceEnabled(data?.value)) {
         await enforceMaintenanceMode(true);
@@ -282,13 +305,10 @@ function startMaintenanceMonitor() {
 
 async function loadPlatformBranding() {
   try {
-    const { data, error } = await supabase.from('platform_settings')
-      .select('key, value').in('key', [
-        'platform_logo_url',
-        'site_name',
-        'site_maintenance',
-        'maintenance_message'
-      ]);
+    const { data, error } = await supabase
+      .from('platform_settings')
+      .select('key, value')
+      .in('key', ['platform_logo_url', 'site_name', 'site_maintenance', 'maintenance_message']);
     if (error) throw error;
 
     const settings = new Map((data || []).map((item) => [item.key, item.value]));
@@ -347,28 +367,17 @@ export function getConfigError() {
 function withTimeout(promise, ms = 12000) {
   return Promise.race([
     promise,
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('انتهت مهلة الاتصال بـ Supabase')), ms)
-    )
+    new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة الاتصال بـ Supabase')), ms))
   ]);
 }
 
+/** Fast session read — does not block on refresh when logged out */
 export async function getSession() {
   if (!isSupabaseConfigured()) return null;
   try {
     const { data, error } = await supabase.auth.getSession();
     if (error) console.warn('[NUSC] getSession:', error.message);
-    if (data?.session) return data.session;
-    try {
-      const { data: refreshed, error: refreshError } = await withTimeout(
-        supabase.auth.refreshSession(),
-        15000
-      );
-      if (!refreshError && refreshed?.session) return refreshed.session;
-    } catch (refreshErr) {
-      console.warn('[NUSC] refreshSession:', refreshErr?.message || refreshErr);
-    }
-    return null;
+    return data?.session || null;
   } catch (err) {
     console.warn('[NUSC] getSession failed:', err?.message || err);
     return null;
@@ -378,7 +387,10 @@ export async function getSession() {
 export async function getCurrentUser() {
   if (!isSupabaseConfigured()) return null;
   try {
-    const { data: { user }, error } = await withTimeout(supabase.auth.getUser(), 12000);
+    const {
+      data: { user },
+      error
+    } = await withTimeout(supabase.auth.getUser(), 10000);
     if (error) return null;
     return user;
   } catch {
@@ -396,15 +408,15 @@ export async function getProfile(userId = null) {
         .select('id, full_name, email, student_id, college, academic_year, avatar_url, role, is_active, created_at')
         .eq('id', uid)
         .maybeSingle(),
-      12000
+      8000
     );
     if (error) {
-      console.error('profile:', error.message);
+      console.warn('[NUSC] profile:', error.message);
       return null;
     }
     return data;
   } catch (err) {
-    console.error('getProfile:', err.message);
+    console.warn('[NUSC] getProfile:', err?.message || err);
     return null;
   }
 }
