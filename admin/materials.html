@@ -6,8 +6,8 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>محتوى المواد | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=neutral-v2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=neutral-v2" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=summary-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=summary-1" />
 </head>
 <body>
   <header class="app-header">
@@ -18,14 +18,14 @@
   </header>
   <main class="page" style="padding-bottom:24px">
     <div class="container page-content">
-      <p class="text-sm text-muted mb-2">ارفع ملف جديد أو عدّل أي ملف موجود. للامتحانات السابقة اختار القسم «امتحانات سابقة».</p>
+      <p class="text-sm text-muted mb-2">ارفع ملف جديد أو عدّل أي ملف موجود. للامتحانات السابقة اختار «امتحانات سابقة». للملخصات اختار «ملخصات المادة».</p>
       <div id="form-panel" class="card mb-3 hidden">
         <h3 class="card-title mb-2" id="form-heading">رفع ملف جديد</h3>
         <form id="mat-form">
           <input type="hidden" id="edit_id" value="" />
           <div class="form-group">
             <label class="form-label" for="title">اسم الملف *</label>
-            <input type="text" id="title" class="form-input" required maxlength="180" placeholder="مثال: امتحان نهائي 2023" />
+            <input type="text" id="title" class="form-input" required maxlength="180" placeholder="مثال: ملخص الباب الأول" />
           </div>
           <div class="form-group">
             <label class="form-label" for="subject_id">المادة *</label>
@@ -37,6 +37,7 @@
               <option value="lecture">المحاضرات</option>
               <option value="section">السكاشن</option>
               <option value="assignment">الواجبات</option>
+              <option value="summary">ملخصات المادة</option>
               <option value="past_exam">امتحانات سابقة</option>
             </select>
           </div>
@@ -84,6 +85,6 @@
     </div>
   </main>
   <input type="file" id="solution-attach-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" style="display:none" />
-  <script type="module" src="/assets/js/admin-materials.js?v=submit-url-1"></script>
+  <script type="module" src="/assets/js/admin-materials.js?v=summary-1"></script>
 </body>
 </html>
