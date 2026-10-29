@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ar-EG" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>افتح المنصة من Chrome | NUSC</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=chrome-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=chrome-1" />
+  <style>
+    body { background: #f7f5f2; min-height: 100vh; }
+    .wrap { max-width: 440px; margin: 0 auto; padding: 48px 16px; }
+    .card {
+      background: #fff; border: 1px solid #e8e4df; border-radius: 14px;
+      padding: 28px 22px; text-align: center;
+    }
+    h1 { margin: 0 0 12px; font-size: 1.2rem; color: #2c2a28; }
+    p { margin: 0 0 12px; color: #5c564f; line-height: 1.65; font-size: 0.95rem; }
+    .hint {
+      margin: 16px 0 0; padding: 12px; background: #faf8f5; border-radius: 10px;
+      font-size: 0.85rem; color: #6b645c; text-align: right; line-height: 1.55;
+    }
+    #status { margin-top: 12px; font-size: 0.88rem; color: #8a3a3a; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>المنصة بتشتغل على Google Chrome فقط</h1>
+      <p>المتصفح الحالي مش Chrome. عشان تدخل للمنصة، افتح الرابط من متصفح <strong>Google Chrome</strong>.</p>
+      <button type="button" class="btn btn-primary" id="open-chrome" style="width:100%">افتح في متصفح Chrome</button>
+      <p id="status" aria-live="polite"></p>
+      <div class="hint" id="hint">
+        على الموبايل: الزر يحاول يفتح Chrome تلقائيًا لو التطبيق متثبت.<br />
+        على الكمبيوتر: لو الزر ما قدرش يفتح Chrome لوحده، افتح Chrome يدويًا والصق الرابط.
+      </div>
+    </div>
+  </div>
+  <script type="module">
+    import { openInChrome, isGoogleChrome } from '/assets/js/chrome-only.js';
+
+    const params = new URLSearchParams(window.location.search);
+    let next = params.get('next') || '/home.html';
+    if (!next.startsWith('/')) next = '/home.html';
+    const target = window.location.origin + next;
+
+    // لو دخل من Chrome بالفعل
+    if (isGoogleChrome()) {
+      window.location.replace(next);
+    }
+
+    const status = document.getElementById('status');
+    document.getElementById('open-chrome')?.addEventListener('click', () => {
+      const result = openInChrome(target);
+      if (result.mode === 'manual') {
+        status.textContent =
+          'افتح Google Chrome والصق هذا الرابط: ' + target;
+        try {
+          prompt('انسخ الرابط وافتحه من Chrome:', target);
+        } catch {
+          /* ignore */
+        }
+      } else {
+        status.textContent = 'جاري فتح Chrome... لو ما اتفتحش، ثبّت Chrome أو افتحه يدويًا.';
+      }
+    });
+  </script>
+</body>
+</html>
