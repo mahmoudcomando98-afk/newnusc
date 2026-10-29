@@ -30,6 +30,7 @@ export default defineConfig(({ mode }) => {
           '500': resolve(__dirname, '500.html'),
           offline: resolve(__dirname, 'offline.html'),
           banned: resolve(__dirname, 'banned.html'),
+          'devtools-blocked': resolve(__dirname, 'devtools-blocked.html'),
           about: resolve(__dirname, 'about.html'),
           contact: resolve(__dirname, 'contact.html'),
           privacy: resolve(__dirname, 'privacy.html'),
@@ -70,7 +71,8 @@ export default defineConfig(({ mode }) => {
           'admin-announcements': resolve(__dirname, 'admin/announcements.html'),
           'admin-notifications': resolve(__dirname, 'admin/notifications.html'),
           'admin-faq': resolve(__dirname, 'admin/faq.html'),
-          'admin-settings': resolve(__dirname, 'admin/settings.html')
+          'admin-settings': resolve(__dirname, 'admin/settings.html'),
+          'admin-hackers': resolve(__dirname, 'admin/hackers.html')
         }
       }
     },
