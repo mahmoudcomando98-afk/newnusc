@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ar-EG" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <style>html.admin-auth-pending body{visibility:hidden!important}</style>
+  <script>document.documentElement.classList.add('admin-auth-pending')</script>
+  <title>محاولات أدوات المطوّر | NUSC</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=devtools-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=devtools-1" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:22px;height:22px"></span>
+        <span>محاولات أدوات المطوّر</span>
+      </a>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:24px">
+    <div class="container page-content">
+      <p class="text-sm text-muted mb-2">
+        سجل تنبيهات لما طالب يضغط F12 أو اختصارات أدوات المطوّر. ده تنبيه فقط — مش دليل اختراق كامل.
+      </p>
+      <div id="list"></div>
+    </div>
+  </main>
+  <script type="module" src="/assets/js/admin-hackers.js?v=1"></script>
+</body>
+</html>
