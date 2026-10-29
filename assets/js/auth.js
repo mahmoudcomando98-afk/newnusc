@@ -201,6 +201,9 @@ export async function protectPage({ adminOnly = false } = {}) {
       import('./push.js')
         .then((m) => m.initPushNotifications(uid))
         .catch(() => {});
+      import('./devtools-guard.js')
+        .then((m) => m.initDevtoolsGuard())
+        .catch(() => {});
     }
   } catch {
     /* ignore */
@@ -231,7 +234,6 @@ export function initLoginPage() {
         const data = await login({ email, password });
         saveRememberedLogin(email, password, remember);
 
-        // Don't block redirect if profile is slow/unavailable
         let banned = false;
         try {
           const uid = data?.user?.id || data?.session?.user?.id;
