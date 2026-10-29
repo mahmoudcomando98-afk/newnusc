@@ -18,12 +18,35 @@ async function loadList() {
       .from('devtools_alerts')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(100);
-    if (error) throw error;
+      .limit(150);
+
+    if (error) {
+      const msg = String(error.message || '');
+      if (/relation.*does not exist|could not find the table/i.test(msg)) {
+        showError(
+          el,
+          'جدول التسجيلات لسه مش موجود. افتح Supabase → SQL Editor ونفّذ ملف supabase/devtools_alerts.sql'
+        );
+        return;
+      }
+      if (/permission denied|row-level security|policy/i.test(msg)) {
+        showError(
+          el,
+          'مفيش صلاحية قراءة السجل. نفّذ SQL السياسات تاني من supabase/devtools_alerts.sql'
+        );
+        return;
+      }
+      throw error;
+    }
+
     if (!data?.length) {
-      showEmpty(el, 'مفيش محاولات مسجّلة لسه.');
+      showEmpty(
+        el,
+        'مفيش محاولات مسجّلة لسه. جرّب من حساب طالب تضغط F12، بعدين حدّث الصفحة دي.'
+      );
       return;
     }
+
     el.innerHTML = data
       .map((row) => {
         const who =
@@ -52,8 +75,11 @@ async function loadList() {
     el.querySelectorAll('[data-del]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         if (!confirm('حذف التنبيه؟')) return;
-        const { error } = await supabase.from('devtools_alerts').delete().eq('id', btn.dataset.del);
-        if (error) showToast(error.message, 'error');
+        const { error: delErr } = await supabase
+          .from('devtools_alerts')
+          .delete()
+          .eq('id', btn.dataset.del);
+        if (delErr) showToast(delErr.message, 'error');
         else {
           showToast('اتحذف.', 'success');
           await loadList();
@@ -64,7 +90,7 @@ async function loadList() {
     console.error(err);
     showError(
       el,
-      'تعذر تحميل السجل. لو الجدول مش موجود، نفّذ SQL: supabase/devtools_alerts.sql'
+      'تعذر تحميل السجل. تأكد إنك نفّذت SQL: supabase/devtools_alerts.sql'
     );
   }
 }

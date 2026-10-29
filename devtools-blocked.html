@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="robots" content="noindex,nofollow" />
   <title>تم حظر أدوات المطوّر | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=devtools-2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=devtools-2" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=devtools-3" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=devtools-3" />
   <style>
     body { background: #f7f5f2; min-height: 100vh; }
     .block-wrap {
@@ -65,9 +65,11 @@
   </div>
   <script type="module">
     import { supabase } from '/assets/js/supabase.js';
+    import { flushPendingDevtoolsAlert, reportDevtoolsAttempt } from '/assets/js/devtools-guard.js';
 
     const params = new URLSearchParams(window.location.search);
     const n = Number(params.get('n') || 1);
+    const reason = params.get('r') || 'devtools';
     const nameEl = document.getElementById('user-line');
     const warn = document.getElementById('warn-box');
 
@@ -75,6 +77,14 @@
       warn.textContent =
         'دي مش أول مرة. تم إرسال تنبيه للإدارة. لو استمرت المحاولات ممكن يتحظر حسابك.';
     }
+
+    // تأكيد التسجيل لو الطلب اتقطع وقت التحويل
+    (async () => {
+      const flushed = await flushPendingDevtoolsAlert();
+      if (!flushed) {
+        await reportDevtoolsAttempt(reason, n);
+      }
+    })().catch(() => {});
 
     async function showName() {
       try {
@@ -93,9 +103,7 @@
             .maybeSingle();
           if (profile?.full_name) name = profile.full_name;
         }
-        if (nameEl) {
-          nameEl.textContent = name ? `يا ${name}` : 'يا طالب';
-        }
+        if (nameEl) nameEl.textContent = name ? `يا ${name}` : 'يا طالب';
       } catch {
         if (nameEl) nameEl.textContent = 'يا طالب';
       }

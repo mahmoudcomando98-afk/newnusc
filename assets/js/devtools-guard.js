@@ -1,18 +1,17 @@
 /**
- * Soft client-side guard: detect common DevTools shortcuts and log attempts.
- * This does NOT hide source files from a determined user — browser always ships JS/CSS.
+ * Soft client-side guard: detect DevTools shortcuts and log attempts for admin.
  */
 import { supabase } from './supabase.js';
 
 const ATTEMPT_KEY = 'nusc_devtools_attempts';
-const LAST_REPORT_KEY = 'nusc_devtools_last_report';
-const COOLDOWN_MS = 8000;
+const PENDING_KEY = 'nusc_devtools_pending';
 
 function isExemptPath() {
   const p = (window.location.pathname || '').toLowerCase();
   return (
     p.includes('/admin') ||
     p.endsWith('/devtools-blocked.html') ||
+    p.endsWith('/devtools-blocked') ||
     p.endsWith('/login.html') ||
     p.endsWith('/register.html') ||
     p.endsWith('/forgot-password.html') ||
@@ -43,26 +42,51 @@ function bumpAttemptCount() {
   return n;
 }
 
-async function reportAttempt(reason) {
+function stashPending(payload) {
   try {
-    const now = Date.now();
-    const last = Number(sessionStorage.getItem(LAST_REPORT_KEY) || 0);
-    if (now - last < COOLDOWN_MS) return;
-    sessionStorage.setItem(LAST_REPORT_KEY, String(now));
+    sessionStorage.setItem(PENDING_KEY, JSON.stringify(payload));
   } catch {
     /* ignore */
   }
+}
 
+export async function flushPendingDevtoolsAlert() {
+  let raw = null;
+  try {
+    raw = sessionStorage.getItem(PENDING_KEY);
+  } catch {
+    return false;
+  }
+  if (!raw) return false;
+  let payload;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    return false;
+  }
+  const ok = await insertAlert(payload);
+  if (ok) {
+    try {
+      sessionStorage.removeItem(PENDING_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+  return ok;
+}
+
+async function buildPayload(reason, attemptCount) {
   let userId = null;
   let email = null;
   let fullName = null;
   try {
     const { data } = await supabase.auth.getUser();
-    userId = data?.user?.id || null;
-    email = data?.user?.email || null;
+    const user = data?.user;
+    userId = user?.id || null;
+    email = user?.email || null;
     fullName =
-      data?.user?.user_metadata?.full_name ||
-      data?.user?.user_metadata?.name ||
+      user?.user_metadata?.full_name ||
+      user?.user_metadata?.name ||
       null;
     if (userId) {
       const { data: profile } = await supabase
@@ -77,26 +101,57 @@ async function reportAttempt(reason) {
     /* ignore */
   }
 
-  const payload = {
+  return {
     user_id: userId,
     email: email || null,
     full_name: fullName || null,
     reason: reason || 'devtools',
     page_path: (window.location.pathname || '') + (window.location.search || ''),
-    user_agent: typeof navigator !== 'undefined' ? String(navigator.userAgent || '').slice(0, 400) : null,
-    attempt_count: getAttemptCount()
+    user_agent:
+      typeof navigator !== 'undefined' ? String(navigator.userAgent || '').slice(0, 400) : null,
+    attempt_count: attemptCount || getAttemptCount() || 1
   };
+}
 
+async function insertAlert(payload) {
+  if (!payload) return false;
   try {
-    await supabase.from('devtools_alerts').insert(payload);
-  } catch {
-    /* table may not exist yet */
+    const { error } = await supabase.from('devtools_alerts').insert(payload);
+    if (error) {
+      console.warn('[NUSC] devtools_alerts insert:', error.message || error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('[NUSC] devtools_alerts insert failed:', err?.message || err);
+    return false;
   }
 }
 
-function goToBlockPage(reason) {
+export async function reportDevtoolsAttempt(reason, attemptCount) {
+  const payload = await buildPayload(reason, attemptCount);
+  stashPending(payload);
+  const ok = await insertAlert(payload);
+  if (ok) {
+    try {
+      sessionStorage.removeItem(PENDING_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+  return ok;
+}
+
+async function goToBlockPage(reason) {
   const count = bumpAttemptCount();
-  reportAttempt(reason).catch(() => {});
+  try {
+    await Promise.race([
+      reportDevtoolsAttempt(reason, count),
+      new Promise((resolve) => setTimeout(resolve, 2800))
+    ]);
+  } catch {
+    /* still redirect */
+  }
   const q = new URLSearchParams({
     from: window.location.pathname || '/home.html',
     n: String(count),
@@ -126,9 +181,6 @@ function onKeyDown(e) {
   }
 }
 
-/**
- * Start guard on student pages. Call once after auth.
- */
 export function initDevtoolsGuard() {
   if (typeof window === 'undefined' || isExemptPath()) return;
   if (window.__nuscDevtoolsGuard) return;
@@ -136,4 +188,4 @@ export function initDevtoolsGuard() {
   window.addEventListener('keydown', onKeyDown, true);
 }
 
-export default { initDevtoolsGuard };
+export default { initDevtoolsGuard, reportDevtoolsAttempt, flushPendingDevtoolsAlert };
