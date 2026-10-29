@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="robots" content="noindex,nofollow" />
   <title>تم حظر أدوات المطوّر | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=devtools-1" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=devtools-1" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=devtools-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=devtools-2" />
   <style>
-    body { background: #f7f5f2; }
+    body { background: #f7f5f2; min-height: 100vh; }
     .block-wrap {
       max-width: 440px;
       margin: 0 auto;
@@ -26,21 +26,28 @@
       font-size: 1.2rem;
       color: #8a3a3a;
     }
-    .block-card p {
+    .block-name {
       margin: 0 0 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #2c2a28;
+    }
+    .block-card p {
+      margin: 0 0 10px;
       color: #5c564f;
-      font-size: 0.92rem;
-      line-height: 1.6;
+      font-size: 0.95rem;
+      line-height: 1.65;
     }
     .block-warn {
       background: #faf2f2;
       border: 1px solid #e8d5d5;
       border-radius: 10px;
-      padding: 12px;
+      padding: 12px 14px;
       color: #8a3a3a;
-      font-size: 0.88rem;
-      margin: 16px 0;
+      font-size: 0.9rem;
+      margin: 16px 0 18px;
       text-align: right;
+      line-height: 1.55;
     }
   </style>
 </head>
@@ -48,29 +55,58 @@
   <div class="block-wrap">
     <div class="block-card">
       <h1>تم حظر أدوات المطوّر</h1>
-      <p>تم رصد محاولة فتح أدوات المطوّر (F12 أو اختصارات مشابهة) داخل المنصة.</p>
+      <p class="block-name" id="user-line">يا طالب</p>
+      <p id="main-msg">كده عيب، أنت بتعمل إيه؟ ما ينفعش تفتح أدوات المطوّر جوه المنصة.</p>
       <div class="block-warn" id="warn-box">
-        ارجع للصفحة الرئيسية فورًا. لو حاولت تاني، هيتم إبلاغ إدارة المنصة، وممكن يتم حظر حسابك.
+        لو عملت كده تاني هتتحذّر، وممكن يتبعت تنبيه لإدارة المنصة.
       </div>
       <a class="btn btn-primary" href="/home.html" id="back-btn" style="width:100%">ارجع للصفحة الرئيسية</a>
-      <p class="text-sm text-muted" style="margin-top:14px">لو فتحت الأدوات بالغلط، اقفالها وارجع عادي.</p>
     </div>
   </div>
   <script type="module">
+    import { supabase } from '/assets/js/supabase.js';
+
     const params = new URLSearchParams(window.location.search);
     const n = Number(params.get('n') || 1);
+    const nameEl = document.getElementById('user-line');
     const warn = document.getElementById('warn-box');
+
     if (n >= 2 && warn) {
       warn.textContent =
-        'دي مش أول مرة. تم إرسال تنبيه لإدارة المنصة بالحساب والمحاولة. لو استمرت المحاولات ممكن يتم حظر الحساب.';
+        'دي مش أول مرة. تم إرسال تنبيه للإدارة. لو استمرت المحاولات ممكن يتحظر حسابك.';
     }
-    // Block page itself still reports if they hammer F12 again
+
+    async function showName() {
+      try {
+        const { data } = await supabase.auth.getUser();
+        const user = data?.user;
+        let name =
+          user?.user_metadata?.full_name ||
+          user?.user_metadata?.name ||
+          (user?.email ? user.email.split('@')[0] : '') ||
+          '';
+        if (user?.id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', user.id)
+            .maybeSingle();
+          if (profile?.full_name) name = profile.full_name;
+        }
+        if (nameEl) {
+          nameEl.textContent = name ? `يا ${name}` : 'يا طالب';
+        }
+      } catch {
+        if (nameEl) nameEl.textContent = 'يا طالب';
+      }
+    }
+
+    showName();
+
     document.addEventListener(
       'keydown',
       (e) => {
-        if (e.key === 'F12' || e.code === 'F12') {
-          e.preventDefault();
-        }
+        if (e.key === 'F12' || e.code === 'F12') e.preventDefault();
       },
       true
     );
