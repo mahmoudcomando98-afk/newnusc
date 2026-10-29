@@ -31,6 +31,7 @@ export default defineConfig(({ mode }) => {
           offline: resolve(__dirname, 'offline.html'),
           banned: resolve(__dirname, 'banned.html'),
           'devtools-blocked': resolve(__dirname, 'devtools-blocked.html'),
+          'chrome-required': resolve(__dirname, 'chrome-required.html'),
           about: resolve(__dirname, 'about.html'),
           contact: resolve(__dirname, 'contact.html'),
           privacy: resolve(__dirname, 'privacy.html'),
