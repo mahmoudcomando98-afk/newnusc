@@ -398,9 +398,35 @@ export async function getCurrentUser() {
   }
 }
 
+/** Build a minimal profile from auth user when profiles table is blocked */
+function profileFromAuthUser(user) {
+  if (!user?.id) return null;
+  const meta = user.user_metadata || {};
+  const fullName =
+    (typeof meta.full_name === 'string' && meta.full_name.trim()) ||
+    (typeof meta.name === 'string' && meta.name.trim()) ||
+    (user.email ? String(user.email).split('@')[0] : '') ||
+    'طالب';
+  return {
+    id: user.id,
+    full_name: fullName,
+    email: user.email || meta.email || '',
+    student_id: meta.student_id || null,
+    college: meta.college || null,
+    academic_year: meta.academic_year || null,
+    avatar_url: meta.avatar_url || null,
+    role: meta.role === 'admin' || meta.role === 'moderator' ? meta.role : 'student',
+    is_active: true,
+    created_at: user.created_at || null,
+    _from_auth_fallback: true
+  };
+}
+
 export async function getProfile(userId = null) {
-  const uid = userId || (await getCurrentUser())?.id;
+  const authUser = await getCurrentUser();
+  const uid = userId || authUser?.id;
   if (!uid) return null;
+
   try {
     const { data, error } = await withTimeout(
       supabase
@@ -410,15 +436,38 @@ export async function getProfile(userId = null) {
         .maybeSingle(),
       8000
     );
-    if (error) {
-      console.warn('[NUSC] profile:', error.message);
-      return null;
+    if (!error && data) {
+      // Merge name from auth if profile row is empty
+      if (!data.full_name && authUser?.id === uid) {
+        const fb = profileFromAuthUser(authUser);
+        if (fb?.full_name) data.full_name = fb.full_name;
+      }
+      if (!data.email && authUser?.email) data.email = authUser.email;
+      return data;
     }
-    return data;
+    if (error) console.warn('[NUSC] profile:', error.message);
   } catch (err) {
     console.warn('[NUSC] getProfile:', err?.message || err);
-    return null;
   }
+
+  // Fallback so home/profile still show the student name on mobile
+  if (authUser?.id === uid) return profileFromAuthUser(authUser);
+  try {
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+    if (user?.id === uid) return profileFromAuthUser(user);
+  } catch {
+    /* ignore */
+  }
+  return {
+    id: uid,
+    full_name: 'طالب',
+    email: '',
+    role: 'student',
+    is_active: true,
+    _from_auth_fallback: true
+  };
 }
 
 export async function isAdmin() {
