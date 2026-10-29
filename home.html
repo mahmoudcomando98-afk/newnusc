@@ -88,70 +88,57 @@
           <span class="notice-kicker">إشعار</span>
           <strong id="notice-title" class="notice-title"></strong>
           <p id="notice-text" class="notice-text"></p>
-          <span id="important-notice-time" class="notice-time"></span>
         </div>
+        <a href="/notifications.html" class="notice-open">عرض <span aria-hidden="true">←</span></a>
       </section>
 
-      <section class="home-shortcuts mb-3" aria-label="اختصارات">
-        <div class="home-shortcuts-grid">
-          <a class="home-shortcut" href="/subjects.html"><span data-icon="book"></span><span>المواد</span></a>
-          <a class="home-shortcut" href="/quizzes.html"><span data-icon="clipboard"></span><span>الكويزات</span></a>
-          <a class="home-shortcut" href="/schedule.html"><span data-icon="calendar"></span><span>الجدول</span></a>
-          <a class="home-shortcut" href="/online-sections.html"><span data-icon="video"></span><span>سكاشن</span></a>
-          <a class="home-shortcut" href="/past-exams.html"><span data-icon="file"></span><span>امتحانات</span></a>
-          <a class="home-shortcut" href="/announcements.html"><span data-icon="megaphone"></span><span>إعلانات</span></a>
-        </div>
+      <section class="dashboard-shortcuts" aria-label="اختصارات">
+        <a href="/subjects.html" class="shortcut-card shortcut-subjects"><span class="shortcut-icon" data-icon="book"></span><span class="shortcut-text"><strong>المواد</strong><small>محاضرات وملفات</small></span><span class="shortcut-arrow">←</span></a>
+        <a href="/past-exams.html" class="shortcut-card"><span class="shortcut-icon" data-icon="clipboard"></span><span class="shortcut-text"><strong>امتحانات سابقة</strong><small>اختار المادة وشوف الامتحانات</small></span><span class="shortcut-arrow">←</span></a>
+        <a href="/quizzes.html" class="shortcut-card"><span class="shortcut-icon" data-icon="clipboard"></span><span class="shortcut-text"><strong>الكويزات</strong><small>المواعيد والتعليمات</small></span><span class="shortcut-arrow">←</span></a>
+        <a href="/schedule.html" class="shortcut-card"><span class="shortcut-icon" data-icon="calendar"></span><span class="shortcut-text"><strong>الجدول</strong><small>مواعيد الأسبوع</small></span><span class="shortcut-arrow">←</span></a>
+        <a href="/online-sections.html" class="shortcut-card"><span class="shortcut-icon" data-icon="calendar"></span><span class="shortcut-text"><strong>سكاشن أونلاين</strong><small>مواعيد السكاشن</small></span><span class="shortcut-arrow">←</span></a>
+        <a href="/notifications.html" class="shortcut-card"><span class="shortcut-icon" data-icon="bell"></span><span class="shortcut-text"><strong>الإشعارات</strong><small>آخر التنبيهات</small></span><span class="shortcut-arrow">←</span></a>
+        <a href="/updates.html" class="shortcut-card"><span class="shortcut-icon" data-icon="clipboard"></span><span class="shortcut-text"><strong>آخر التحديثات</strong><small>ملفات وإعلانات جديدة</small></span><span class="shortcut-arrow">←</span></a>
       </section>
 
-      <section class="mb-3">
-        <div class="section-header">
-          <h2 class="section-title">المواد الدراسية</h2>
-          <a href="/subjects.html" class="section-link">الكل</a>
-        </div>
-        <div id="subjects-list" class="card-grid subjects-grid home-subjects-grid"></div>
+      <section class="section home-section">
+        <div class="section-header"><div><h2>المواد</h2></div><a href="/subjects.html" class="section-more">الكل</a></div>
+        <div id="subjects-list" class="home-subject-grid"></div>
       </section>
 
-      <section class="mb-3">
-        <div class="section-header">
-          <h2 class="section-title">آخر المحاضرات</h2>
-        </div>
-        <div id="lectures-list" class="list-stack"></div>
+      <div class="home-two-col">
+        <section class="section home-section">
+          <div class="section-header"><div><h2>آخر المحاضرات</h2></div><a href="/subjects.html" class="section-more">المزيد</a></div>
+          <div id="lectures-list" class="card"></div>
+        </section>
+        <section class="section home-section">
+          <div class="section-header"><div><h2>الكويزات</h2></div><a href="/quizzes.html" class="section-more">الكل</a></div>
+          <div id="quizzes-list" class="card"></div>
+        </section>
+      </div>
+
+      <section class="section home-section">
+        <div class="section-header"><div><h2>الإعلانات</h2></div><a href="/announcements.html" class="section-more">الكل</a></div>
+        <div id="announcements-list" class="card"></div>
+      </section>
+      <section class="section home-section">
+        <div class="section-header"><div><h2>أحدث الملفات</h2></div><a href="/updates.html" class="section-more">الكل</a></div>
+        <div id="materials-list" class="card"></div>
       </section>
 
-      <section class="mb-3">
-        <div class="section-header">
-          <h2 class="section-title">الإعلانات</h2>
-          <a href="/announcements.html" class="section-link">الكل</a>
-        </div>
-        <div id="announcements-list" class="list-stack"></div>
-      </section>
-
-      <section class="mb-3">
-        <div class="section-header">
-          <h2 class="section-title">أحدث الملفات</h2>
-        </div>
-        <div id="materials-list" class="list-stack"></div>
-      </section>
-
-      <section class="mb-3">
-        <div class="section-header">
-          <h2 class="section-title">الكويزات</h2>
-          <a href="/quizzes.html" class="section-link">الكل</a>
-        </div>
-        <div id="quizzes-list" class="list-stack"></div>
-      </section>
-
-      <p class="text-center text-sm text-muted" style="margin: 28px 0 8px">تم التطوير بواسطة Mahmoud Oshiba</p>
+      <footer class="site-footer text-sm text-muted">
+        <p>تم التطوير بواسطة Mahmoud Oshiba</p>
+      </footer>
     </div>
   </main>
-
-  <nav class="bottom-nav" aria-label="التنقل الرئيسي">
-    <a href="/home.html" class="nav-item active" data-nav="home"><span data-icon="home"></span><span>الرئيسية</span></a>
-    <a href="/subjects.html" class="nav-item" data-nav="subjects"><span data-icon="book"></span><span>المواد</span></a>
-    <a href="/schedule.html" class="nav-item" data-nav="schedule"><span data-icon="calendar"></span><span>الجدول</span></a>
-    <a href="/profile.html" class="nav-item" data-nav="profile"><span data-icon="user"></span><span>حسابي</span></a>
+  <nav class="bottom-nav">
+    <a href="/home.html" data-nav="home" class="active"><span data-icon="home"></span>الرئيسية</a>
+    <a href="/subjects.html" data-nav="subjects"><span data-icon="book"></span>المواد</a>
+    <a href="/quizzes.html" data-nav="quizzes"><span data-icon="clipboard"></span>الكويزات</a>
+    <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
+    <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
-
   <script type="module" src="/assets/js/home.js?v=push-5"></script>
 </body>
 </html>
