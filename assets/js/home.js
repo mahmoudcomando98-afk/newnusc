@@ -291,7 +291,7 @@ function renderAnnouncements(rows) {
           <div class="list-item-icon" data-icon="megaphone"></div>
           <div class="list-item-body">
             <div class="list-item-title">${a.is_pinned ? '📌 ' : ''}${escapeHtml(a.title || 'إعلان')}</div>
-            <div class="list-item-desc">${escapeHtml((a.content || a.body || '').slice(0, 120)} · ${timeAgo(a.created_at)}</div>
+            <div class="list-item-desc">${escapeHtml((a.content || a.body || '').slice(0, 120))} · ${timeAgo(a.created_at)}</div>
           </div>
         </div>`;
     })
