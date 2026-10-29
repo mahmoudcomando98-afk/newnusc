@@ -1,25 +1,32 @@
 /* NUSC Service Worker — system notification tray */
-const ICON = '/nusc.png.jpeg';
-const SW_VERSION = 'nusc-sw-v3';
+const ICON_PATH = '/nusc.png.jpeg';
+const SW_VERSION = 'nusc-sw-v4';
+
+function iconUrl() {
+  try {
+    return new URL(ICON_PATH, self.location.origin).href;
+  } catch {
+    return ICON_PATH;
+  }
+}
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    (async () => {
-      await self.clients.claim();
-    })()
-  );
+  event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener('push', (event) => {
+  const icon = iconUrl();
   let data = {
     title: 'NUSC',
     body: 'لديك إشعار جديد من المنصة',
     url: '/notifications.html',
-    tag: 'nusc-push'
+    tag: 'nusc-push',
+    icon,
+    badge: icon
   };
 
   try {
@@ -36,11 +43,12 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  // Always force site logo for tray icon (same as favicon)
   const title = String(data.title || 'NUSC').slice(0, 120);
   const options = {
     body: String(data.body || '').slice(0, 500),
-    icon: data.icon || ICON,
-    badge: data.badge || ICON,
+    icon,
+    badge: icon,
     data: { url: data.url || '/notifications.html' },
     tag: data.tag || 'nusc-push',
     renotify: true,
