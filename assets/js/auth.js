@@ -1,6 +1,6 @@
 
 /**
- * NUSC Student Hub - Authentication
+ * NUSC Student Hub - Authentication (Supabase Auth — not Firebase)
  */
 
 import { supabase, getSession, getProfile } from './supabase.js';
@@ -15,7 +15,12 @@ const REMEMBER_KEY = 'nusc_remember_login';
 
 function getErrorMessage(error, fallback = 'حدث خطأ، حاول مرة أخرى') {
   const message = String(error?.message || '').toLowerCase();
-  if (error?.status === 429 || message.includes('rate limit') || message.includes('too many requests') || message.includes('email rate limit')) {
+  if (
+    error?.status === 429 ||
+    message.includes('rate limit') ||
+    message.includes('too many requests') ||
+    message.includes('email rate limit')
+  ) {
     return 'تم تجاوز حد المحاولات أو رسائل البريد مؤقتًا. انتظر قليلًا قبل المحاولة مجددًا.';
   }
   if (message.includes('already registered') || message.includes('already been registered')) {
@@ -26,6 +31,9 @@ function getErrorMessage(error, fallback = 'حدث خطأ، حاول مرة أخ
   }
   if (message.includes('email not confirmed')) {
     return 'يرجى تأكيد البريد الإلكتروني قبل تسجيل الدخول.';
+  }
+  if (message.includes('failed to fetch') || message.includes('network') || message.includes('fetch')) {
+    return 'مفيش اتصال بالسيرفر. تأكد من الإنترنت وحاول تاني.';
   }
   return error?.message || fallback;
 }
@@ -70,6 +78,20 @@ function saveRememberedLogin(email, password, remember) {
   }
 }
 
+function resolveNextPath() {
+  let next = '/home.html';
+  try {
+    const stored = sessionStorage.getItem('nusc_next');
+    if (stored && stored.startsWith('/') && !stored.startsWith('//') && !/login\.html/i.test(stored)) {
+      next = stored;
+      sessionStorage.removeItem('nusc_next');
+    }
+  } catch {
+    /* ignore */
+  }
+  return next;
+}
+
 export async function register({ fullName, email, password, studentId = null }) {
   if (!fullName?.trim() || !email?.trim() || !password) throw new Error('يرجى تعبئة جميع الحقول المطلوبة.');
   if (password.length < 6) throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
@@ -89,9 +111,14 @@ export async function register({ fullName, email, password, studentId = null }) 
   const session = data?.session;
   if (!user) throw new Error('لم يتم إنشاء الحساب. حاول مرة أخرى.');
   if (session) {
-    const { error: profileError } = await supabase.from('profiles').update({
-      full_name: normalizedName, student_id: normalizedStudentId, email: normalizedEmail
-    }).eq('id', user.id);
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        full_name: normalizedName,
+        student_id: normalizedStudentId,
+        email: normalizedEmail
+      })
+      .eq('id', user.id);
     if (profileError) console.warn('Profile update after signup:', profileError.message);
   }
   return { user, session, needsEmailConfirmation: !session };
@@ -104,6 +131,7 @@ export async function login({ email, password }) {
     password
   });
   if (error) throw new Error(getErrorMessage(error, 'فشل تسجيل الدخول.'));
+  if (!data?.session) throw new Error('تم الدخول لكن الجلسة مش محفوظة. جرّب تاني.');
   return data;
 }
 
@@ -133,7 +161,9 @@ export async function protectPage({ adminOnly = false } = {}) {
     try {
       const { data } = await supabase.auth.refreshSession();
       session = data?.session || null;
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
   if (!session) {
     try {
@@ -141,7 +171,9 @@ export async function protectPage({ adminOnly = false } = {}) {
       if (next && next.startsWith('/') && !next.startsWith('//') && !/login\.html/i.test(next)) {
         sessionStorage.setItem('nusc_next', next);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     window.location.replace('/login.html');
     return null;
   }
@@ -166,9 +198,13 @@ export async function protectPage({ adminOnly = false } = {}) {
   try {
     const uid = session.user?.id || profile?.id;
     if (uid && !adminOnly) {
-      import('./push.js').then((m) => m.initPushNotifications(uid)).catch(() => {});
+      import('./push.js')
+        .then((m) => m.initPushNotifications(uid))
+        .catch(() => {});
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return { session, user: session.user, profile };
 }
 
@@ -189,26 +225,34 @@ export function initLoginPage() {
     const password = form.elements.password?.value || document.getElementById('password')?.value || '';
     const remember = !!document.getElementById('remember_me')?.checked;
     const btn = form.querySelector('button[type="submit"]');
+
     try {
       await withLoading(btn, async () => {
-        await login({ email, password });
+        const data = await login({ email, password });
         saveRememberedLogin(email, password, remember);
-        const profile = await getProfile();
-        if (profile && profile.is_active === false) {
-          window.location.href = '/banned.html';
+
+        // Don't block redirect if profile is slow/unavailable
+        let banned = false;
+        try {
+          const uid = data?.user?.id || data?.session?.user?.id;
+          const profile = await Promise.race([
+            getProfile(uid),
+            new Promise((resolve) => setTimeout(() => resolve(null), 3500))
+          ]);
+          if (profile && profile.is_active === false) banned = true;
+        } catch {
+          /* continue to home */
+        }
+
+        if (banned) {
+          window.location.replace('/banned.html');
           return;
         }
-        let next = '/home.html';
-        try {
-          const stored = sessionStorage.getItem('nusc_next');
-          if (stored && stored.startsWith('/') && !stored.startsWith('//') && !/login\.html/i.test(stored)) {
-            next = stored;
-            sessionStorage.removeItem('nusc_next');
-          }
-        } catch { /* ignore */ }
-        window.location.href = next;
+
+        window.location.replace(resolveNextPath());
       });
     } catch (err) {
+      console.error('[NUSC] login failed:', err);
       showToast(getErrorMessage(err, 'تعذر تسجيل الدخول.'), 'error');
     }
   });
@@ -224,7 +268,11 @@ export function initRegisterPage() {
     const email = form.elements.email?.value || '';
     const password = form.elements.password?.value || '';
     const studentId = form.elements.student_id?.value || form.elements.studentId?.value || '';
-    const confirmPassword = form.elements.password_confirm?.value || form.elements.confirm?.value || form.elements.confirm_password?.value || '';
+    const confirmPassword =
+      form.elements.password_confirm?.value ||
+      form.elements.confirm?.value ||
+      form.elements.confirm_password?.value ||
+      '';
     if (confirmPassword && password !== confirmPassword) {
       showToast('كلمتا المرور غير متطابقتين.', 'error');
       return;
@@ -241,7 +289,7 @@ export function initRegisterPage() {
           showToast('تم إنشاء الحساب. تحقق من بريدك الإلكتروني لتأكيده قبل تسجيل الدخول.', 'success', 6000);
         } else {
           showToast('تم إنشاء الحساب بنجاح.', 'success');
-          window.location.href = '/home.html';
+          window.location.replace('/home.html');
         }
       });
     } catch (err) {
@@ -274,7 +322,11 @@ export function initResetPasswordPage() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const password = form.elements.password?.value || '';
-    const confirmPassword = form.elements.password_confirm?.value || form.elements.confirm?.value || form.elements.confirm_password?.value || '';
+    const confirmPassword =
+      form.elements.password_confirm?.value ||
+      form.elements.confirm?.value ||
+      form.elements.confirm_password?.value ||
+      '';
     if (confirmPassword && password !== confirmPassword) {
       showToast('كلمتا المرور غير متطابقتين.', 'error');
       return;
@@ -284,7 +336,7 @@ export function initResetPasswordPage() {
       await withLoading(btn, async () => {
         await updatePassword(password);
         showToast('تم تحديث كلمة المرور بنجاح.', 'success');
-        window.location.href = '/login.html';
+        window.location.replace('/login.html');
       });
     } catch (err) {
       showToast(getErrorMessage(err, 'تعذر تحديث كلمة المرور.'), 'error');
@@ -293,7 +345,15 @@ export function initResetPasswordPage() {
 }
 
 export default {
-  register, login, logout, requestPasswordReset, updatePassword,
-  protectPage, protectAdminPage, initLoginPage, initRegisterPage,
-  initForgotPasswordPage, initResetPasswordPage
+  register,
+  login,
+  logout,
+  requestPasswordReset,
+  updatePassword,
+  protectPage,
+  protectAdminPage,
+  initLoginPage,
+  initRegisterPage,
+  initForgotPasswordPage,
+  initResetPasswordPage
 };
