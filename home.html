@@ -16,9 +16,9 @@
   <meta name="twitter:image" content="/nusc.png.jpeg" />
   <link rel="icon" href="/nusc.png.jpeg" type="image/jpeg" />
   <title>الرئيسية | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=icons-2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=icons-2" />
-  <link rel="stylesheet" href="/assets/css/mobile-polish.css?v=icons-2" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=devtools-4" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=devtools-4" />
+  <link rel="stylesheet" href="/assets/css/mobile-polish.css?v=devtools-4" />
   <link rel="stylesheet" href="/assets/css/home-subjects.css?v=4" />
   <link rel="stylesheet" href="/assets/css/home-notice.css?v=1" />
   <link rel="stylesheet" href="/assets/css/live-online.css?v=1" />
@@ -30,6 +30,47 @@
     }
     .push-enable-inner strong { font-size: 0.9rem; color: #2c2a28; }
   </style>
+  <!-- حماية مبكرة قبل تحميل الموديولات -->
+  <script>
+    (function () {
+      var locked = false;
+      function block(reason) {
+        if (locked) return;
+        locked = true;
+        try {
+          var n = Number(sessionStorage.getItem('nusc_devtools_attempts') || 0) + 1;
+          sessionStorage.setItem('nusc_devtools_attempts', String(n));
+        } catch (e) {}
+        try {
+          document.body && (document.body.innerHTML =
+            '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f7f5f2;padding:24px;text-align:center;font-family:system-ui,sans-serif">' +
+            '<div style="max-width:400px;background:#fff;border:1px solid #e8e4df;border-radius:14px;padding:24px">' +
+            '<h1 style="color:#8a3a3a;font-size:1.15rem">تم حظر أدوات المطوّر</h1>' +
+            '<p style="color:#5c564f;line-height:1.6">كده عيب — ما ينفعش تفتح أدوات المطوّر جوه المنصة.</p>' +
+            '<a href="/home.html" style="display:inline-block;margin-top:12px;background:#c45c26;color:#fff;text-decoration:none;padding:10px 18px;border-radius:10px">ارجع للصفحة الرئيسية</a></div></div>');
+        } catch (e) {}
+        var q = 'n=' + encodeURIComponent(String((function(){try{return sessionStorage.getItem('nusc_devtools_attempts')||'1'}catch(e){return'1'}})())) + '&r=' + encodeURIComponent(reason || 'early');
+        setTimeout(function () { location.replace('/devtools-blocked.html?' + q); }, 40);
+      }
+      document.addEventListener('keydown', function (e) {
+        var k = e.key || '', c = e.code || '';
+        if (k === 'F12' || c === 'F12' ||
+            ((e.ctrlKey || e.metaKey) && e.shiftKey && /^(I|J|C|K)$/i.test(k)) ||
+            ((e.ctrlKey || e.metaKey) && !e.shiftKey && /^(u|U|s|S)$/.test(k))) {
+          e.preventDefault();
+          block(k === 'F12' || c === 'F12' ? 'F12' : 'shortcut');
+        }
+      }, true);
+      function sizeOpen() {
+        if (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || '')) return;
+        try {
+          if (window.outerWidth - window.innerWidth > 80 || window.outerHeight - window.innerHeight > 80) block('size');
+        } catch (e) {}
+      }
+      window.addEventListener('resize', sizeOpen);
+      setInterval(sizeOpen, 500);
+    })();
+  </script>
 </head>
 <body class="home-page">
   <div class="offline-banner" id="offline-banner">لا يوجد اتصال بالإنترنت</div>
@@ -139,6 +180,6 @@
     <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
     <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
-  <script type="module" src="/assets/js/home.js?v=icons-2"></script>
+  <script type="module" src="/assets/js/home.js?v=devtools-4"></script>
 </body>
 </html>
