@@ -8,6 +8,7 @@ const TYPE_LABELS = {
   lecture: 'المحاضرات',
   section: 'السكاشن',
   assignment: 'الواجبات',
+  summary: 'ملخصات المادة',
   past_exam: 'امتحانات سابقة'
 };
 
@@ -59,7 +60,7 @@ async function init() {
       ? result.allowed_types
       : ['lecture'];
     select.innerHTML = types
-      .map((t) => `<option value="${t}">${TYPE_LABELS[t] || t}</option>`)
+      .map((t) => `<option value="${escapeAttr(t)}">${TYPE_LABELS[t] || t}</option>`)
       .join('');
 
     show('state-form');
@@ -72,6 +73,13 @@ async function init() {
     console.error(err);
     showError('تعذر فتح رابط الرفع. لو المشكلة مستمرة، الأدمن يحتاج ينفّذ إعدادات قاعدة البيانات.');
   }
+}
+
+function escapeAttr(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
 }
 
 async function onSubmit(event) {
@@ -140,6 +148,8 @@ async function onSubmit(event) {
     const msg = String(err?.message || err || '');
     if (/row-level security|policy|403|unauthorized/i.test(msg)) {
       showToast('مفيش صلاحية رفع. الأدمن محتاج يضبط سياسة التخزين (teacher-uploads).', 'error');
+    } else if (/material_type|check constraint/i.test(msg)) {
+      showToast('نوع الملف غير مسموح في قاعدة البيانات. نفّذ SQL الخاص بـ summary.', 'error');
     } else {
       showToast('فشل الرفع. حاول مرة أخرى أو تأكد إن الرابط لسه شغال.', 'error');
     }

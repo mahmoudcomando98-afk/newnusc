@@ -6,8 +6,8 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>روابط رفع المدرّس | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=ui-polish-2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=ui-polish-2" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=summary-tu-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=summary-tu-1" />
 </head>
 <body>
   <header class="app-header">
@@ -18,7 +18,7 @@
   </header>
   <main class="page" style="padding-bottom:24px">
     <div class="container page-content">
-      <p class="text-sm text-muted mb-2">اعمل رابط لمادة معيّنة وابعتُه للمدرّس. يدخل من غير تسجيل ويقدر يرفع ملفات المادة دي فقط.</p>
+      <p class="text-sm text-muted mb-2">اعمل رابط لمادة معيّنة وابعتُه للمدرّس. يدخل من غير تسجيل ويقدر يرفع ملفات المادة دي فقط (محاضرات، سكاشن، ملخصات، ...).</p>
 
       <div id="form-panel" class="card mb-3 hidden">
         <h3 class="card-title mb-2">إنشاء رابط رفع</h3>
@@ -36,6 +36,7 @@
             <div class="flex flex-wrap gap-1" style="gap:8px">
               <label class="form-check"><input type="checkbox" name="types" value="lecture" checked /> المحاضرات</label>
               <label class="form-check"><input type="checkbox" name="types" value="section" checked /> السكاشن</label>
+              <label class="form-check"><input type="checkbox" name="types" value="summary" checked /> ملخصات المادة</label>
               <label class="form-check"><input type="checkbox" name="types" value="assignment" /> الواجبات</label>
               <label class="form-check"><input type="checkbox" name="types" value="past_exam" /> امتحانات سابقة</label>
             </div>
@@ -65,6 +66,6 @@
       <div id="list"></div>
     </div>
   </main>
-  <script type="module" src="/assets/js/admin-teacher-links.js?v=1"></script>
+  <script type="module" src="/assets/js/admin-teacher-links.js?v=summary-1"></script>
 </body>
 </html>
