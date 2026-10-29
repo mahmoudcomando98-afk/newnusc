@@ -80,6 +80,17 @@ function setupPushBanner(userId) {
   const btn = document.getElementById('enable-push-btn');
   if (!banner || !btn || !userId) return;
 
+  const setDeniedHelp = () => {
+    banner.classList.remove('hidden');
+    btn.disabled = false;
+    btn.textContent = 'شرح التفعيل';
+    const help = banner.querySelector('.push-enable-inner p');
+    if (help) {
+      help.textContent =
+        'المتصفح رافض الإشعارات. من إعدادات الموقع اسمح بالإشعارات، بعدين ارجع هنا واضغط تفعيل. Chrome: القفل بجانب الرابط → الإشعارات → سماح.';
+    }
+  };
+
   import('./push.js')
     .then(async (m) => {
       if (!m.pushSupported()) {
@@ -93,12 +104,13 @@ function setupPushBanner(userId) {
         return;
       }
       if (perm === 'denied') {
-        banner.classList.remove('hidden');
-        btn.textContent = 'مرفوض من الإعدادات';
-        btn.disabled = true;
+        setDeniedHelp();
+        btn.onclick = () => setDeniedHelp();
         return;
       }
       banner.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'تفعيل';
       btn.addEventListener('click', async () => {
         btn.disabled = true;
         btn.textContent = '...';
@@ -107,18 +119,17 @@ function setupPushBanner(userId) {
           banner.classList.add('hidden');
           try {
             const { showToast } = await import('./utils.js');
-            showToast('تم تفعيل إشعارات التليفون', 'success');
+            showToast('سيتم ارسال الاشعارات المهمه اليك', 'success');
           } catch { /* ignore */ }
+        } else if (res.reason === 'denied') {
+          setDeniedHelp();
         } else {
           btn.disabled = false;
           btn.textContent = 'تفعيل';
-          if (res.reason === 'denied') {
-            btn.textContent = 'مرفوض من الإعدادات';
-            btn.disabled = true;
-          } else if (res.reason === 'unsupported') {
-            btn.textContent = 'الجهاز لا يدعم';
-            btn.disabled = true;
-          }
+          try {
+            const { showToast } = await import('./utils.js');
+            showToast('تعذر التفعيل. جرّب من Chrome وحدّث الصفحة.', 'error');
+          } catch { /* ignore */ }
         }
       });
     })
@@ -280,7 +291,7 @@ function renderAnnouncements(rows) {
           <div class="list-item-icon" data-icon="megaphone"></div>
           <div class="list-item-body">
             <div class="list-item-title">${a.is_pinned ? '📌 ' : ''}${escapeHtml(a.title || 'إعلان')}</div>
-            <div class="list-item-desc">${escapeHtml((a.content || a.body || '').slice(0, 120))} · ${timeAgo(a.created_at)}</div>
+            <div class="list-item-desc">${escapeHtml((a.content || a.body || '').slice(0, 120)} · ${timeAgo(a.created_at)}</div>
           </div>
         </div>`;
     })
