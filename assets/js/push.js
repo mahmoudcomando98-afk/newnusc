@@ -1,5 +1,6 @@
 /**
  * NUSC Web Push — enable, confirm, save subscription, admin fan-out.
+ * Important: never call Notification.requestPermission() except from a user click.
  */
 
 import { supabase } from './supabase.js';
@@ -27,25 +28,19 @@ export function pushSupported() {
     typeof window !== 'undefined' &&
     'serviceWorker' in navigator &&
     'PushManager' in window &&
-    'Notification' in window
+    'Notification' in window &&
+    (window.isSecureContext === true || location.hostname === 'localhost')
   );
 }
 
 export function notificationPermission() {
   if (typeof Notification === 'undefined') return 'unsupported';
-  return Notification.permission;
+  return Notification.permission; // 'default' | 'granted' | 'denied'
 }
 
 async function ensureServiceWorker() {
-  const reg = await navigator.serviceWorker.register('/sw.js?v=3', { scope: '/' });
+  const reg = await navigator.serviceWorker.register('/sw.js?v=4', { scope: '/' });
   await navigator.serviceWorker.ready;
-  if (reg.waiting) {
-    try {
-      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-    } catch {
-      /* ignore */
-    }
-  }
   return reg;
 }
 
@@ -133,24 +128,31 @@ export async function showLocalNotification(title, options = {}) {
 }
 
 /**
- * Register SW + permission + store subscription.
- * @param {string} userId
- * @param {{ welcome?: boolean }} opts
+ * Silent path: only works if permission already granted.
+ * Does NOT call requestPermission (avoids permanent deny on mobile).
  */
 export async function initPushNotifications(userId, opts = {}) {
   if (!pushSupported()) return { ok: false, reason: 'unsupported' };
   if (!userId) return { ok: false, reason: 'no-user' };
 
-  try {
-    const reg = await ensureServiceWorker();
+  const allowPrompt = opts.requestPermission === true;
 
+  try {
     let permission = Notification.permission;
+
     if (permission === 'default') {
+      if (!allowPrompt) {
+        // Wait for user to press the Enable button — do not auto-prompt
+        return { ok: false, reason: 'needs-gesture' };
+      }
       permission = await Notification.requestPermission();
     }
+
     if (permission !== 'granted') {
-      return { ok: false, reason: 'denied' };
+      return { ok: false, reason: permission === 'denied' ? 'denied' : 'not-granted' };
     }
+
+    const reg = await ensureServiceWorker();
 
     let sub;
     try {
@@ -186,12 +188,11 @@ export async function initPushNotifications(userId, opts = {}) {
   }
 }
 
-/** Call from a button click. Always shows welcome on success. */
+/** Must be called from a button click only. */
 export async function enablePushFromUserGesture(userId) {
-  return initPushNotifications(userId, { welcome: true });
+  return initPushNotifications(userId, { welcome: true, requestPermission: true });
 }
 
-/** Count registered push devices (admin). */
 export async function countPushDevices() {
   try {
     const { count, error } = await supabase
@@ -204,7 +205,6 @@ export async function countPushDevices() {
   }
 }
 
-/** Admin: fan-out via Edge Function send-push */
 export async function sendPushToAll({ title, body, url = '/notifications.html' }) {
   try {
     const {
@@ -238,11 +238,10 @@ export async function sendPushToAll({ title, body, url = '/notifications.html' }
 
     const sent = data?.sent ?? 0;
     const total = data?.total ?? 0;
-    const failed = data?.failed ?? 0;
     return {
       ok: true,
       sent,
-      failed,
+      failed: data?.failed ?? 0,
       total,
       data,
       noDevices: total === 0
