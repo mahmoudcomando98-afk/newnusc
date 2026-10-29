@@ -19,6 +19,7 @@
     { "source": "/reset-password", "destination": "/reset-password.html" },
     { "source": "/file-view", "destination": "/file-view.html" },
     { "source": "/devtools-blocked", "destination": "/devtools-blocked.html" },
+    { "source": "/chrome-required", "destination": "/chrome-required.html" },
     { "source": "/admin/hackers", "destination": "/admin/hackers.html" }
   ],
   "headers": [
