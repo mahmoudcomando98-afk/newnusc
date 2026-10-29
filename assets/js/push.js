@@ -14,6 +14,15 @@ const VAPID_PUBLIC =
 const WELCOME_TITLE = 'تم تفعيل الإشعارات';
 const WELCOME_BODY = 'سيتم ارسال الاشعارات المهمه اليك';
 
+/** Same logo as site favicon / PWA icon */
+function siteIconUrl() {
+  try {
+    return new URL('/nusc.png.jpeg', window.location.origin).href;
+  } catch {
+    return '/nusc.png.jpeg';
+  }
+}
+
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -35,7 +44,7 @@ export function pushSupported() {
 
 export function notificationPermission() {
   if (typeof Notification === 'undefined') return 'unsupported';
-  return Notification.permission; // 'default' | 'granted' | 'denied'
+  return Notification.permission;
 }
 
 async function ensureServiceWorker() {
@@ -95,12 +104,13 @@ async function getOrCreateSubscription(reg) {
 
 export async function showLocalNotification(title, options = {}) {
   if (!pushSupported() || Notification.permission !== 'granted') return false;
+  const icon = options.icon || siteIconUrl();
   try {
     const reg = await navigator.serviceWorker.ready;
     await reg.showNotification(title, {
       body: options.body || '',
-      icon: options.icon || '/nusc.png.jpeg',
-      badge: '/nusc.png.jpeg',
+      icon,
+      badge: icon,
       data: { url: options.url || '/notifications.html' },
       dir: 'rtl',
       lang: 'ar',
@@ -115,7 +125,7 @@ export async function showLocalNotification(title, options = {}) {
       // eslint-disable-next-line no-new
       new Notification(title, {
         body: options.body || '',
-        icon: '/nusc.png.jpeg',
+        icon,
         dir: 'rtl',
         lang: 'ar',
         tag: options.tag || 'nusc-local'
@@ -127,10 +137,6 @@ export async function showLocalNotification(title, options = {}) {
   }
 }
 
-/**
- * Silent path: only works if permission already granted.
- * Does NOT call requestPermission (avoids permanent deny on mobile).
- */
 export async function initPushNotifications(userId, opts = {}) {
   if (!pushSupported()) return { ok: false, reason: 'unsupported' };
   if (!userId) return { ok: false, reason: 'no-user' };
@@ -142,7 +148,6 @@ export async function initPushNotifications(userId, opts = {}) {
 
     if (permission === 'default') {
       if (!allowPrompt) {
-        // Wait for user to press the Enable button — do not auto-prompt
         return { ok: false, reason: 'needs-gesture' };
       }
       permission = await Notification.requestPermission();
@@ -188,7 +193,6 @@ export async function initPushNotifications(userId, opts = {}) {
   }
 }
 
-/** Must be called from a button click only. */
 export async function enablePushFromUserGesture(userId) {
   return initPushNotifications(userId, { welcome: true, requestPermission: true });
 }
