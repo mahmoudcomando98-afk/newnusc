@@ -1,123 +1,12 @@
 <!DOCTYPE html>
-<html lang="ar-EG" dir="rtl">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="robots" content="noindex,nofollow" />
-  <title>تم حظر أدوات المطوّر | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=devtools-3" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=devtools-3" />
-  <style>
-    body { background: #f7f5f2; min-height: 100vh; }
-    .block-wrap {
-      max-width: 440px;
-      margin: 0 auto;
-      padding: 48px 16px 40px;
-    }
-    .block-card {
-      background: #fff;
-      border: 1px solid #e8e4df;
-      border-radius: 14px;
-      padding: 28px 22px;
-      text-align: center;
-    }
-    .block-card h1 {
-      margin: 0 0 10px;
-      font-size: 1.2rem;
-      color: #8a3a3a;
-    }
-    .block-name {
-      margin: 0 0 12px;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #2c2a28;
-    }
-    .block-card p {
-      margin: 0 0 10px;
-      color: #5c564f;
-      font-size: 0.95rem;
-      line-height: 1.65;
-    }
-    .block-warn {
-      background: #faf2f2;
-      border: 1px solid #e8d5d5;
-      border-radius: 10px;
-      padding: 12px 14px;
-      color: #8a3a3a;
-      font-size: 0.9rem;
-      margin: 16px 0 18px;
-      text-align: right;
-      line-height: 1.55;
-    }
-  </style>
+  <meta http-equiv="refresh" content="0;url=/home.html" />
+  <title>NUSC</title>
+  <script>location.replace('/home.html');</script>
 </head>
 <body>
-  <div class="block-wrap">
-    <div class="block-card">
-      <h1>تم حظر أدوات المطوّر</h1>
-      <p class="block-name" id="user-line">يا طالب</p>
-      <p id="main-msg">كده عيب، أنت بتعمل إيه؟ ما ينفعش تفتح أدوات المطوّر جوه المنصة.</p>
-      <div class="block-warn" id="warn-box">
-        لو عملت كده تاني هتتحذّر، وممكن يتبعت تنبيه لإدارة المنصة.
-      </div>
-      <a class="btn btn-primary" href="/home.html" id="back-btn" style="width:100%">ارجع للصفحة الرئيسية</a>
-    </div>
-  </div>
-  <script type="module">
-    import { supabase } from '/assets/js/supabase.js';
-    import { flushPendingDevtoolsAlert, reportDevtoolsAttempt } from '/assets/js/devtools-guard.js';
-
-    const params = new URLSearchParams(window.location.search);
-    const n = Number(params.get('n') || 1);
-    const reason = params.get('r') || 'devtools';
-    const nameEl = document.getElementById('user-line');
-    const warn = document.getElementById('warn-box');
-
-    if (n >= 2 && warn) {
-      warn.textContent =
-        'دي مش أول مرة. تم إرسال تنبيه للإدارة. لو استمرت المحاولات ممكن يتحظر حسابك.';
-    }
-
-    // تأكيد التسجيل لو الطلب اتقطع وقت التحويل
-    (async () => {
-      const flushed = await flushPendingDevtoolsAlert();
-      if (!flushed) {
-        await reportDevtoolsAttempt(reason, n);
-      }
-    })().catch(() => {});
-
-    async function showName() {
-      try {
-        const { data } = await supabase.auth.getUser();
-        const user = data?.user;
-        let name =
-          user?.user_metadata?.full_name ||
-          user?.user_metadata?.name ||
-          (user?.email ? user.email.split('@')[0] : '') ||
-          '';
-        if (user?.id) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', user.id)
-            .maybeSingle();
-          if (profile?.full_name) name = profile.full_name;
-        }
-        if (nameEl) nameEl.textContent = name ? `يا ${name}` : 'يا طالب';
-      } catch {
-        if (nameEl) nameEl.textContent = 'يا طالب';
-      }
-    }
-
-    showName();
-
-    document.addEventListener(
-      'keydown',
-      (e) => {
-        if (e.key === 'F12' || e.code === 'F12') e.preventDefault();
-      },
-      true
-    );
-  </script>
+  <p><a href="/home.html">العودة للرئيسية</a></p>
 </body>
 </html>
