@@ -1,4 +1,12 @@
-/* NUSC base — tokens + shared UI */
+/*
+ * NUSC base stylesheet.
+ * Layout primitives live in the historical base file; identity colors + polish
+ * are applied by neutral-theme.css (loaded after this file on every page).
+ * Kept as a stable import so existing class names continue to work.
+ */
+@import url("https://cdn.jsdelivr.net/gh/mahmoudcomando98-afk/newnusc@d4c287642f0327f903a447de0c6cf37f484dedfb/assets/css/main.css");
+
+/* Local spacing tokens used by pages even if CDN is slow */
 :root {
   --nusc-space-1: 4px;
   --nusc-space-2: 8px;
