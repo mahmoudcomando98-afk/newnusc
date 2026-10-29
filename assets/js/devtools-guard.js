@@ -1,15 +1,16 @@
 /**
  * Client-side DevTools guard (deterrent + admin alerts).
- * Cannot truly hide source files — the browser always downloads JS/CSS.
+ * Cannot disable browser menus (Chrome/Brave More tools) — we detect when tools open.
  */
 import { supabase } from './supabase.js';
 
 const ATTEMPT_KEY = 'nusc_devtools_attempts';
 const PENDING_KEY = 'nusc_devtools_pending';
-const SIZE_THRESHOLD = 160;
+/** Gap (px) between outer/inner window when DevTools is docked */
+const SIZE_THRESHOLD = 120;
 
 let redirecting = false;
-let lastSizeHit = 0;
+let consecutiveSizeHits = 0;
 
 function isExemptPath() {
   const p = (window.location.pathname || '').toLowerCase();
@@ -180,25 +181,33 @@ async function goToBlockPage(reason) {
 function isDevtoolsOpenBySize() {
   if (isLikelyMobile()) return false;
   try {
-    const widthGap = Math.abs(window.outerWidth - window.innerWidth);
-    const heightGap = Math.abs(window.outerHeight - window.innerHeight);
-    // Side docked or bottom docked DevTools usually creates a large gap
+    const widthGap = window.outerWidth - window.innerWidth;
+    const heightGap = window.outerHeight - window.innerHeight;
+    // Docked DevTools (side or bottom) — typical when opened from ⋮ → More tools → Developer tools
     return widthGap > SIZE_THRESHOLD || heightGap > SIZE_THRESHOLD;
   } catch {
     return false;
   }
 }
 
-function checkSizeOpen() {
+/**
+ * @param {'poll' | 'resize'} mode
+ * resize from menu open → block faster; poll needs 2 consecutive hits
+ */
+function checkSizeOpen(mode = 'poll') {
   if (redirecting || isExemptPath()) return;
-  if (!isDevtoolsOpenBySize()) return;
-  const now = Date.now();
-  // Require two hits ~1s apart to reduce false positives
-  if (lastSizeHit && now - lastSizeHit < 900) {
-    goToBlockPage('devtools-open');
+  if (!isDevtoolsOpenBySize()) {
+    consecutiveSizeHits = 0;
     return;
   }
-  lastSizeHit = now;
+  if (mode === 'resize') {
+    goToBlockPage('menu-devtools');
+    return;
+  }
+  consecutiveSizeHits += 1;
+  if (consecutiveSizeHits >= 2) {
+    goToBlockPage('devtools-open');
+  }
 }
 
 function onKeyDown(e) {
@@ -236,7 +245,6 @@ function onKeyDown(e) {
 
 function onContextMenu(e) {
   if (isExemptPath() || isLikelyMobile()) return;
-  // Soft block only on desktop student pages
   e.preventDefault();
 }
 
@@ -247,12 +255,14 @@ export function initDevtoolsGuard() {
 
   window.addEventListener('keydown', onKeyDown, true);
   window.addEventListener('contextmenu', onContextMenu, true);
-  window.addEventListener('resize', checkSizeOpen);
-  window.addEventListener('focus', checkSizeOpen);
 
-  // Continuous scan (desktop): catches DevTools opened from menu / already open
-  window.setInterval(checkSizeOpen, 1200);
-  checkSizeOpen();
+  // Opening DevTools from ⋮ → More tools resizes the page → catch immediately
+  window.addEventListener('resize', () => checkSizeOpen('resize'));
+  window.addEventListener('focus', () => checkSizeOpen('poll'));
+
+  // Keep scanning (docked tools already open, or slow open)
+  window.setInterval(() => checkSizeOpen('poll'), 600);
+  checkSizeOpen('poll');
 }
 
 export default { initDevtoolsGuard, reportDevtoolsAttempt, flushPendingDevtoolsAlert };
