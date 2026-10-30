@@ -6,8 +6,8 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending');setTimeout(function(){document.documentElement.classList.remove('admin-auth-pending');},6000);</script>
   <title>محتوى المواد | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=mat-20261030" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=mat-20261030" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=mat-pub-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=mat-pub-1" />
 </head>
 <body>
   <header class="app-header">
@@ -18,7 +18,7 @@
   </header>
   <main class="page" style="padding-bottom:24px">
     <div class="container page-content">
-      <p class="text-sm text-muted mb-2">ارفع ملف جديد أو عدّل أي ملف موجود. للامتحانات السابقة اختار «امتحانات سابقة». للملخصات اختار «ملخصات المادة».</p>
+      <p class="text-sm text-muted mb-2">ارفع ملف جديد أو عدّل أي ملف. تقدر تحفظه كمسودة أو تحدد وقت ظهوره للطلاب.</p>
       <div id="form-panel" class="card mb-3 hidden">
         <h3 class="card-title mb-2" id="form-heading">رفع ملف جديد</h3>
         <form id="mat-form">
@@ -51,20 +51,29 @@
             <p class="form-hint">اختياري. جملة قصيرة واضحة تحت اسم الملف.</p>
           </div>
           <div class="form-group hidden" id="due-date-group">
-            <label class="form-label" for="due_at">موعد تسليم الواجب (اختياري)</label>
+            <label class="form-label" for="due_at">آخر موعد للتسليم (اختياري)</label>
             <div class="flex gap-1 items-center flex-wrap">
               <input type="datetime-local" id="due_at" class="form-input" style="flex:1;min-width:180px" />
               <button type="button" class="btn btn-sm btn-outline" id="clear-due-at">مسح الموعد</button>
               <button type="button" class="btn btn-sm btn-primary" id="mark-delivered">تم التسليم</button>
             </div>
             <input type="hidden" id="is_delivered" value="0" />
-            <p class="form-hint" id="due-hint">تقدر تغيّر الموعد أو تضغط «تم التسليم» لما الاستلام يخلص.</p>
+            <p class="form-hint" id="due-hint">هيظهر للطالب عدّاد تنازلي. الإشعارات بتتبعت قبل الموعد بـ 24 ساعة و 3 ساعات.</p>
             <p class="form-hint hidden" id="delivered-hint" style="color:#2f6b3a;font-weight:600">الحالة: تم التسليم</p>
             <div class="form-group" style="margin-top:10px;margin-bottom:0">
               <label class="form-label" for="submission_url">رابط التسليم (اختياري)</label>
               <input type="url" id="submission_url" class="form-input" dir="ltr" maxlength="500" placeholder="https://forms.google.com/... أو أي رابط تسليم" />
               <p class="form-hint">هيظهر للطالب زر «تسليم الواجب» يفتح الرابط ده.</p>
             </div>
+          </div>
+          <div class="form-group">
+            <label class="form-check"><input type="checkbox" id="is_published" checked /><span>نشر للطلاب</span></label>
+            <p class="form-hint">لو شلت العلامة = مسودة (مش ظاهرة للطلاب لحد ما تنشرها).</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="publish_at">جدولة الظهور (اختياري)</label>
+            <input type="datetime-local" id="publish_at" class="form-input" />
+            <p class="form-hint">لو حطيت وقت في المستقبل والملف منشور، هيظهر للطلاب بعد الوقت ده بس.</p>
           </div>
           <div class="form-group">
             <label class="form-label" for="file" id="file-label">الملف *</label>
@@ -85,6 +94,6 @@
     </div>
   </main>
   <input type="file" id="solution-attach-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" style="display:none" />
-  <script type="module" src="/assets/js/admin-materials.js?v=mat-20261030b"></script>
+  <script type="module" src="/assets/js/admin-materials.js?v=mat-pub-1"></script>
 </body>
 </html>
