@@ -26,7 +26,6 @@ import {
   fetchSubjectNames
 } from './data-api.js';
 
-/** Shared TTL for public-ish lists (still revalidates in background) */
 const TTL = 3 * 60 * 1000;
 const ANN_LIMIT = 12;
 let profile = null;
@@ -63,15 +62,11 @@ async function init() {
       loadSubjects(),
       loadAnnouncements(),
       loadImportantNotice(),
-      loadLiveOnlineSections()
+      loadLiveOnlineSections(),
+      loadDueReminders()
     ]);
 
-    await Promise.all([
-      loadLectures(),
-      loadQuizzes(),
-      loadMaterials(),
-      loadNotifCount()
-    ]);
+    await Promise.all([loadLectures(), loadQuizzes(), loadMaterials(), loadNotifCount()]);
   } catch (error) {
     console.error('[NUSC] home init:', error);
   }
@@ -122,7 +117,9 @@ function setupPushBanner(userId) {
           try {
             const { showToast } = await import('./utils.js');
             showToast('سيتم ارسال الاشعارات المهمه اليك', 'success');
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
         } else if (res.reason === 'denied') {
           setDeniedHelp();
         } else {
@@ -131,7 +128,9 @@ function setupPushBanner(userId) {
           try {
             const { showToast } = await import('./utils.js');
             showToast('تعذر التفعيل. جرّب من Chrome وحدّث الصفحة.', 'error');
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
         }
       });
     })
@@ -144,6 +143,100 @@ function setupUserChip() {
   chip.addEventListener('click', () => {
     window.location.href = '/profile.html';
   });
+}
+
+function formatCountdownShort(ms) {
+  if (ms <= 0) return 'تم انتهاء موعد التسليم';
+  const total = Math.floor(ms / 1000);
+  const d = Math.floor(total / 86400);
+  const h = Math.floor((total % 86400) / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  if (d > 0) return 'متبقي ' + d + ' يوم و ' + h + ' ساعة';
+  if (h > 0) return 'متبقي ' + h + ' ساعة و ' + m + ' دقيقة';
+  return 'متبقي ' + m + ' دقيقة';
+}
+
+async function loadDueReminders() {
+  const el = document.getElementById('due-reminders');
+  if (!el) return;
+  try {
+    const pack = await cachedStaleWhileRevalidate(
+      'home:due_assignments',
+      async () => {
+        const rows = await fetchMaterials(40);
+        const assignments = rows.filter((m) => {
+          const t = String(m.material_type || '').toLowerCase();
+          if (t !== 'assignment') return false;
+          if (m.is_delivered) return false;
+          return !!(m.due_at || m.deadline_at || m.due_date);
+        });
+        const ids = [...new Set(assignments.map((a) => a.subject_id).filter(Boolean))];
+        const names = await fetchSubjectNames(ids);
+        return { assignments, names };
+      },
+      { ttlMs: TTL }
+    );
+
+    const now = Date.now();
+    const windowMs = 72 * 60 * 60 * 1000;
+    const items = (pack.assignments || [])
+      .map((a) => {
+        const dueRaw = a.due_at || a.deadline_at || a.due_date;
+        const due = new Date(dueRaw).getTime();
+        if (Number.isNaN(due)) return null;
+        const left = due - now;
+        // Show if overdue by up to 2 days OR due within 72h
+        if (left < -2 * 24 * 60 * 60 * 1000) return null;
+        if (left > windowMs) return null;
+        return {
+          ...a,
+          due,
+          left,
+          subjectName: pack.names[a.subject_id] || ''
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.due - b.due)
+      .slice(0, 5);
+
+    if (!items.length) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+
+    el.classList.remove('hidden');
+    el.innerHTML = `
+      <div class="due-reminders-card">
+        <h2>تذكير بمواعيد التسليم</h2>
+        <ul class="due-reminders-list">
+          ${items
+            .map((item) => {
+              const ended = item.left <= 0;
+              const soon = !ended && item.left < 24 * 60 * 60 * 1000;
+              const href = item.subject_id
+                ? `/subject-details.html?id=${encodeURIComponent(item.subject_id)}`
+                : '/subjects.html';
+              const status = ended
+                ? 'تم انتهاء موعد التسليم'
+                : formatCountdownShort(item.left);
+              const cls = ended ? 'is-ended' : soon ? 'is-soon' : '';
+              return `
+              <a class="due-reminders-item ${cls}" href="${escapeHtml(href)}">
+                <div>
+                  <div class="due-reminders-title">${escapeHtml(item.title || 'واجب')}</div>
+                  <div class="due-reminders-meta">${escapeHtml(item.subjectName || 'مادة')}</div>
+                </div>
+                <div class="due-reminders-status">${escapeHtml(status)}</div>
+              </a>`;
+            })
+            .join('')}
+        </ul>
+      </div>`;
+  } catch (error) {
+    console.warn('[NUSC] loadDueReminders:', error);
+    el.classList.add('hidden');
+  }
 }
 
 function renderSubjects(rows) {
@@ -324,7 +417,6 @@ async function loadImportantNotice() {
   const box = document.getElementById('important-notice');
   if (!box) return;
   try {
-    // Reuses same cache key as loadAnnouncements — no extra network when warm
     const data = await cachedStaleWhileRevalidate('home:announcements', announcementsLoader, {
       ttlMs: TTL
     });
@@ -499,7 +591,6 @@ async function loadNotifCount() {
     document.getElementById('notif-dot');
   if (!badge) return;
   try {
-    // Same cache as announcements — avoids a second large query
     const data = await cachedStaleWhileRevalidate('home:announcements', announcementsLoader, {
       ttlMs: TTL
     });
