@@ -16,7 +16,7 @@ import {
 } from './utils.js';
 import { supabase } from './supabase.js';
 import { freshnessBadgesHtml, touchLastVisit } from './freshness.js';
-import { cachedStaleWhileRevalidate } from './cache.js';
+import { cachedStaleWhileRevalidate, cacheRemove } from './cache.js';
 import {
   fetchSubjects,
   fetchAnnouncements,
@@ -156,20 +156,46 @@ function formatCountdownShort(ms) {
   return 'متبقي ' + m + ' دقيقة';
 }
 
+async function fetchAssignmentsWithDue() {
+  // Direct query — not limited by home materials feed
+  let result = await supabase
+    .from('materials')
+    .select('id, title, subject_id, material_type, due_at, is_delivered, is_published, created_at')
+    .eq('material_type', 'assignment')
+    .not('due_at', 'is', null)
+    .order('due_at', { ascending: true })
+    .limit(30);
+
+  if (result.error) {
+    // Fallback: broader list then filter client-side
+    result = await supabase
+      .from('materials')
+      .select('id, title, subject_id, material_type, due_at, is_delivered, is_published, created_at')
+      .order('created_at', { ascending: false })
+      .limit(80);
+    if (result.error) throw result.error;
+  }
+
+  return (result.data || []).filter((m) => {
+    if (m.is_published === false) return false;
+    if (m.is_delivered) return false;
+    const t = String(m.material_type || '').toLowerCase();
+    if (t && t !== 'assignment') return false;
+    return !!m.due_at;
+  });
+}
+
 async function loadDueReminders() {
   const el = document.getElementById('due-reminders');
   if (!el) return;
   try {
+    // Bust old empty cache from earlier versions
+    cacheRemove('home:due_assignments');
+
     const pack = await cachedStaleWhileRevalidate(
-      'home:due_assignments',
+      'home:due_assignments_v2',
       async () => {
-        const rows = await fetchMaterials(40);
-        const assignments = rows.filter((m) => {
-          const t = String(m.material_type || '').toLowerCase();
-          if (t !== 'assignment') return false;
-          if (m.is_delivered) return false;
-          return !!(m.due_at || m.deadline_at || m.due_date);
-        });
+        const assignments = await fetchAssignmentsWithDue();
         const ids = [...new Set(assignments.map((a) => a.subject_id).filter(Boolean))];
         const names = await fetchSubjectNames(ids);
         return { assignments, names };
@@ -178,16 +204,14 @@ async function loadDueReminders() {
     );
 
     const now = Date.now();
-    const windowMs = 72 * 60 * 60 * 1000;
+    // Show: overdue up to 7 days + any future deadline (next 14 days)
     const items = (pack.assignments || [])
       .map((a) => {
-        const dueRaw = a.due_at || a.deadline_at || a.due_date;
-        const due = new Date(dueRaw).getTime();
+        const due = new Date(a.due_at).getTime();
         if (Number.isNaN(due)) return null;
         const left = due - now;
-        // Show if overdue by up to 2 days OR due within 72h
-        if (left < -2 * 24 * 60 * 60 * 1000) return null;
-        if (left > windowMs) return null;
+        if (left < -7 * 24 * 60 * 60 * 1000) return null;
+        if (left > 14 * 24 * 60 * 60 * 1000) return null;
         return {
           ...a,
           due,
@@ -197,7 +221,7 @@ async function loadDueReminders() {
       })
       .filter(Boolean)
       .sort((a, b) => a.due - b.due)
-      .slice(0, 5);
+      .slice(0, 8);
 
     if (!items.length) {
       el.classList.add('hidden');
