@@ -34,6 +34,22 @@ async function selectSafe(table, preferredCols, opts) {
   }
 }
 
+function isLectureMaterialType(type) {
+  const t = String(type || 'lecture').toLowerCase().trim();
+  // Anything that is NOT a specialized non-lecture bucket counts as lecture/file
+  const excluded = new Set([
+    'section',
+    'sections',
+    'assignment',
+    'assignments',
+    'quiz',
+    'past_exam',
+    'summary',
+    'summaries'
+  ]);
+  return !excluded.has(t);
+}
+
 export async function fetchSubjects(limit = 50) {
   const rows = await selectSafe(
     'subjects',
@@ -59,7 +75,7 @@ export async function fetchAnnouncements(limit = 40) {
 export async function fetchMaterials(limit = 40) {
   const rows = await selectSafe(
     'materials',
-    'id, title, subject_id, material_type, file_type, file_size, is_published, is_important, is_pinned, is_delivered, due_at, deadline_at, due_date, created_at',
+    'id, title, subject_id, material_type, file_type, file_size, is_published, is_important, is_pinned, is_delivered, due_at, created_at',
     { order: 'created_at', ascending: false, limit }
   );
   return rows.filter(isVisibleRow);
@@ -83,7 +99,26 @@ export async function fetchQuizzes(limit = 30) {
   }
 }
 
+/**
+ * Home "آخر المحاضرات": merge lectures table + lecture-like materials.
+ * Materials are the primary source on this platform (admin uploads).
+ */
 export async function fetchLectureFeed(limit = 20) {
+  // 1) Materials first — pull a wide window so lecture files aren't buried under other types
+  let materialLectures = [];
+  try {
+    const mats = await selectSafe(
+      'materials',
+      'id, title, subject_id, material_type, file_type, created_at, is_published, is_active, is_pinned',
+      { order: 'created_at', ascending: false, limit: Math.max(limit * 5, 40) }
+    );
+    materialLectures = (mats || []).filter(isVisibleRow).filter((m) => isLectureMaterialType(m.material_type));
+  } catch (err) {
+    console.warn('[NUSC] material lectures failed:', err?.message || err);
+    materialLectures = [];
+  }
+
+  // 2) Optional lectures table (may be empty / missing)
   let lectureRows = [];
   try {
     const rows = await selectSafe(
@@ -91,20 +126,9 @@ export async function fetchLectureFeed(limit = 20) {
       'id, title, subject_id, lecture_number, lecture_date, published_at, created_at, is_published, is_active',
       { order: 'created_at', ascending: false, limit }
     );
-    lectureRows = rows.filter(isVisibleRow);
+    lectureRows = (rows || []).filter(isVisibleRow);
   } catch {
     lectureRows = [];
-  }
-
-  let materialLectures = [];
-  try {
-    const mats = await fetchMaterials(Math.max(limit, 12));
-    materialLectures = mats.filter((m) => {
-      const t = String(m.material_type || 'lecture').toLowerCase();
-      return !['section', 'assignment', 'quiz', 'past_exam', 'summary'].includes(t);
-    });
-  } catch {
-    materialLectures = [];
   }
 
   const subjectIds = [
