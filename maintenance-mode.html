@@ -6,19 +6,39 @@
   <meta name="theme-color" content="#f6f6f4" />
   <meta name="description" content="تنبيه صيانة منصة NUSC" />
   <title>المنصة تحت الصيانة | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=neutral-v3" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=neutral-v3" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=maint-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=maint-2" />
   <style>
     body { min-height:100vh; min-height:100dvh; display:grid; place-items:center; padding:24px; background:#f6f6f4; }
     .maintenance-card { width:min(560px,100%); padding:clamp(24px,5vw,40px); text-align:center; border:1px solid #e2e4e5; border-radius:12px; background:#fff; box-shadow:none; }
     .maintenance-mark { display:grid; place-items:center; width:64px; height:64px; margin:0 auto 18px; border:1px solid #e2e4e5; border-radius:10px; background:#f0f1f1; color:#454d55; font-size:1.65rem; }
     .maintenance-brand { margin:0 0 8px; color:#59636e; font-size:.85rem; font-weight:800; letter-spacing:.04em; }
-    .maintenance-card h1 { margin:0 0 12px; color:#292d32; font-size:clamp(1.4rem,4vw,1.9rem); line-height:1.5; }
-    .maintenance-card p { color:#747a80; line-height:1.9; margin-left:auto; margin-right:auto; }
+    .maintenance-card h1 { margin:0 0 12px; color:#292d32; font-size:clamp(1.35rem,4vw,1.75rem); line-height:1.5; }
+    .maintenance-msg-box {
+      margin: 16px 0 0;
+      padding: 14px 16px;
+      border: 1px solid #e8e4df;
+      border-radius: 10px;
+      background: #faf9f7;
+      text-align: right;
+    }
+    .maintenance-msg-label {
+      margin: 0 0 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #8a847c;
+    }
+    .maintenance-card #maintenance-message {
+      margin: 0;
+      color: #454d55;
+      line-height: 1.85;
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+    }
     .maintenance-status { display:inline-flex; align-items:center; gap:8px; margin:20px 0 0; padding:8px 12px; border:1px solid #e2e4e5; border-radius:7px; background:#f6f6f4; color:#59636e; font-size:.85rem; font-weight:700; }
     .maintenance-status span { width:7px; height:7px; border-radius:50%; background:#59636e; }
     .maintenance-actions { margin-top:24px; display:flex; justify-content:center; flex-wrap:wrap; gap:10px; }
-    .maintenance-footnote { margin-top:16px!important; font-size:.78rem; }
+    .maintenance-footnote { margin-top:16px!important; font-size:.78rem; color:#8a847c; }
     @media(max-width:480px) { body { padding:16px; } .maintenance-card { padding:24px 18px; } .maintenance-actions > * { width:100%; } }
   </style>
 </head>
@@ -27,13 +47,16 @@
     <div class="maintenance-mark" aria-hidden="true">⚙</div>
     <p id="maintenance-brand" class="maintenance-brand">NUSC</p>
     <h1>المنصة حاليًا تحت الصيانة</h1>
-    <p id="maintenance-message">بننفّذ بعض التحسينات حاليًا علشان نرجعلكم بخدمة أفضل. المنصة هتكون متاحة تاني قريبًا، شكرًا لصبركم.</p>
+    <div class="maintenance-msg-box">
+      <p class="maintenance-msg-label">رسالة من إدارة المنصة</p>
+      <p id="maintenance-message">بننفّذ بعض التحسينات حاليًا. المنصة هترجع تشتغل قريب — شكرًا لصبركم.</p>
+    </div>
     <div class="maintenance-status"><span aria-hidden="true"></span> جاري تنفيذ أعمال الصيانة</div>
     <div class="maintenance-actions">
       <button type="button" class="btn btn-primary" id="refresh-page">إعادة المحاولة</button>
       <a class="btn btn-secondary" href="/login.html?next=%2Fadmin%2Fsettings.html">دخول الإدارة</a>
     </div>
-    <p class="maintenance-footnote">خدمات المنصة متوقفة مؤقتًا أثناء الصيانة. جرّب تاني بعد قليل.</p>
+    <p class="maintenance-footnote">الخدمات متوقفة مؤقتًا. لو الرسالة دي باينالها قديمة، اضغط إعادة المحاولة.</p>
   </main>
   <script type="module">
     import { supabase } from './assets/js/supabase.js';
@@ -46,8 +69,10 @@
       if (isLoading) return;
       isLoading = true;
       try {
-        const { data, error } = await supabase.from('platform_settings')
-          .select('key, value').in('key', ['site_name', 'site_maintenance', 'maintenance_message']);
+        const { data, error } = await supabase
+          .from('platform_settings')
+          .select('key, value')
+          .in('key', ['site_name', 'site_maintenance', 'maintenance_message']);
         if (error) throw error;
 
         const settings = new Map((data || []).map((row) => [row.key, row.value]));
@@ -77,7 +102,8 @@
 
     document.getElementById('refresh-page').addEventListener('click', () => window.location.reload());
     loadMaintenanceMessage();
-    window.setInterval(loadMaintenanceMessage, 10000);
+    // أخفّ من كل 10 ثواني — يكفي كل نصف دقيقة
+    window.setInterval(loadMaintenanceMessage, 30000);
   </script>
 </body>
 </html>
