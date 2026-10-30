@@ -8,6 +8,8 @@ import {
   escapeHtml, formatDate, formatFileSize, materialTypeLabel,
   showEmpty, showError, initIcons, showToast
 } from './utils.js';
+import { getSignedMaterialUrl } from './signed-url-cache.js';
+import { downloadFileComplete } from './download-file.js';
 
 const lectureId = new URLSearchParams(window.location.search).get('id');
 
@@ -86,10 +88,11 @@ async function loadLecture() {
                   <div class="list-item-title">${escapeHtml(m.title)}</div>
                   <div class="list-item-desc">
                     ${materialTypeLabel(m.material_type)}
-                    ${m.file_size ? ` \u00b7 ${formatFileSize(m.file_size)}` : ''}
+                    ${m.file_size ? ` · ${formatFileSize(m.file_size)}` : ''}
                   </div>
                 </div>
-                <button type="button" class="btn btn-sm btn-secondary" data-path="${escapeHtml(m.file_path)}" data-id="${m.id}">
+                <a class="btn btn-sm btn-outline" href="/file-view.html?id=${encodeURIComponent(m.id)}">عرض</a>
+                <button type="button" class="btn btn-sm btn-secondary" data-path="${escapeHtml(m.file_path || '')}" data-id="${m.id}" data-size="${m.file_size || 0}" data-name="${escapeHtml(m.file_name || m.title || 'file')}">
                   <span data-icon="download"></span>
                 </button>
               </div>`).join('')}
@@ -116,7 +119,7 @@ async function loadLecture() {
 
     initIcons();
     el.querySelectorAll('[data-path]').forEach((btn) => {
-      btn.addEventListener('click', () => downloadFile(btn.dataset.id, btn.dataset.path));
+      btn.addEventListener('click', () => downloadFile(btn.dataset.id, btn.dataset.path, btn));
     });
   } catch (err) {
     console.error(err);
@@ -124,12 +127,21 @@ async function loadLecture() {
   }
 }
 
-async function downloadFile(id, path) {
+async function downloadFile(id, path, button) {
+  if (!path) {
+    showToast('مسار الملف غير متوفر', 'error');
+    return;
+  }
   try {
-    const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 60);
-    if (error) throw error;
-    if (id) await supabase.rpc('increment_download_count', { p_material_id: id });
-    window.open(data.signedUrl, '_blank');
+    const url = await getSignedMaterialUrl(path, 900);
+    if (id) {
+      try {
+        await supabase.rpc('increment_download_count', { p_material_id: id });
+      } catch {}
+    }
+    const fileSize = Number(button?.dataset?.size) || 0;
+    const filename = button?.dataset?.name || (path.split('/').pop() || 'file');
+    await downloadFileComplete({ url, filename, button, fileSize });
   } catch (err) {
     showToast('تعذر تنزيل الملف', 'error');
   }
