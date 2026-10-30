@@ -1,11 +1,13 @@
 /**
  * NUSC Student Hub - Subject Details
  * Assignments: last deadline + live countdown
+ * Storage: signed URLs cached; no auto-fetch of file bodies in lists
  */
 import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
 import { escapeHtml, formatDate, timeAgo, showEmpty, showError, initIcons, formatFileSize, showToast } from './utils.js';
 import { downloadFileComplete } from './download-file.js';
+import { getSignedMaterialUrl } from './signed-url-cache.js';
 import { freshnessBadgesHtml } from './freshness.js';
 
 function safeHttpUrl(raw) {
@@ -120,9 +122,8 @@ async function showSolutionImage(path) {
   body.innerHTML = '<p class="text-sm text-muted">جاري التحميل...</p>';
   modal.style.display = 'flex';
   try {
-    const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 120);
-    if (error) throw error;
-    body.innerHTML = `<img src="${escapeHtml(data.signedUrl)}" alt="صورة الحل" style="max-width:100%;height:auto;border-radius:8px" />`;
+    const url = await getSignedMaterialUrl(path, 600);
+    body.innerHTML = `<img src="${escapeHtml(url)}" alt="صورة الحل" loading="lazy" decoding="async" style="max-width:100%;height:auto;border-radius:8px" />`;
   } catch (error) {
     console.error('Solution image load failed:', error);
     body.innerHTML =
@@ -209,7 +210,14 @@ async function loadSubjectMaterials() {
   const { data, error } = await supabase.from('materials').select('*').eq('subject_id', subjectId);
   if (error) throw error;
   return (data || [])
-    .filter((item) => item.is_published !== false)
+    .filter((item) => {
+      if (item.is_published === false) return false;
+      if (item.publish_at) {
+        const t = new Date(item.publish_at).getTime();
+        if (!Number.isNaN(t) && t > Date.now()) return false;
+      }
+      return true;
+    })
     .map((item) => ({ ...item, material_type: item.material_type || 'lecture' }))
     .sort((a, b) => {
       const pinA = a.is_pinned ? 1 : 0;
@@ -285,7 +293,7 @@ function materialCard(material, badgeLabel) {
         ${submitLink ? `<a class="btn btn-sm btn-primary material-action-btn" href="${escapeHtml(submitLink)}" target="_blank" rel="noopener noreferrer">تسليم الواجب</a>` : ''}
         <button type="button" class="btn btn-sm btn-outline material-action-btn" data-copy-link="${escapeHtml(platformLink)}">نسخ الرابط</button>
         <button type="button" class="btn btn-sm btn-outline material-action-btn" data-share-link="${escapeHtml(platformLink)}" data-title="${escapeHtml(material.title || 'ملف')}">مشاركة</button>
-        <button type="button" class="btn btn-sm btn-secondary material-action-btn" data-download="${escapeHtml(material.id)}" data-path="${escapeHtml(material.file_path || '')}" aria-label="تنزيل الملف" title="تنزيل">
+        <button type="button" class="btn btn-sm btn-secondary material-action-btn" data-download="${escapeHtml(material.id)}" data-path="${escapeHtml(material.file_path || '')}" data-size="${material.file_size || 0}" aria-label="تنزيل الملف" title="تنزيل">
           <span class="dl-spinner hidden" aria-hidden="true"></span>
           <span data-icon="download"></span>
           <span class="material-dl-label">تنزيل</span>
@@ -298,7 +306,9 @@ function bindDownloads(el) {
   initIcons();
   startDueCountdowns(el);
   el.querySelectorAll('[data-download]').forEach((button) => {
-    button.addEventListener('click', () => downloadMaterial(button.dataset.download, button.dataset.path, button));
+    button.addEventListener('click', () =>
+      downloadMaterial(button.dataset.download, button.dataset.path, button)
+    );
   });
   el.querySelectorAll('[data-view]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -396,6 +406,10 @@ async function loadAnnouncements(el) {
   const announcements = (data || [])
     .filter((announcement) => {
       if (announcement.is_published === false) return false;
+      if (announcement.publish_at) {
+        const t = new Date(announcement.publish_at).getTime();
+        if (!Number.isNaN(t) && t > now) return false;
+      }
       if (announcement.expires_at) {
         const expiry = new Date(announcement.expires_at).getTime();
         if (!Number.isNaN(expiry) && expiry <= now) return false;
@@ -410,29 +424,15 @@ async function loadAnnouncements(el) {
   el.innerHTML = announcements
     .map((announcement) => {
       const level = announcement.importance || announcement.priority || 'normal';
-      const badge = level === 'urgent' ? 'عاجل' : level === 'high' ? 'مهم' : '';
-      const title = announcement.title || 'إعلان';
-      const body = announcement.content || announcement.body || '';
-      const date = announcement.created_at ? timeAgo(announcement.created_at) : '';
-      const joinUrl = announcementJoinUrl(announcement);
-      return `
-      <article class="list-item">
-        <div class="list-item-icon" data-icon="megaphone"></div>
-        <div class="list-item-body">
-          <div class="list-item-title">${announcement.is_pinned ? '📌 ' : ''}${escapeHtml(title)}</div>
-          ${badge ? `<span class="badge badge-primary">${badge}</span>` : ''}
-          <p class="text-sm mt-1" style="white-space:pre-wrap">${escapeHtml(body)}</p>
-          ${joinUrl
-            ? `<div class="mt-2"><a href="${escapeHtml(joinUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">${escapeHtml(announcement.link_label || 'دخول السيكشن أونلاين')}</a></div>`
-            : announcement.link_status === 'coming_soon'
-              ? '<div class="mt-2"><span class="badge badge-warning">رابط قريبًا</span></div>'
-              : ''}
-          ${date ? `<div class="list-item-desc mt-1">${escapeHtml(date)}</div>` : ''}
-        </div>
-      </article>`;
+      const join = announcementJoinUrl(announcement);
+      return `<div class="card mb-2">
+        <h3 class="card-title">${announcement.is_pinned ? '📌 ' : ''}${escapeHtml(announcement.title || 'إعلان')}</h3>
+        <p class="text-sm text-muted">${escapeHtml(timeAgo(announcement.created_at))}</p>
+        <p class="text-sm mt-1" style="white-space:pre-wrap">${escapeHtml(announcement.content || announcement.body || '')}</p>
+        ${join ? `<a class="btn btn-sm btn-primary mt-2" href="${escapeHtml(join)}" target="_blank" rel="noopener">فتح الرابط</a>` : ''}
+      </div>`;
     })
     .join('');
-  initIcons();
 }
 
 async function downloadMaterial(id, path, button) {
@@ -441,15 +441,15 @@ async function downloadMaterial(id, path, button) {
     return;
   }
   try {
-    const { data, error } = await supabase.storage.from('materials').createSignedUrl(path, 60);
-    if (error) throw error;
+    const url = await getSignedMaterialUrl(path, 900);
     try {
       await supabase.rpc('increment_download_count', { p_material_id: id });
     } catch (countError) {
       console.warn('Could not count file download:', countError);
     }
     const nameGuess = (path.split('/').pop() || 'file').split('?')[0];
-    await downloadFileComplete({ url: data.signedUrl, filename: nameGuess, button });
+    const fileSize = Number(button?.dataset?.size) || 0;
+    await downloadFileComplete({ url, filename: nameGuess, button, fileSize });
     showToast('تم تنزيل الملف.', 'success');
   } catch (error) {
     console.error(error);
@@ -462,24 +462,26 @@ async function copyPlatformLink(link) {
     await navigator.clipboard.writeText(link);
     showToast('تم نسخ رابط المنصة.', 'success');
   } catch {
-    showToast('تعذر النسخ. انسخ الرابط يدويًا.', 'error');
+    showToast('ما قدرناش ننسخ الرابط.', 'error');
   }
 }
 
 async function sharePlatformLink(link, title) {
   try {
     if (navigator.share) {
-      await navigator.share({ title: title || 'ملف NUSC', url: link });
+      await navigator.share({ title: title || 'ملف NUSC', text: title || '', url: link });
       return;
     }
-  } catch {
-    /* cancelled */
+    await navigator.clipboard.writeText(link);
+    showToast('تم نسخ الرابط للمشاركة.', 'success');
+  } catch (err) {
+    if (err?.name === 'AbortError') return;
+    showToast('ما قدرناش نشارك الرابط.', 'error');
   }
-  await copyPlatformLink(link);
 }
 
 async function checkFavorite() {
-  if (!profile?.id) return;
+  if (!profile?.id || !subjectId) return;
   try {
     const { data } = await supabase
       .from('favorites')
@@ -488,41 +490,38 @@ async function checkFavorite() {
       .eq('item_type', 'subject')
       .eq('item_id', subjectId)
       .maybeSingle();
-    if (data?.id) document.getElementById('fav-btn')?.classList.add('active');
-  } catch (error) {
-    console.warn('Favorite check failed:', error);
+    const btn = document.getElementById('fav-btn');
+    if (btn && data) btn.classList.add('is-fav');
+  } catch {
+    /* optional */
   }
 }
 
 async function toggleFavorite() {
-  if (!profile?.id) return;
+  if (!profile?.id || !subjectId) return;
   const btn = document.getElementById('fav-btn');
   try {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('favorites')
       .select('id')
       .eq('user_id', profile.id)
       .eq('item_type', 'subject')
       .eq('item_id', subjectId)
       .maybeSingle();
-    if (error) throw error;
     if (data?.id) {
-      const { error: deleteError } = await supabase.from('favorites').delete().eq('id', data.id);
-      if (deleteError) throw deleteError;
-      btn?.classList.remove('active');
-      showToast('اتشالت من المفضلة.', 'success');
+      await supabase.from('favorites').delete().eq('id', data.id);
+      btn?.classList.remove('is-fav');
+      showToast('اتشال من المفضلة.', 'info');
     } else {
-      const { error: insertError } = await supabase.from('favorites').insert({
+      await supabase.from('favorites').insert({
         user_id: profile.id,
         item_type: 'subject',
         item_id: subjectId
       });
-      if (insertError) throw insertError;
-      btn?.classList.add('active');
-      showToast('اتضافت للمفضلة.', 'success');
+      btn?.classList.add('is-fav');
+      showToast('اتضاف للمفضلة.', 'success');
     }
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
     showToast('تعذر تحديث المفضلة.', 'error');
   }
 }
