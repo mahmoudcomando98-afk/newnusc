@@ -1,6 +1,7 @@
 /**
  * In-app file viewer — PDF via PDF.js (canvas), images inline.
  * Download waits for 100% with progress overlay.
+ * PDF: prefer range requests when the storage server supports them.
  */
 import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
@@ -83,11 +84,12 @@ async function renderPdfWithPdfJs(viewer, url) {
   const pdfjsLib = await import(/* @vite-ignore */ PDFJS_MAIN);
   pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
 
+  // Prefer HTTP range when Storage supports it (reduces upfront bytes vs disableRange)
   const loadingTask = pdfjsLib.getDocument({
     url,
     withCredentials: false,
-    disableRange: true,
-    disableStream: true
+    disableRange: false,
+    disableStream: false
   });
 
   const pdf = await loadingTask.promise;
@@ -95,17 +97,20 @@ async function renderPdfWithPdfJs(viewer, url) {
 
   const wrap = document.createElement('div');
   wrap.className = 'pdf-pages';
-  wrap.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:8px;align-items:center;background:#e8e4df';
+  wrap.style.cssText =
+    'display:flex;flex-direction:column;gap:12px;padding:8px;align-items:center;background:#e8e4df';
 
   const info = document.createElement('p');
   info.className = 'text-sm text-muted';
-  info.style.cssText = 'margin:0;padding:4px 8px;text-align:center;width:100%;background:#fff';
+  info.style.cssText =
+    'margin:0;padding:4px 8px;text-align:center;width:100%;background:#fff';
   info.textContent = `عدد الصفحات: ${total}`;
   wrap.appendChild(info);
 
   viewer.innerHTML = '';
   viewer.appendChild(wrap);
 
+  // Cap rendered pages to keep CPU/memory and bytes reasonable on phones
   const maxPages = Math.min(total, 40);
   for (let pageNum = 1; pageNum <= maxPages; pageNum += 1) {
     const page = await pdf.getPage(pageNum);
@@ -115,7 +120,8 @@ async function renderPdfWithPdfJs(viewer, url) {
     const viewport = page.getViewport({ scale });
 
     const canvas = document.createElement('canvas');
-    canvas.style.cssText = 'max-width:100%;height:auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12)';
+    canvas.style.cssText =
+      'max-width:100%;height:auto;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.12)';
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const ctx = canvas.getContext('2d', { alpha: false });
@@ -177,7 +183,9 @@ async function init() {
   try {
     const { data: material, error } = await supabase
       .from('materials')
-      .select('*')
+      .select(
+        'id, title, description, subject_id, file_path, file_name, file_type, file_size, is_published, created_at'
+      )
       .eq('id', materialId)
       .maybeSingle();
 
@@ -222,7 +230,8 @@ async function init() {
     `;
 
     if (!material.file_path) {
-      viewer.innerHTML = '<p class="text-sm text-muted" style="padding:24px;text-align:center">مسار الملف غير متاح.</p>';
+      viewer.innerHTML =
+        '<p class="text-sm text-muted" style="padding:24px;text-align:center">مسار الملف غير متاح.</p>';
       return;
     }
 
