@@ -1,0 +1,114 @@
+/* Freshness + assignment deadline polish */
+.badge-new-visit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #e8f5ee;
+  color: #1f6b45;
+  border: 1px solid #c5e6d3;
+  vertical-align: middle;
+}
+.badge-important-flag {
+  display: inline-flex;
+  margin-inline-start: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #faf0f0;
+  color: #8a3a3a;
+  border: 1px solid #e8d0d0;
+  vertical-align: middle;
+}
+.material-card-due {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #faf8f5;
+  border: 1px solid #ebe6e1;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #3d3a36;
+}
+.material-card-due strong {
+  font-weight: 700;
+}
+.due-countdown {
+  display: inline-block;
+  margin-top: 4px;
+  font-weight: 700;
+  color: #2c6e4f;
+  font-variant-numeric: tabular-nums;
+}
+.due-countdown.due-soon {
+  color: #9a5b12;
+}
+.due-countdown.due-expired,
+.assignment-due-ended .due-countdown {
+  color: #8a3a3a;
+}
+.assignment-due-ended {
+  background: #faf2f2;
+  border-color: #e8d5d5;
+}
+.due-reminders {
+  margin-bottom: 14px;
+}
+.due-reminders-card {
+  background: #fff;
+  border: 1px solid #ebe6e1;
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.due-reminders-card h2 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: #2c2a28;
+}
+.due-reminders-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.due-reminders-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #faf8f5;
+  border: 1px solid #ebe6e1;
+  text-decoration: none;
+  color: inherit;
+}
+.due-reminders-item.is-soon {
+  border-color: #e8d4b0;
+  background: #fffaf0;
+}
+.due-reminders-item.is-ended {
+  border-color: #e8d5d5;
+  background: #faf2f2;
+}
+.due-reminders-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.due-reminders-meta {
+  font-size: 0.8rem;
+  color: #6b6560;
+  margin-top: 2px;
+}
+.due-reminders-status {
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
