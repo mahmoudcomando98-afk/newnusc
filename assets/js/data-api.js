@@ -1,8 +1,19 @@
 /**
  * Shared lightweight Supabase loaders used across student pages.
- * Keep queries simple (select *) so schema differences don't break pages.
+ * Column lists are explicit to reduce payload / egress.
  */
 import { supabase } from './supabase.js';
+
+const SUBJECT_COLS =
+  'id, name, code, subject_code, instructor, doctor_name, is_published, is_active, created_at';
+const ANNOUNCEMENT_COLS =
+  'id, title, content, body, importance, priority, is_pinned, is_published, expires_at, subject_id, created_at';
+const MATERIAL_LIST_COLS =
+  'id, title, subject_id, material_type, file_type, file_size, is_published, is_important, is_pinned, created_at';
+const QUIZ_COLS =
+  'id, title, subject_id, status, start_at, end_at, is_published, is_active, created_at';
+const LECTURE_COLS =
+  'id, title, subject_id, lecture_number, lecture_date, published_at, created_at, is_published, is_active';
 
 export function isVisibleRow(row) {
   if (!row) return false;
@@ -15,8 +26,8 @@ export function isVisibleRow(row) {
   return true;
 }
 
-async function selectAll(table, { order = 'created_at', ascending = false, limit = 50 } = {}) {
-  let q = supabase.from(table).select('*');
+async function selectCols(table, cols, { order = 'created_at', ascending = false, limit = 50 } = {}) {
+  let q = supabase.from(table).select(cols);
   if (order) q = q.order(order, { ascending });
   if (limit) q = q.limit(limit);
   const { data, error } = await q;
@@ -25,12 +36,20 @@ async function selectAll(table, { order = 'created_at', ascending = false, limit
 }
 
 export async function fetchSubjects(limit = 50) {
-  const rows = await selectAll('subjects', { order: 'name', ascending: true, limit });
+  const rows = await selectCols('subjects', SUBJECT_COLS, {
+    order: 'name',
+    ascending: true,
+    limit
+  });
   return rows.filter(isVisibleRow);
 }
 
 export async function fetchAnnouncements(limit = 40) {
-  const rows = await selectAll('announcements', { order: 'created_at', ascending: false, limit });
+  const rows = await selectCols('announcements', ANNOUNCEMENT_COLS, {
+    order: 'created_at',
+    ascending: false,
+    limit
+  });
   return rows.filter(isVisibleRow).sort((a, b) => {
     const pin = Number(!!b.is_pinned) - Number(!!a.is_pinned);
     if (pin) return pin;
@@ -39,16 +58,28 @@ export async function fetchAnnouncements(limit = 40) {
 }
 
 export async function fetchMaterials(limit = 40) {
-  const rows = await selectAll('materials', { order: 'created_at', ascending: false, limit });
+  const rows = await selectCols('materials', MATERIAL_LIST_COLS, {
+    order: 'created_at',
+    ascending: false,
+    limit
+  });
   return rows.filter(isVisibleRow);
 }
 
 export async function fetchQuizzes(limit = 30) {
   try {
-    const rows = await selectAll('quizzes', { order: 'start_at', ascending: true, limit });
+    const rows = await selectCols('quizzes', QUIZ_COLS, {
+      order: 'start_at',
+      ascending: true,
+      limit
+    });
     return rows.filter(isVisibleRow);
   } catch {
-    const rows = await selectAll('quizzes', { order: 'created_at', ascending: false, limit });
+    const rows = await selectCols('quizzes', QUIZ_COLS, {
+      order: 'created_at',
+      ascending: false,
+      limit
+    });
     return rows.filter(isVisibleRow);
   }
 }
@@ -56,7 +87,11 @@ export async function fetchQuizzes(limit = 30) {
 export async function fetchLectureFeed(limit = 20) {
   let lectureRows = [];
   try {
-    const rows = await selectAll('lectures', { order: 'created_at', ascending: false, limit });
+    const rows = await selectCols('lectures', LECTURE_COLS, {
+      order: 'created_at',
+      ascending: false,
+      limit
+    });
     lectureRows = rows.filter(isVisibleRow);
   } catch {
     lectureRows = [];
@@ -64,10 +99,11 @@ export async function fetchLectureFeed(limit = 20) {
 
   let materialLectures = [];
   try {
-    const mats = await fetchMaterials(30);
+    // Only enough materials to fill the feed — not a full dump
+    const mats = await fetchMaterials(Math.max(limit, 12));
     materialLectures = mats.filter((m) => {
       const t = String(m.material_type || 'lecture').toLowerCase();
-      return !['section', 'assignment', 'quiz'].includes(t);
+      return !['section', 'assignment', 'quiz', 'past_exam', 'summary'].includes(t);
     });
   } catch {
     materialLectures = [];
@@ -114,13 +150,22 @@ export async function fetchSubjectNames(ids) {
 }
 
 export async function fetchScheduleRows(limit = 100) {
-  // Prefer schedules, fall back to schedule
+  const cols =
+    'id, day_of_week, start_time, end_time, course_name, subject_name, instructor, location, room, is_published, is_active';
   try {
-    const rows = await selectAll('schedules', { order: 'day_of_week', ascending: true, limit });
+    const rows = await selectCols('schedules', cols, {
+      order: 'day_of_week',
+      ascending: true,
+      limit
+    });
     return rows.filter(isVisibleRow);
   } catch {
     try {
-      const rows = await selectAll('schedule', { order: 'day_of_week', ascending: true, limit });
+      const rows = await selectCols('schedule', cols, {
+        order: 'day_of_week',
+        ascending: true,
+        limit
+      });
       return rows.filter(isVisibleRow);
     } catch (e) {
       throw e;
