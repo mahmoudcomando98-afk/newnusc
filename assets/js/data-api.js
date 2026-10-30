@@ -1,19 +1,8 @@
 /**
  * Shared lightweight Supabase loaders used across student pages.
- * Column lists are explicit to reduce payload / egress.
+ * Prefer narrow selects; fall back to * if schema differs.
  */
 import { supabase } from './supabase.js';
-
-const SUBJECT_COLS =
-  'id, name, code, subject_code, instructor, doctor_name, is_published, is_active, created_at';
-const ANNOUNCEMENT_COLS =
-  'id, title, content, body, importance, priority, is_pinned, is_published, expires_at, subject_id, created_at';
-const MATERIAL_LIST_COLS =
-  'id, title, subject_id, material_type, file_type, file_size, is_published, is_important, is_pinned, created_at';
-const QUIZ_COLS =
-  'id, title, subject_id, status, start_at, end_at, is_published, is_active, created_at';
-const LECTURE_COLS =
-  'id, title, subject_id, lecture_number, lecture_date, published_at, created_at, is_published, is_active';
 
 export function isVisibleRow(row) {
   if (!row) return false;
@@ -35,21 +24,32 @@ async function selectCols(table, cols, { order = 'created_at', ascending = false
   return data || [];
 }
 
+/** Try narrow columns, then * so missing columns never break the page. */
+async function selectSafe(table, preferredCols, opts) {
+  try {
+    return await selectCols(table, preferredCols, opts);
+  } catch (err) {
+    console.warn('[NUSC] narrow select failed for', table, err?.message || err);
+    return selectCols(table, '*', opts);
+  }
+}
+
 export async function fetchSubjects(limit = 50) {
-  const rows = await selectCols('subjects', SUBJECT_COLS, {
-    order: 'name',
-    ascending: true,
-    limit
-  });
+  // Keep only columns known to be used in UI; avoid invented aliases
+  const rows = await selectSafe(
+    'subjects',
+    'id, name, code, instructor, description, sort_order, is_published, is_active, created_at',
+    { order: 'name', ascending: true, limit }
+  );
   return rows.filter(isVisibleRow);
 }
 
 export async function fetchAnnouncements(limit = 40) {
-  const rows = await selectCols('announcements', ANNOUNCEMENT_COLS, {
-    order: 'created_at',
-    ascending: false,
-    limit
-  });
+  const rows = await selectSafe(
+    'announcements',
+    'id, title, content, body, importance, priority, is_pinned, is_published, expires_at, subject_id, created_at',
+    { order: 'created_at', ascending: false, limit }
+  );
   return rows.filter(isVisibleRow).sort((a, b) => {
     const pin = Number(!!b.is_pinned) - Number(!!a.is_pinned);
     if (pin) return pin;
@@ -58,28 +58,28 @@ export async function fetchAnnouncements(limit = 40) {
 }
 
 export async function fetchMaterials(limit = 40) {
-  const rows = await selectCols('materials', MATERIAL_LIST_COLS, {
-    order: 'created_at',
-    ascending: false,
-    limit
-  });
+  const rows = await selectSafe(
+    'materials',
+    'id, title, subject_id, material_type, file_type, file_size, is_published, is_important, is_pinned, created_at',
+    { order: 'created_at', ascending: false, limit }
+  );
   return rows.filter(isVisibleRow);
 }
 
 export async function fetchQuizzes(limit = 30) {
   try {
-    const rows = await selectCols('quizzes', QUIZ_COLS, {
-      order: 'start_at',
-      ascending: true,
-      limit
-    });
+    const rows = await selectSafe(
+      'quizzes',
+      'id, title, subject_id, status, start_at, end_at, is_published, is_active, created_at',
+      { order: 'start_at', ascending: true, limit }
+    );
     return rows.filter(isVisibleRow);
   } catch {
-    const rows = await selectCols('quizzes', QUIZ_COLS, {
-      order: 'created_at',
-      ascending: false,
-      limit
-    });
+    const rows = await selectSafe(
+      'quizzes',
+      'id, title, subject_id, status, start_at, end_at, is_published, is_active, created_at',
+      { order: 'created_at', ascending: false, limit }
+    );
     return rows.filter(isVisibleRow);
   }
 }
@@ -87,11 +87,11 @@ export async function fetchQuizzes(limit = 30) {
 export async function fetchLectureFeed(limit = 20) {
   let lectureRows = [];
   try {
-    const rows = await selectCols('lectures', LECTURE_COLS, {
-      order: 'created_at',
-      ascending: false,
-      limit
-    });
+    const rows = await selectSafe(
+      'lectures',
+      'id, title, subject_id, lecture_number, lecture_date, published_at, created_at, is_published, is_active',
+      { order: 'created_at', ascending: false, limit }
+    );
     lectureRows = rows.filter(isVisibleRow);
   } catch {
     lectureRows = [];
@@ -99,7 +99,6 @@ export async function fetchLectureFeed(limit = 20) {
 
   let materialLectures = [];
   try {
-    // Only enough materials to fill the feed — not a full dump
     const mats = await fetchMaterials(Math.max(limit, 12));
     materialLectures = mats.filter((m) => {
       const t = String(m.material_type || 'lecture').toLowerCase();
@@ -153,7 +152,7 @@ export async function fetchScheduleRows(limit = 100) {
   const cols =
     'id, day_of_week, start_time, end_time, course_name, subject_name, instructor, location, room, is_published, is_active';
   try {
-    const rows = await selectCols('schedules', cols, {
+    const rows = await selectSafe('schedules', cols, {
       order: 'day_of_week',
       ascending: true,
       limit
@@ -161,7 +160,7 @@ export async function fetchScheduleRows(limit = 100) {
     return rows.filter(isVisibleRow);
   } catch {
     try {
-      const rows = await selectCols('schedule', cols, {
+      const rows = await selectSafe('schedule', cols, {
         order: 'day_of_week',
         ascending: true,
         limit
