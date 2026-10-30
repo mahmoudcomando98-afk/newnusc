@@ -35,7 +35,6 @@ async function selectSafe(table, preferredCols, opts) {
 }
 
 export async function fetchSubjects(limit = 50) {
-  // Keep only columns known to be used in UI; avoid invented aliases
   const rows = await selectSafe(
     'subjects',
     'id, name, code, instructor, description, sort_order, is_published, is_active, created_at',
@@ -60,7 +59,7 @@ export async function fetchAnnouncements(limit = 40) {
 export async function fetchMaterials(limit = 40) {
   const rows = await selectSafe(
     'materials',
-    'id, title, subject_id, material_type, file_type, file_size, is_published, is_important, is_pinned, created_at',
+    'id, title, subject_id, material_type, file_type, file_size, is_published, is_important, is_pinned, is_delivered, due_at, deadline_at, due_date, created_at',
     { order: 'created_at', ascending: false, limit }
   );
   return rows.filter(isVisibleRow);
