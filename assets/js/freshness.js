@@ -24,14 +24,20 @@ export function touchLastVisit() {
     window.setTimeout(() => {
       try {
         localStorage.setItem(LAST_VISIT_KEY, String(Date.now()));
-      } catch { /* ignore */ }
-    }, 2500);
-  } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
+    }, 4000);
+  } catch {
+    /* ignore */
+  }
 }
 
 export function isNewItem(item, lastVisit = getLastVisitAt()) {
-  if (!item?.created_at) return false;
-  const t = new Date(item.created_at).getTime();
+  if (!item) return false;
+  const raw = item.created_at || item.published_at || item.updated_at;
+  if (!raw) return false;
+  const t = new Date(raw).getTime();
   if (Number.isNaN(t)) return false;
   // First ever visit: show items from last 3 days as new
   if (!lastVisit) {
@@ -50,10 +56,16 @@ export function isImportantItem(item) {
 export function freshnessBadgesHtml(item) {
   const parts = [];
   if (isImportantItem(item)) {
-    parts.push('<span class="badge badge-danger" style="margin-inline-start:6px">مهم</span>');
+    parts.push(
+      '<span class="badge badge-danger" style="margin-inline-start:6px" title="مهم">مهم</span>'
+    );
   }
   if (isNewItem(item)) {
-    parts.push('<span class="badge badge-success" style="margin-inline-start:6px">جديد</span>');
+    const firstVisit = !getLastVisitAt();
+    const label = firstVisit ? 'جديد' : 'جديد منذ زيارتك';
+    parts.push(
+      `<span class="badge badge-success" style="margin-inline-start:6px" title="اتضاف بعد آخر زيارة ليك للمنصة">${label}</span>`
+    );
   }
   return parts.join('');
 }
