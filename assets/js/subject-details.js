@@ -277,7 +277,6 @@ function materialCard(material, badgeLabel) {
           ${material.description ? `<p class="material-card-desc">${escapeHtml(material.description)}</p>` : ''}
           ${material.admin_note ? `<p class="material-card-note"><span class="material-note-badge">${escapeHtml(material.admin_note)}</span></p>` : ''}
           ${dueBlock}
-          ${hasSolution ? '<p class="material-card-due"><span class="badge badge-success">فيه صورة حل</span></p>' : ''}
         </div>
       </div>
       <div class="material-card-actions">
@@ -426,9 +425,9 @@ async function loadAnnouncements(el) {
           ${joinUrl
             ? `<div class="mt-2"><a href="${escapeHtml(joinUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">${escapeHtml(announcement.link_label || 'دخول السيكشن أونلاين')}</a></div>`
             : announcement.link_status === 'coming_soon'
-              ? '<div class="mt-2"><span class="badge badge-warning">رابط السيكشن قريبًا</span></div>'
+              ? '<div class="mt-2"><span class="badge badge-warning">رابط قريبًا</span></div>'
               : ''}
-          ${date ? `<div class="list-item-desc">${escapeHtml(date)}</div>` : ''}
+          ${date ? `<div class="list-item-desc mt-1">${escapeHtml(date)}</div>` : ''}
         </div>
       </article>`;
     })
@@ -438,7 +437,7 @@ async function loadAnnouncements(el) {
 
 async function downloadMaterial(id, path, button) {
   if (!path) {
-    showToast('مسار الملف مش متاح دلوقتي.', 'error');
+    showToast('مسار الملف غير متوفر.', 'error');
     return;
   }
   try {
