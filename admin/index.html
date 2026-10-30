@@ -6,8 +6,8 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>لوحة الإدارة | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=admin-2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=admin-2" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=admin-stats-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=admin-stats-1" />
 </head>
 <body>
   <header class="app-header">
@@ -30,6 +30,11 @@
         <div class="card"><div class="skeleton skeleton-title"></div></div>
       </div>
 
+      <h2 class="mb-2 mt-3" style="font-size:1.05rem">إحصائيات سريعة</h2>
+      <div id="extra-stats" class="card-grid mb-3">
+        <div class="card"><div class="skeleton skeleton-title"></div></div>
+      </div>
+
       <h2 class="mb-2 mt-3" style="font-size:1.05rem">الأقسام</h2>
       <div class="card-grid">
         <a href="/admin/subjects.html" class="card" style="text-decoration:none;color:inherit">
@@ -42,7 +47,7 @@
         </a>
         <a href="/admin/materials.html" class="card" style="text-decoration:none;color:inherit">
           <h3 class="card-title">محتوى المواد</h3>
-          <p class="text-sm text-muted">رفع ملفات وواجبات</p>
+          <p class="text-sm text-muted">رفع ملفات وواجبات · مسودة وجدولة</p>
         </a>
         <a href="/admin/quizzes.html" class="card" style="text-decoration:none;color:inherit">
           <h3 class="card-title">الكويزات</h3>
@@ -84,6 +89,7 @@
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
     import { showError, initIcons } from '../assets/js/utils.js';
+    import { loadAdminStats } from '../assets/js/admin-stats.js';
 
     async function init() {
       const ok = await protectAdminPage();
@@ -108,6 +114,8 @@
         console.error(err);
         showError(el, 'تعذر تحميل الإحصائيات.');
       }
+
+      await loadAdminStats('extra-stats');
     }
 
     init();
