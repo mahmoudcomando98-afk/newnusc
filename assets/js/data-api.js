@@ -8,6 +8,10 @@ export function isVisibleRow(row) {
   if (!row) return false;
   if (row.is_published === false) return false;
   if (row.is_active === false) return false;
+  if (row.publish_at) {
+    const t = new Date(row.publish_at).getTime();
+    if (!Number.isNaN(t) && t > Date.now()) return false;
+  }
   if (row.expires_at) {
     const t = new Date(row.expires_at).getTime();
     if (!Number.isNaN(t) && t < Date.now()) return false;
@@ -36,7 +40,6 @@ async function selectSafe(table, preferredCols, opts) {
 
 function isLectureMaterialType(type) {
   const t = String(type || 'lecture').toLowerCase().trim();
-  // Anything that is NOT a specialized non-lecture bucket counts as lecture/file
   const excluded = new Set([
     'section',
     'sections',
@@ -62,7 +65,7 @@ export async function fetchSubjects(limit = 50) {
 export async function fetchAnnouncements(limit = 40) {
   const rows = await selectSafe(
     'announcements',
-    'id, title, content, body, importance, priority, is_pinned, is_published, expires_at, subject_id, created_at',
+    'id, title, content, body, importance, priority, is_pinned, is_published, publish_at, expires_at, subject_id, created_at',
     { order: 'created_at', ascending: false, limit }
   );
   return rows.filter(isVisibleRow).sort((a, b) => {
@@ -75,7 +78,7 @@ export async function fetchAnnouncements(limit = 40) {
 export async function fetchMaterials(limit = 40) {
   const rows = await selectSafe(
     'materials',
-    'id, title, subject_id, material_type, file_type, file_size, is_published, is_important, is_pinned, is_delivered, due_at, created_at',
+    'id, title, subject_id, material_type, file_type, file_size, is_published, publish_at, is_important, is_pinned, is_delivered, due_at, download_count, created_at',
     { order: 'created_at', ascending: false, limit }
   );
   return rows.filter(isVisibleRow);
@@ -101,15 +104,13 @@ export async function fetchQuizzes(limit = 30) {
 
 /**
  * Home "آخر المحاضرات": merge lectures table + lecture-like materials.
- * Materials are the primary source on this platform (admin uploads).
  */
 export async function fetchLectureFeed(limit = 20) {
-  // 1) Materials first — pull a wide window so lecture files aren't buried under other types
   let materialLectures = [];
   try {
     const mats = await selectSafe(
       'materials',
-      'id, title, subject_id, material_type, file_type, created_at, is_published, is_active, is_pinned',
+      'id, title, subject_id, material_type, file_type, created_at, is_published, publish_at, is_active, is_pinned',
       { order: 'created_at', ascending: false, limit: Math.max(limit * 5, 40) }
     );
     materialLectures = (mats || []).filter(isVisibleRow).filter((m) => isLectureMaterialType(m.material_type));
@@ -118,7 +119,6 @@ export async function fetchLectureFeed(limit = 20) {
     materialLectures = [];
   }
 
-  // 2) Optional lectures table (may be empty / missing)
   let lectureRows = [];
   try {
     const rows = await selectSafe(
