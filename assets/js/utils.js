@@ -195,17 +195,38 @@ export function quizStatusLabel(status) {
   return map[status] || status || '';
 }
 
+/**
+ * Always derive status from start/end/duration — never trust a stale DB status alone.
+ */
 export function computeQuizStatus(q) {
   if (!q) return 'closed';
 
+  const startValue = q.start_at || q.quiz_date || null;
+  const saved = ['upcoming', 'open', 'closed'].includes(q.status) ? q.status : null;
+
+  if (!startValue) {
+    // No schedule → use saved only if present, else treat as closed to avoid "قادم" forever
+    return saved || 'closed';
+  }
+
+  const start = new Date(startValue).getTime();
+  if (Number.isNaN(start)) return saved || 'closed';
+
   const now = Date.now();
-  const start = q.start_at ? new Date(q.start_at).getTime() : 0;
-  const end = q.end_at ? new Date(q.end_at).getTime() : Infinity;
-
   if (now < start) return 'upcoming';
-  if (now > end) return 'closed';
 
-  return 'open';
+  const explicitEnd = q.end_at ? new Date(q.end_at).getTime() : NaN;
+  if (!Number.isNaN(explicitEnd)) {
+    return now <= explicitEnd ? 'open' : 'closed';
+  }
+
+  if (q.duration_minutes) {
+    const end = start + Number(q.duration_minutes) * 60 * 1000;
+    return now <= end ? 'open' : 'closed';
+  }
+
+  // Started, no end → open unless admin forced closed
+  return saved === 'closed' ? 'closed' : 'open';
 }
 
 export function createCountdown(targetDate, el) {
@@ -325,7 +346,6 @@ export function initIcons() {
   document.querySelectorAll('[data-icon]').forEach((el) => {
     const name = el.dataset.icon;
     if (!name || !ICONS[name]) return;
-    // Always (re)apply so broken/empty icons recover after navigation
     el.innerHTML = ICONS[name];
   });
 }
