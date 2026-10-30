@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
-  <script>document.documentElement.classList.add('admin-auth-pending')</script>
+  <script>document.documentElement.classList.add('admin-auth-pending');setTimeout(function(){document.documentElement.classList.remove('admin-auth-pending');},6000);</script>
   <title>محتوى المواد | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=summary-1" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=summary-1" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=mat-20261030" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=mat-20261030" />
 </head>
 <body>
   <header class="app-header">
@@ -85,6 +85,6 @@
     </div>
   </main>
   <input type="file" id="solution-attach-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" style="display:none" />
-  <script type="module" src="/assets/js/admin-materials.js?v=summary-1"></script>
+  <script type="module" src="/assets/js/admin-materials.js?v=mat-20261030b"></script>
 </body>
 </html>
