@@ -1,14 +1,32 @@
 /**
- * Download a remote file fully, then save locally.
- * Shows progress overlay; never navigates away until 100%.
+ * Download helpers tuned to reduce Storage Egress:
+ * - small/medium files: stream once with progress, then save locally
+ * - large files: open signed URL once (browser handles transfer; no second blob copy in JS)
+ * - in-tab blob cache avoids re-fetching the same URL in the same session
  */
-export async function fetchBlobWithProgress(url, onProgress) {
-  const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+
+const blobCache = new Map();
+const LARGE_FILE_BYTES = 6 * 1024 * 1024; // 6 MB
+
+export async function fetchBlobWithProgress(url, onProgress, { signal } = {}) {
+  if (blobCache.has(url)) {
+    const cached = blobCache.get(url);
+    if (typeof onProgress === 'function') onProgress(1, cached.size, cached.size);
+    return cached;
+  }
+
+  const res = await fetch(url, {
+    mode: 'cors',
+    credentials: 'omit',
+    cache: 'force-cache',
+    signal
+  });
   if (!res.ok) throw new Error('تعذر تحميل الملف (' + res.status + ')');
 
   const total = Number(res.headers.get('content-length')) || 0;
   if (!res.body || !res.body.getReader) {
     const blob = await res.blob();
+    blobCache.set(url, blob);
     if (typeof onProgress === 'function') onProgress(1, blob.size, blob.size);
     return blob;
   }
@@ -29,7 +47,10 @@ export async function fetchBlobWithProgress(url, onProgress) {
   }
 
   if (typeof onProgress === 'function') onProgress(1, received, total || received);
-  return new Blob(chunks);
+  const blob = new Blob(chunks);
+  // Cap memory: only cache blobs under 12MB
+  if (blob.size <= 12 * 1024 * 1024) blobCache.set(url, blob);
+  return blob;
 }
 
 export function triggerBlobDownload(blob, filename) {
@@ -42,6 +63,18 @@ export function triggerBlobDownload(blob, filename) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(objectUrl), 4000);
+}
+
+/** One network transfer: let the browser open/save the signed URL. */
+export function openUrlForDownload(url, filename) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  if (filename) a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 export function ensureDownloadOverlay() {
@@ -107,13 +140,27 @@ function formatBytes(n) {
   return (n / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
-/** Full flow: URL → progress overlay → save only at 100%. */
-export async function downloadFileComplete({ url, filename, button }) {
+/**
+ * @param {{ url: string, filename?: string, button?: HTMLElement, fileSize?: number }} opts
+ */
+export async function downloadFileComplete({ url, filename, button, fileSize }) {
   if (!url) throw new Error('مفيش رابط للتنزيل');
 
   const spinner = button?.querySelector('.dl-spinner');
   const icon = button?.querySelector('[data-icon]');
   const label = button?.querySelector('.material-dl-label');
+
+  const knownSize = Number(fileSize) || 0;
+  // Large files: one transfer via browser tab (no second in-memory full copy)
+  if (knownSize >= LARGE_FILE_BYTES && !blobCache.has(url)) {
+    try {
+      if (button) button.disabled = true;
+      openUrlForDownload(url, filename);
+    } finally {
+      if (button) button.disabled = false;
+    }
+    return;
+  }
 
   try {
     if (button) {
@@ -132,8 +179,7 @@ export async function downloadFileComplete({ url, filename, button }) {
     });
 
     updateDownloadOverlay(1, blob.size, blob.size);
-    // brief beat so user sees 100%
-    await new Promise((r) => setTimeout(r, 250));
+    await new Promise((r) => setTimeout(r, 200));
     triggerBlobDownload(blob, filename);
   } finally {
     hideDownloadOverlay();
