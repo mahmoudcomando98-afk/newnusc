@@ -1,7 +1,6 @@
 import { supabase } from './supabase.js';
 import { protectAdminPage } from './auth.js';
 import { escapeHtml, formatFileSize, showEmpty, showError, showToast, withLoading, initIcons, timeAgo } from './utils.js';
-import { notifyAssignmentToStudents } from './assignment-notify.js';
 
 let profile = null;
 let subjectNames = new Map();
@@ -15,12 +14,24 @@ const typeLabels = {
   section: 'السكاشن',
   assignment: 'الواجبات',
   past_exam: 'امتحانات سابقة',
+  summary: 'ملخصات المادة',
   notes: 'المحاضرات',
   exam: 'المحاضرات',
   other: 'المحاضرات',
   pdf: 'المحاضرات',
   slides: 'المحاضرات'
 };
+
+async function notifyAssignmentSafe(opts) {
+  try {
+    const mod = await import('./assignment-notify.js');
+    if (typeof mod.notifyAssignmentToStudents === 'function') {
+      await mod.notifyAssignmentToStudents(opts);
+    }
+  } catch (err) {
+    console.warn('[NUSC] assignment notify skipped:', err);
+  }
+}
 
 function updateDueDateVisibility() {
   const isAssignment = document.getElementById('material_type').value === 'assignment';
@@ -119,8 +130,14 @@ function openEditForm(item) {
 }
 
 async function init() {
+  try {
+    document.documentElement.classList.remove('admin-auth-pending');
+  } catch {}
   const result = await protectAdminPage();
   if (!result) return;
+  try {
+    document.documentElement.classList.remove('admin-auth-pending');
+  } catch {}
   profile = result.profile;
   initIcons();
 
@@ -146,8 +163,18 @@ async function init() {
     );
   });
   document.getElementById('solution-attach-input')?.addEventListener('change', onAttachSolution);
-  await loadSubjects();
-  await load();
+  try {
+    await loadSubjects();
+  } catch (err) {
+    console.error(err);
+    showToast('تعذر تحميل قائمة المواد.', 'error');
+  }
+  try {
+    await load();
+  } catch (err) {
+    console.error(err);
+    showError(document.getElementById('list'), 'مش قادرين نحمّل الملفات.');
+  }
 }
 
 async function loadSubjects() {
@@ -290,8 +317,8 @@ async function load() {
                     : `<p class="text-sm mt-1 text-muted">مفيش موعد تسليم محدد</p>`
               ) : ''}
               ${item.admin_note ? `<p class="text-sm mt-1"><span class="badge badge-warning">${escapeHtml(item.admin_note)}</span></p>` : ''}
-              ${hasSolution ? '<p class="text-sm mt-1"><span class="badge badge-success">فيه صورة حل</span></p>` : ''}
-              ${hasSubmitLink ? '<p class="text-sm mt-1"><span class="badge badge-primary">فيه رابط تسليم</span></p>` : ''}
+              ${hasSolution ? '<p class="text-sm mt-1"><span class="badge badge-success">فيه صورة حل</span></p>' : ''}
+              ${hasSubmitLink ? '<p class="text-sm mt-1"><span class="badge badge-primary">فيه رابط تسليم</span></p>' : ''}
             </div>
             <div class="flex gap-1 flex-wrap">
               ${isAssignment ? (item.is_delivered
@@ -428,7 +455,7 @@ async function onAttachSolution(event) {
     showToast('تم حفظ صورة الحل.', 'success');
     const mat = materialsCache.find((entry) => String(entry.id) === String(materialId));
     if (mat && mat.material_type === 'assignment') {
-      await notifyAssignmentToStudents({
+      await notifyAssignmentSafe({
         subjectId: mat.subject_id,
         subjectName: subjectNames.get(mat.subject_id) || '',
         hasSolution: true,
@@ -544,7 +571,7 @@ async function save(event) {
 
       showToast(materialType === 'assignment' && isDelivered ? 'تم الحفظ — تم التسليم.' : 'تم حفظ التعديلات.', 'success');
       if (materialType === 'assignment' && (file || solutionFile)) {
-        await notifyAssignmentToStudents({
+        await notifyAssignmentSafe({
           subjectId,
           subjectName: subjectNames.get(subjectId) || '',
           hasSolution: !!(solutionFile || editingOriginal?.solution_image_path),
@@ -606,7 +633,7 @@ async function save(event) {
 
     showToast('تم رفع الملف بنجاح.', 'success');
     if (materialType === 'assignment') {
-      await notifyAssignmentToStudents({
+      await notifyAssignmentSafe({
         subjectId,
         subjectName: subjectNames.get(subjectId) || '',
         hasSolution: !!solutionPath,
@@ -622,5 +649,8 @@ async function save(event) {
 
 init().catch((error) => {
   console.error(error);
+  try {
+    document.documentElement.classList.remove('admin-auth-pending');
+  } catch {}
   showError(document.getElementById('list'), 'مش قادرين نجهّز صفحة رفع الملفات.');
 });
