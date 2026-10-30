@@ -1,5 +1,5 @@
 /**
- * NUSC Student Hub - Home Page (fast path)
+ * NUSC Student Hub - Home Page (fast path, reduced egress)
  */
 
 import { protectPage } from './auth.js';
@@ -26,7 +26,9 @@ import {
   fetchSubjectNames
 } from './data-api.js';
 
-const TTL = 2 * 60 * 1000;
+/** Shared TTL for public-ish lists (still revalidates in background) */
+const TTL = 3 * 60 * 1000;
+const ANN_LIMIT = 12;
 let profile = null;
 
 async function init() {
@@ -178,7 +180,7 @@ async function loadSubjects() {
   try {
     const data = await cachedStaleWhileRevalidate(
       'home:subjects',
-      () => fetchSubjects(12),
+      () => fetchSubjects(8),
       { ttlMs: TTL, onUpdate: renderSubjects }
     );
     renderSubjects(data);
@@ -217,7 +219,7 @@ async function loadLectures() {
   try {
     const data = await cachedStaleWhileRevalidate(
       'home:lectures',
-      () => fetchLectureFeed(8),
+      () => fetchLectureFeed(6),
       { ttlMs: TTL, onUpdate: renderLectures }
     );
     renderLectures(data);
@@ -258,7 +260,7 @@ async function loadQuizzes() {
     const data = await cachedStaleWhileRevalidate(
       'home:quizzes',
       async () => {
-        const rows = await fetchQuizzes(10);
+        const rows = await fetchQuizzes(6);
         const ids = [...new Set(rows.map((q) => q.subject_id).filter(Boolean))];
         const names = await fetchSubjectNames(ids);
         return { rows, names };
@@ -299,15 +301,18 @@ function renderAnnouncements(rows) {
   initIcons();
 }
 
+function announcementsLoader() {
+  return fetchAnnouncements(ANN_LIMIT);
+}
+
 async function loadAnnouncements() {
   const el = document.getElementById('announcements-list');
   if (!el) return;
   try {
-    const data = await cachedStaleWhileRevalidate(
-      'home:announcements',
-      () => fetchAnnouncements(30),
-      { ttlMs: TTL, onUpdate: renderAnnouncements }
-    );
+    const data = await cachedStaleWhileRevalidate('home:announcements', announcementsLoader, {
+      ttlMs: TTL,
+      onUpdate: renderAnnouncements
+    });
     renderAnnouncements(data);
   } catch (error) {
     console.error('[NUSC] loadAnnouncements:', error);
@@ -319,11 +324,10 @@ async function loadImportantNotice() {
   const box = document.getElementById('important-notice');
   if (!box) return;
   try {
-    const data = await cachedStaleWhileRevalidate(
-      'home:announcements',
-      () => fetchAnnouncements(30),
-      { ttlMs: TTL }
-    );
+    // Reuses same cache key as loadAnnouncements — no extra network when warm
+    const data = await cachedStaleWhileRevalidate('home:announcements', announcementsLoader, {
+      ttlMs: TTL
+    });
     const visible = (data || []).filter((n) => n && n.is_published !== false);
     let notice = visible.find((n) => {
       const level = String(n.importance || n.priority || '');
@@ -345,7 +349,11 @@ async function loadImportantNotice() {
     if (t) t.textContent = notice.title || 'إشعار مهم';
     if (c) c.textContent = notice.content || notice.body || '';
     if (tm) tm.textContent = timeAgo(notice.created_at);
-    try { initIcons(); } catch { /* ignore */ }
+    try {
+      initIcons();
+    } catch {
+      /* ignore */
+    }
   } catch (error) {
     console.warn('[NUSC] loadImportantNotice:', error);
   }
@@ -390,7 +398,7 @@ async function loadMaterials() {
     const data = await cachedStaleWhileRevalidate(
       'home:materials',
       async () => {
-        const rows = await fetchMaterials(20);
+        const rows = await fetchMaterials(8);
         const ids = [...new Set(rows.map((m) => m.subject_id).filter(Boolean))];
         const names = await fetchSubjectNames(ids);
         return { rows, names };
@@ -432,11 +440,21 @@ async function loadLiveOnlineSections() {
   const el = document.getElementById('live-online-sections');
   if (!el) return;
   try {
-    const { data, error } = await supabase
-      .from('online_sections')
-      .select('id, day_of_week, start_time, end_time, course_name, instructor, join_url, is_published')
-      .eq('is_published', true);
-    if (error) throw error;
+    const data = await cachedStaleWhileRevalidate(
+      'home:online_sections',
+      async () => {
+        const { data: rows, error } = await supabase
+          .from('online_sections')
+          .select(
+            'id, day_of_week, start_time, end_time, course_name, instructor, join_url, is_published'
+          )
+          .eq('is_published', true)
+          .limit(40);
+        if (error) throw error;
+        return rows || [];
+      },
+      { ttlMs: TTL }
+    );
     const live = (data || []).filter((row) => row.join_url && isSectionLiveNow(row));
     if (!live.length) {
       el.classList.add('hidden');
@@ -481,11 +499,10 @@ async function loadNotifCount() {
     document.getElementById('notif-dot');
   if (!badge) return;
   try {
-    const data = await cachedStaleWhileRevalidate(
-      'home:announcements',
-      () => fetchAnnouncements(100),
-      { ttlMs: TTL }
-    );
+    // Same cache as announcements — avoids a second large query
+    const data = await cachedStaleWhileRevalidate('home:announcements', announcementsLoader, {
+      ttlMs: TTL
+    });
     let readIds = [];
     try {
       const stored = JSON.parse(
