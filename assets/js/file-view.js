@@ -63,9 +63,6 @@ function showIdlePreview(viewer, material) {
   const size = material.file_size ? formatFileSize(material.file_size) : '';
   viewer.innerHTML = `
     <div style="padding:32px 20px;text-align:center;min-height:40vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
-      <p class="text-sm text-muted" style="margin:0;max-width:28rem;line-height:1.6">
-        الملف جاهز. اضغط «عرض الملف» لما تحتاج تشوفه — مش بنحمّل محتواه تلقائي عشان نوفر استهلاك الشبكة.
-      </p>
       <p class="text-sm" style="margin:0">${escapeHtml(type)}${size ? ' · ' + escapeHtml(size) : ''}</p>
       <button type="button" class="btn btn-primary" id="btn-start-view">عرض الملف</button>
     </div>`;
