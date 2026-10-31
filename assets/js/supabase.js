@@ -242,7 +242,36 @@ function normalizeSettingBoolean(value) {
   return value === true || value === 'true' || value === 1 || value === '1';
 }
 
-async function isActiveContentManager() {
+function parseSettingTimestamp(value) {
+  if (value == null || value === '' || value === 'null') return null;
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const raw = typeof value === 'string' ? value.trim() : String(value).trim();
+  if (!raw || raw === 'null') return null;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** فوري أو داخل نافذة الجدولة */
+export function isMaintenanceActiveFromSettings(settingsMap) {
+  const get = (key) =>
+    settingsMap instanceof Map ? settingsMap.get(key) : settingsMap?.[key];
+
+  if (normalizeSettingBoolean(get('site_maintenance'))) return true;
+
+  const start = parseSettingTimestamp(get('maintenance_start_at'));
+  const end = parseSettingTimestamp(get('maintenance_end_at'));
+  if (!start && !end) return false;
+
+  const now = Date.now();
+  if (start && end) return now >= start.getTime() && now <= end.getTime();
+  if (start) return now >= start.getTime();
+  return now <= end.getTime();
+}
+
+async function isActiveAdmin() {
   try {
     const {
       data: { user },
@@ -261,12 +290,13 @@ async function isActiveContentManager() {
   }
 }
 
-function isMaintenanceEnabled(value) {
-  return normalizeSettingBoolean(value);
-}
-
 function isMaintenanceExemptPath(pathname) {
-  return pathname === '/maintenance-mode.html' || pathname === '/login.html';
+  const p = (pathname || '').toLowerCase();
+  return (
+    p === '/maintenance-mode.html' ||
+    p === '/login.html' ||
+    p.startsWith('/admin/')
+  );
 }
 
 async function enforceMaintenanceMode(enabled) {
@@ -274,7 +304,8 @@ async function enforceMaintenanceMode(enabled) {
   const pathname = window.location.pathname.toLowerCase();
   if (pathname === '/maintenance-mode.html') return false;
   if (!enabled) return false;
-  if (await isActiveContentManager()) return false;
+  // الأدمن يدخل كل الصفحات بما فيها لوحة التحكم والمنصة نفسها
+  if (await isActiveAdmin()) return false;
   if (isMaintenanceExemptPath(pathname)) return false;
   window.location.replace('/maintenance-mode.html');
   return true;
@@ -287,14 +318,15 @@ function startMaintenanceMonitor() {
   window.setInterval(async () => {
     const pathname = window.location.pathname.toLowerCase();
     if (pathname === '/maintenance-mode.html' || pathname === '/login.html') return;
+    if (pathname.startsWith('/admin/')) return;
     try {
       const { data, error } = await supabase
         .from('platform_settings')
-        .select('value')
-        .eq('key', 'site_maintenance')
-        .maybeSingle();
+        .select('key, value')
+        .in('key', ['site_maintenance', 'maintenance_start_at', 'maintenance_end_at']);
       if (error) throw error;
-      if (isMaintenanceEnabled(data?.value)) {
+      const map = new Map((data || []).map((row) => [row.key, row.value]));
+      if (isMaintenanceActiveFromSettings(map)) {
         await enforceMaintenanceMode(true);
       }
     } catch (error) {
@@ -308,7 +340,14 @@ async function loadPlatformBranding() {
     const { data, error } = await supabase
       .from('platform_settings')
       .select('key, value')
-      .in('key', ['platform_logo_url', 'site_name', 'site_maintenance', 'maintenance_message']);
+      .in('key', [
+        'platform_logo_url',
+        'site_name',
+        'site_maintenance',
+        'maintenance_message',
+        'maintenance_start_at',
+        'maintenance_end_at'
+      ]);
     if (error) throw error;
 
     const settings = new Map((data || []).map((item) => [item.key, item.value]));
@@ -317,7 +356,7 @@ async function loadPlatformBranding() {
     applyPlatformLogo(logoUrl);
     if (platformName) applyPlatformName(platformName);
 
-    const redirected = await enforceMaintenanceMode(isMaintenanceEnabled(settings.get('site_maintenance')));
+    const redirected = await enforceMaintenanceMode(isMaintenanceActiveFromSettings(settings));
     if (!redirected) startMaintenanceMonitor();
   } catch (error) {
     console.warn('[NUSC] Could not load platform settings:', error?.message || error);
@@ -333,7 +372,16 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   });
 
   window.addEventListener('nusc:maintenance-updated', async (event) => {
-    const enabled = isMaintenanceEnabled(event.detail?.enabled);
+    const detail = event.detail || {};
+    const map = new Map([
+      ['site_maintenance', detail.enabled],
+      ['maintenance_start_at', detail.start_at ?? null],
+      ['maintenance_end_at', detail.end_at ?? null]
+    ]);
+    const enabled =
+      detail.active_now != null
+        ? !!detail.active_now
+        : isMaintenanceActiveFromSettings(map);
     const pathname = window.location.pathname.toLowerCase();
     if (enabled) {
       await enforceMaintenanceMode(true);
@@ -437,7 +485,6 @@ export async function getProfile(userId = null) {
       8000
     );
     if (!error && data) {
-      // Merge name from auth if profile row is empty
       if (!data.full_name && authUser?.id === uid) {
         const fb = profileFromAuthUser(authUser);
         if (fb?.full_name) data.full_name = fb.full_name;
@@ -450,7 +497,6 @@ export async function getProfile(userId = null) {
     console.warn('[NUSC] getProfile:', err?.message || err);
   }
 
-  // Fallback so home/profile still show the student name on mobile
   if (authUser?.id === uid) return profileFromAuthUser(authUser);
   try {
     const {
