@@ -271,41 +271,70 @@ th { font-weight: 600; color: var(--text-muted); font-size: 0.78rem; }
   }
 }
 
+/* ===== Mobile / app compact density (must live here — Vite ships this file) ===== */
+@media (max-width: 768px) {
+  html { font-size: 13.5px !important; }
+  body { font-size: 0.88rem !important; line-height: 1.4 !important; }
 
-/* Requested color-only change: turn gray UI accents into glossy black.
-   Existing brand colors, layouts, spacing, content, and functionality stay untouched. */
-:root {
-  --text-muted: #111111 !important;
-  --gray: #111111 !important;
-  --gray-dark: #080808 !important;
-  --gray-light: #171717 !important;
-}
-.text-muted,
-.text-gray,
-.text-gray-500,
-.text-gray-600,
-.text-secondary,
-.muted,
-.secondary-text {
-  color: #111111 !important;
-}
-.bg-gray,
-.bg-gray-50,
-.bg-gray-100,
-.bg-gray-200,
-.gray-surface,
-.surface-gray {
-  background: linear-gradient(180deg, #292929 0%, #080808 48%, #1b1b1b 100%) !important;
-  color: #ffffff !important;
-  border-color: #3b3b3b !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 2px 5px rgba(0,0,0,.24) !important;
-}
-button[class*="gray"],
-a[class*="gray"],
-.badge[class*="gray"],
-.chip[class*="gray"] {
-  background: linear-gradient(180deg, #292929 0%, #080808 48%, #1b1b1b 100%) !important;
-  color: #ffffff !important;
-  border-color: #3b3b3b !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 2px 5px rgba(0,0,0,.22) !important;
+  :root {
+    --header-h: 44px !important;
+    --bottom-nav-h: 50px !important;
+  }
+
+  .app-header .container { min-height: 42px !important; gap: 6px !important; }
+  .logo, .logo-word, .app-header .logo span { font-size: 0.82rem !important; }
+  .logo-icon { width: 26px !important; height: 26px !important; font-size: 0.68rem !important; }
+  .header-btn { width: 32px !important; height: 32px !important; }
+
+  .container, .page-content { padding-left: 8px !important; padding-right: 8px !important; }
+  .page, main.page { padding-top: 6px !important; padding-bottom: calc(50px + env(safe-area-inset-bottom, 0px) + 8px) !important; }
+
+  .home-hero, .welcome-banner, .page-hero, .subjects-intro {
+    padding: 10px !important;
+    margin-bottom: 10px !important;
+  }
+  .home-hero h1, .welcome-banner h1, #welcome-name {
+    font-size: 1.05rem !important;
+    margin: 0 0 2px !important;
+  }
+  .home-hero p, .welcome-banner p { font-size: 0.78rem !important; }
+  .home-kicker, .notice-kicker, .hero-eyebrow { font-size: 0.65rem !important; }
+
+  .section-header { margin-bottom: 6px !important; }
+  .section-header h1, .section-header h2 { font-size: 0.9rem !important; }
+  .section-more { font-size: 0.72rem !important; }
+  .section { margin-bottom: 10px !important; }
+
+  .dashboard-shortcuts { gap: 5px !important; margin-bottom: 12px !important; }
+  .shortcut-card {
+    min-height: 52px !important;
+    padding: 6px 7px !important;
+    gap: 6px !important;
+  }
+  .shortcut-icon { width: 28px !important; height: 28px !important; }
+  .shortcut-text strong { font-size: 0.74rem !important; }
+  .shortcut-text small { font-size: 0.62rem !important; }
+
+  .btn, .btn-primary, .btn-gold, .btn-secondary, .btn-outline {
+    min-height: 34px !important;
+    padding: 5px 10px !important;
+    font-size: 0.78rem !important;
+  }
+  .btn-sm, .material-action-btn {
+    min-height: 30px !important;
+    padding: 4px 8px !important;
+    font-size: 0.72rem !important;
+  }
+
+  .card-title, .list-item-title, .material-card-title { font-size: 0.84rem !important; }
+  .list-item { padding: 8px 0 !important; }
+  .list-item-desc, .text-sm, .material-card-meta { font-size: 0.7rem !important; }
+  .badge { font-size: 0.62rem !important; padding: 1px 5px !important; }
+
+  .bottom-nav a { font-size: 0.58rem !important; padding: 3px 2px !important; }
+  .bottom-nav [data-icon], .bottom-nav svg { width: 16px !important; height: 16px !important; }
+
+  .important-notice { padding: 8px !important; margin-bottom: 10px !important; }
+  .push-enable-inner { padding: 8px 10px !important; }
+  .push-enable-inner strong { font-size: 0.8rem !important; }
 }
