@@ -10,6 +10,7 @@ import {
 } from './utils.js';
 import { getSignedMaterialUrl } from './signed-url-cache.js';
 import { downloadFileComplete } from './download-file.js';
+import { remindIfAlreadyDownloaded } from './download-guard.js';
 
 const lectureId = new URLSearchParams(window.location.search).get('id');
 
@@ -133,6 +134,7 @@ async function downloadFile(id, path, button) {
     return;
   }
   try {
+    await remindIfAlreadyDownloaded(id);
     const url = await getSignedMaterialUrl(path, 900);
     if (id) {
       try {
