@@ -1,14 +1,12 @@
 /**
- * In-app file viewer — egress-conscious:
- * - metadata only on load (no Storage bytes)
- * - signed URL + PDF/image only after explicit «عرض الملف»
- * - PDF pages rendered progressively (range-friendly)
+ * In-app file viewer — egress-conscious
  */
 import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
 import { escapeHtml, showToast, initIcons, formatFileSize, timeAgo } from './utils.js';
 import { downloadFileComplete } from './download-file.js';
 import { getSignedMaterialUrl } from './signed-url-cache.js';
+import { remindIfAlreadyDownloaded } from './download-guard.js';
 
 const params = new URLSearchParams(window.location.search);
 const materialId = params.get('id');
@@ -87,6 +85,7 @@ function openSignedInNewTab() {
 
 async function downloadSigned(button) {
   try {
+    if (materialMeta?.id) await remindIfAlreadyDownloaded(materialMeta.id);
     const url = await ensureSignedUrl();
     await downloadFileComplete({
       url,
@@ -150,7 +149,6 @@ async function renderPdfProgressive(viewer, url) {
   viewer.appendChild(wrap);
 
   const containerWidth = Math.min(viewer.clientWidth || window.innerWidth || 360, 900) - 24;
-  // First batch: 2 pages only (range requests pull less data)
   const firstBatch = Math.min(total, 2);
   for (let pageNum = 1; pageNum <= firstBatch; pageNum += 1) {
     await renderPdfPage(wrap, pageNum, containerWidth);
@@ -344,7 +342,6 @@ async function init() {
       return;
     }
 
-    // No Storage transfer until the student asks to view
     showIdlePreview(viewer, material);
     initIcons();
   } catch (error) {
