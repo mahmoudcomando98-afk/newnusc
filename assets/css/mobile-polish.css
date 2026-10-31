@@ -1,4 +1,4 @@
-/* Mobile usability polish — touch targets, spacing, no horizontal overflow */
+/* Mobile usability polish — compact touch targets, spacing, no horizontal overflow */
 
 html {
   -webkit-text-size-adjust: 100%;
@@ -11,17 +11,17 @@ body {
 @media (max-width: 768px) {
   .container,
   .page-content {
-    padding-left: 12px !important;
-    padding-right: 12px !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
   }
 
   .app-header .container {
-    min-height: 52px !important;
-    gap: 8px;
+    min-height: 48px !important;
+    gap: 6px;
   }
 
   .app-header .logo span:not(.logo-icon) {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
 
   .btn,
@@ -30,35 +30,35 @@ body {
   .material-action-btn,
   .subject-tile-btn,
   .notice-open {
-    min-height: 40px !important;
-    min-width: 40px;
+    min-height: 36px !important;
+    min-width: 36px;
   }
 
   .btn-sm {
-    padding: 8px 12px !important;
-    font-size: 0.84rem !important;
+    padding: 6px 10px !important;
+    font-size: 0.8rem !important;
   }
 
   .form-input,
   .form-select,
   .form-textarea {
     font-size: 16px !important; /* avoid iOS zoom */
-    min-height: 44px;
+    min-height: 40px;
   }
 
   .form-textarea {
-    min-height: 88px;
+    min-height: 80px;
   }
 
   .dashboard-shortcuts {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
-    gap: 8px !important;
+    gap: 6px !important;
   }
 
   .shortcut-card {
-    padding: 10px 8px !important;
-    min-height: 68px !important;
+    padding: 8px 8px !important;
+    min-height: 58px !important;
   }
 
   .home-two-col {
@@ -66,17 +66,17 @@ body {
   }
 
   .home-two-col > * + * {
-    margin-top: 12px;
+    margin-top: 10px;
   }
 
   .section-header h2 {
-    font-size: 1.05rem !important;
+    font-size: 1rem !important;
   }
 
   .material-card-actions {
     display: grid !important;
     grid-template-columns: 1fr 1fr;
-    gap: 8px !important;
+    gap: 6px !important;
   }
 
   .material-card-actions .btn {
@@ -86,17 +86,17 @@ body {
 
   .list-item {
     align-items: flex-start !important;
-    gap: 10px !important;
+    gap: 8px !important;
   }
 
   .bottom-nav a {
-    font-size: 0.68rem !important;
+    font-size: 0.64rem !important;
     gap: 2px;
-    padding: 6px 2px !important;
+    padding: 5px 2px !important;
   }
 
   .card-grid {
-    gap: 10px !important;
+    gap: 8px !important;
   }
 
   .subjects-toolbar {
