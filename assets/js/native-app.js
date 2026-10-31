@@ -1,7 +1,7 @@
 /**
  * Capacitor / installed-app helpers:
  * - denser UI class
- * - encourage notification permission (uses existing push.js flow)
+ * - notification permission via existing push.js (same admin pipeline)
  */
 
 function isNativeShell() {
@@ -28,7 +28,7 @@ export function applyNativeAppClass() {
   return native;
 }
 
-/** Call after login when you have user id — soft banner only, no auto prompt */
+/** After login — register push when already granted; keep banner flow for request */
 export async function ensureNativePushReady(userId) {
   if (!userId) return;
   try {
@@ -45,3 +45,11 @@ export async function ensureNativePushReady(userId) {
 }
 
 applyNativeAppClass();
+
+// Soft: on native shell, mark body for CSS and expose helper for home banner
+if (typeof window !== 'undefined') {
+  window.NUSCNative = {
+    isNative: isNativeShell,
+    ensurePush: ensureNativePushReady
+  };
+}
