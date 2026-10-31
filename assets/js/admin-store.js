@@ -5,10 +5,6 @@ import { escapeHtml, showEmpty, showError, showToast, initIcons, formatDate } fr
 let editingId = null;
 let orderFilter = 'pending';
 
-function isAdminProfile(profile) {
-  return profile && ['admin', 'moderator'].includes(String(profile.role || ''));
-}
-
 async function loadSettings() {
   const { data } = await supabase.from('store_settings').select('*').eq('id', 1).maybeSingle();
   if (!data) return;
@@ -129,6 +125,44 @@ async function saveProduct(e) {
   }
 }
 
+async function deleteProduct(productId) {
+  // 1) امسح الطلبات المرتبطة (RESTRICT كان بيمنع الحذف)
+  const { error: ordersErr } = await supabase.from('store_orders').delete().eq('product_id', productId);
+  if (ordersErr) throw ordersErr;
+
+  // 2) امسح سجل الملف + ملفات التخزين إن أمكن
+  const { data: fileRow } = await supabase
+    .from('store_product_files')
+    .select('file_path')
+    .eq('product_id', productId)
+    .maybeSingle();
+
+  const { data: product } = await supabase
+    .from('store_products')
+    .select('preview_image_path')
+    .eq('id', productId)
+    .maybeSingle();
+
+  const paths = [fileRow?.file_path, product?.preview_image_path].filter(Boolean);
+  if (paths.length) {
+    try {
+      await supabase.storage.from('store').remove(paths);
+    } catch {
+      /* الملف ممكن يكون اتمسح قبل كده */
+    }
+  }
+
+  const { error: filesErr } = await supabase.from('store_product_files').delete().eq('product_id', productId);
+  if (filesErr) throw filesErr;
+
+  // 3) امسح المنتج نفسه
+  const { error, data } = await supabase.from('store_products').delete().eq('id', productId).select('id');
+  if (error) throw error;
+  if (!data?.length) {
+    throw new Error('مفيش صلاحية حذف أو المنتج مش موجود. راجع RLS أو نفّذ store_fix_delete.sql');
+  }
+}
+
 async function loadProducts() {
   const el = document.getElementById('products-list');
   try {
@@ -161,15 +195,15 @@ async function loadProducts() {
 
     el.querySelectorAll('[data-edit]').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        const { data } = await supabase.from('store_products').select('*').eq('id', btn.dataset.edit).maybeSingle();
-        if (!data) return;
-        editingId = data.id;
-        document.getElementById('edit-id').value = data.id;
-        document.getElementById('title').value = data.title || '';
-        document.getElementById('description').value = data.description || '';
-        document.getElementById('price').value = data.price ?? 0;
-        document.getElementById('preview_video_url').value = data.preview_video_url || '';
-        document.getElementById('is_active').checked = !!data.is_active;
+        const { data: row } = await supabase.from('store_products').select('*').eq('id', btn.dataset.edit).maybeSingle();
+        if (!row) return;
+        editingId = row.id;
+        document.getElementById('edit-id').value = row.id;
+        document.getElementById('title').value = row.title || '';
+        document.getElementById('description').value = row.description || '';
+        document.getElementById('price').value = row.price ?? 0;
+        document.getElementById('preview_video_url').value = row.preview_video_url || '';
+        document.getElementById('is_active').checked = !!row.is_active;
         document.getElementById('product-form-title').textContent = 'تعديل قالب';
         document.getElementById('save-product-btn').textContent = 'حفظ';
         document.getElementById('cancel-edit-btn').classList.remove('hidden');
@@ -179,14 +213,27 @@ async function loadProducts() {
 
     el.querySelectorAll('[data-del]').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (!confirm('حذف القالب؟ الطلبات المرتبطة ممكن تتاثر.')) return;
-        const { error } = await supabase.from('store_products').delete().eq('id', btn.dataset.del);
-        if (error) {
-          showToast(error.message || 'تعذر الحذف', 'error');
-          return;
+        if (!confirm('حذف القالب وكل الطلبات المرتبطة بيه؟')) return;
+        btn.disabled = true;
+        try {
+          await deleteProduct(btn.dataset.del);
+          showToast('اتحذف القالب.', 'success');
+          if (editingId === btn.dataset.del) resetProductForm();
+          await loadProducts();
+          await loadOrders();
+        } catch (err) {
+          console.error(err);
+          const msg = String(err?.message || '');
+          if (/foreign key|23503|restrict/i.test(msg)) {
+            showToast('في طلبات مرتبطة. نفّذ supabase/store_fix_delete.sql ثم حاول تاني.', 'error');
+          } else if (/permission|42501|RLS/i.test(msg)) {
+            showToast('مفيش صلاحية حذف. تأكد إن حسابك أدمن ونفّذ SQL.', 'error');
+          } else {
+            showToast(msg || 'تعذر الحذف', 'error');
+          }
+        } finally {
+          btn.disabled = false;
         }
-        showToast('اتحذف.', 'success');
-        await loadProducts();
       });
     });
   } catch (err) {
@@ -215,7 +262,6 @@ async function loadOrders() {
       return;
     }
 
-    // profiles for names/emails
     const uids = [...new Set(data.map((o) => o.user_id).filter(Boolean))];
     let profiles = {};
     if (uids.length) {
