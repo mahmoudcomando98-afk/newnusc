@@ -349,3 +349,12 @@ export function initIcons() {
     el.innerHTML = ICONS[name];
   });
 }
+
+// Render static navigation icons as soon as the shared module loads.
+// This keeps the bottom navigation icons visible even if page authentication
+// or data initialization is delayed or fails.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initIcons, { once: true });
+} else {
+  initIcons();
+}
