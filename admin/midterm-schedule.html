@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <style>html.admin-auth-pending body{visibility:hidden!important}</style>
+  <script>document.documentElement.classList.add('admin-auth-pending')</script>
+  <title>جدول الميد تيرم | الإدارة</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=midterm-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=midterm-1" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>جدول الميد تيرم</span>
+      </a>
+      <a href="/midterm-schedule.html" class="btn btn-sm btn-secondary" target="_blank">معاينة</a>
+    </div>
+  </header>
+
+  <main class="page" style="padding-bottom:32px">
+    <div class="container page-content" style="max-width:720px">
+      <h1 class="mb-2" style="font-size:1.2rem">جدول الميد تيرم</h1>
+      <p class="text-sm text-muted mb-3">ضيف امتحان أو أكتر في نفس اليوم، مع وقت البداية والنهاية والمكان.</p>
+
+      <div class="card mb-3">
+        <h2 class="card-title mb-2" style="font-size:1rem">عنوان الصفحة</h2>
+        <form id="meta-form">
+          <div class="form-group">
+            <label class="form-label" for="meta-title">العنوان</label>
+            <input id="meta-title" class="form-input" maxlength="80" placeholder="جدول الميد تيرم" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="meta-subtitle">العنوان الفرعي</label>
+            <input id="meta-subtitle" class="form-input" maxlength="120" placeholder="مواعيد امتحانات منتصف الترم" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="meta-note">ملاحظة</label>
+            <input id="meta-note" class="form-input" maxlength="200" placeholder="راجع المكان والوقت قبل الامتحان." />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="meta-footer">تذييل</label>
+            <input id="meta-footer" class="form-input" maxlength="80" placeholder="الأوقات بتوقيت القاهرة" />
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">حفظ العنوان</button>
+        </form>
+      </div>
+
+      <div class="card mb-3">
+        <h2 class="card-title mb-2" style="font-size:1rem" id="form-heading">إضافة امتحان</h2>
+        <form id="exam-form">
+          <input type="hidden" id="edit-id" value="" />
+          <div class="form-group">
+            <label class="form-label" for="exam_date">اليوم *</label>
+            <input type="date" id="exam_date" class="form-input" required />
+          </div>
+          <div class="flex gap-1 flex-wrap">
+            <div class="form-group" style="flex:1;min-width:140px">
+              <label class="form-label" for="start_time">من الساعة *</label>
+              <input type="time" id="start_time" class="form-input" required />
+            </div>
+            <div class="form-group" style="flex:1;min-width:140px">
+              <label class="form-label" for="end_time">إلى الساعة</label>
+              <input type="time" id="end_time" class="form-input" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="subject_name">المادة *</label>
+            <input id="subject_name" class="form-input" required maxlength="120" placeholder="اسم المادة" list="subjects-datalist" />
+            <datalist id="subjects-datalist"></datalist>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="location">المكان</label>
+            <input id="location" class="form-input" maxlength="120" placeholder="قاعة / مدرج" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="notes">ملاحظة</label>
+            <input id="notes" class="form-input" maxlength="200" placeholder="اختياري" />
+          </div>
+          <div class="flex gap-1">
+            <button type="submit" class="btn btn-primary" id="save-btn">إضافة</button>
+            <button type="button" class="btn btn-secondary hidden" id="cancel-btn">إلغاء</button>
+          </div>
+        </form>
+      </div>
+
+      <h2 class="mb-2" style="font-size:1.05rem">الامتحانات الحالية</h2>
+      <div id="list"></div>
+    </div>
+  </main>
+
+  <script type="module" src="/assets/js/admin-midterm-schedule.js?v=midterm-1"></script>
+</body>
+</html>
