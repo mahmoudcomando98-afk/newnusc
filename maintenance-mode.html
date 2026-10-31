@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#f6f6f4" />
   <meta name="description" content="تنبيه صيانة منصة NUSC" />
   <title>المنصة تحت الصيانة | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=maint-2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=maint-2" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=maint-sched-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=maint-sched-1" />
   <style>
     body { min-height:100vh; min-height:100dvh; display:grid; place-items:center; padding:24px; background:#f6f6f4; }
     .maintenance-card { width:min(560px,100%); padding:clamp(24px,5vw,40px); text-align:center; border:1px solid #e2e4e5; border-radius:12px; background:#fff; box-shadow:none; }
@@ -56,23 +56,48 @@
       <button type="button" class="btn btn-primary" id="refresh-page">إعادة المحاولة</button>
       <a class="btn btn-secondary" href="/login.html?next=%2Fadmin%2Fsettings.html">دخول الإدارة</a>
     </div>
-    <p class="maintenance-footnote">الخدمات متوقفة مؤقتًا. لو الرسالة دي باينالها قديمة، اضغط إعادة المحاولة.</p>
+    <p class="maintenance-footnote">الخدمات متوقفة مؤقتًا للطلاب. لو أنت أدمن، سجّل دخول من زر الإدارة أعلاه.</p>
   </main>
   <script type="module">
-    import { supabase } from './assets/js/supabase.js';
+    import { supabase, isMaintenanceActiveFromSettings } from './assets/js/supabase.js';
 
     let isLoading = false;
-    const isEnabled = (value) => value === true || value === 'true' || value === 1 || value === '1';
     const statusMessage = new URLSearchParams(window.location.search).get('status');
+
+    async function isActiveAdmin() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return false;
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, is_active')
+          .eq('id', user.id)
+          .maybeSingle();
+        return profile?.role === 'admin' && profile?.is_active === true;
+      } catch {
+        return false;
+      }
+    }
 
     async function loadMaintenanceMessage() {
       if (isLoading) return;
       isLoading = true;
       try {
+        if (await isActiveAdmin()) {
+          window.location.replace('/home.html');
+          return;
+        }
+
         const { data, error } = await supabase
           .from('platform_settings')
           .select('key, value')
-          .in('key', ['site_name', 'site_maintenance', 'maintenance_message']);
+          .in('key', [
+            'site_name',
+            'site_maintenance',
+            'maintenance_message',
+            'maintenance_start_at',
+            'maintenance_end_at'
+          ]);
         if (error) throw error;
 
         const settings = new Map((data || []).map((row) => [row.key, row.value]));
@@ -85,7 +110,7 @@
         if (typeof message === 'string' && message.trim()) {
           document.getElementById('maintenance-message').textContent = message.trim();
         }
-        if (!isEnabled(settings.get('site_maintenance'))) {
+        if (!isMaintenanceActiveFromSettings(settings)) {
           window.location.replace('/home.html');
         }
       } catch (error) {
@@ -102,7 +127,6 @@
 
     document.getElementById('refresh-page').addEventListener('click', () => window.location.reload());
     loadMaintenanceMessage();
-    // أخفّ من كل 10 ثواني — يكفي كل نصف دقيقة
     window.setInterval(loadMaintenanceMessage, 30000);
   </script>
 </body>
