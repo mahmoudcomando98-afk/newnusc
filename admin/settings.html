@@ -6,8 +6,8 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>إعدادات المنصة | NUSC Student Hub</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=neutral-v2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=neutral-v2" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=maint-sched-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=maint-sched-1" />
 </head>
 <body>
   <header class="app-header">
@@ -35,13 +35,25 @@
       </div>
       <div class="card mb-3" id="maintenance-section">
         <h3 class="card-title mb-2">وضع الصيانة</h3>
-        <p class="text-sm text-muted mb-2">فعّل الصيانة لعرض رسالة في منتصف الشاشة ومنع المستخدمين العاديين من التنقل داخل المنصة. حساب الأدمن النشط يفضل متاحًا عشان تقدر توقف الصيانة وقت ما تحب.</p>
+        <p class="text-sm text-muted mb-2">
+          تقدر تشغّل الصيانة فورًا أو تحدد وقت بداية ونهاية. الطلاب يتوجّهوا لصفحة الصيانة.
+          <strong>حساب الأدمن مش بيتأثر</strong> — تقدر تدخل لوحة التحكم والمنصة وتشوف التعديلات وتوقف الصيانة في أي وقت.
+        </p>
         <form id="maintenance-form">
           <div class="form-group">
             <label class="form-check" for="maintenance-enabled">
               <input type="checkbox" id="maintenance-enabled" />
-              <span>تشغيل وضع الصيانة</span>
+              <span>تشغيل الصيانة فورًا (يدوي)</span>
             </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="maintenance-start">بداية الصيانة المجدولة</label>
+            <input class="form-input" type="datetime-local" id="maintenance-start" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="maintenance-end">نهاية الصيانة المجدولة</label>
+            <input class="form-input" type="datetime-local" id="maintenance-end" />
+            <p class="text-sm text-muted mt-1">لو حابب تلغي الجدول، امسح التاريخين واحفظ. التوقيت حسب جهازك المحلي.</p>
           </div>
           <div class="form-group">
             <label class="form-label" for="maintenance-message">رسالة الصيانة للطلاب</label>
@@ -84,7 +96,7 @@ WHERE email = 'your-admin@email.com';</pre>
     </div>
   </main>
   <script type="module">
-    import { supabase } from '../assets/js/supabase.js';
+    import { supabase, isMaintenanceActiveFromSettings } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
     import { escapeHtml, showError, showToast, initIcons } from '../assets/js/utils.js';
 
@@ -121,15 +133,43 @@ WHERE email = 'your-admin@email.com';</pre>
       return value === true || value === 'true' || value === 1 || value === '1';
     }
 
+    function toDatetimeLocalValue(value) {
+      if (value == null || value === '' || value === 'null') return '';
+      const d = new Date(typeof value === 'string' ? value : String(value));
+      if (Number.isNaN(d.getTime())) return '';
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function fromDatetimeLocalValue(value) {
+      if (!value) return null;
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) return null;
+      return d.toISOString();
+    }
+
     async function loadMaintenanceSettings() {
       const { data, error } = await supabase.from('platform_settings')
-        .select('key, value').in('key', ['site_maintenance', 'maintenance_message']);
+        .select('key, value')
+        .in('key', [
+          'site_maintenance',
+          'maintenance_message',
+          'maintenance_start_at',
+          'maintenance_end_at'
+        ]);
       if (error) throw error;
       const settings = new Map((data || []).map((item) => [item.key, item.value]));
       document.getElementById('maintenance-enabled').checked = normalizeBoolean(settings.get('site_maintenance'));
       const message = settings.get('maintenance_message');
       document.getElementById('maintenance-message').value =
         typeof message === 'string' ? message : 'المنصة تحت الصيانة حاليًا. هنرجع قريبًا.';
+      document.getElementById('maintenance-start').value = toDatetimeLocalValue(settings.get('maintenance_start_at'));
+      document.getElementById('maintenance-end').value = toDatetimeLocalValue(settings.get('maintenance_end_at'));
+
+      const status = document.getElementById('maintenance-status');
+      if (isMaintenanceActiveFromSettings(settings)) {
+        status.textContent = 'الصيانة شغّالة دلوقتي على الطلاب. حسابك كأدمن مش متأثر.';
+      }
     }
 
     async function saveMaintenanceSettings(event) {
@@ -137,33 +177,91 @@ WHERE email = 'your-admin@email.com';</pre>
       const enabled = document.getElementById('maintenance-enabled').checked;
       const messageInput = document.getElementById('maintenance-message');
       const message = messageInput.value.trim() || 'المنصة تحت الصيانة حاليًا. هنرجع قريبًا.';
+      const startAt = fromDatetimeLocalValue(document.getElementById('maintenance-start').value);
+      const endAt = fromDatetimeLocalValue(document.getElementById('maintenance-end').value);
       const button = document.getElementById('maintenance-submit');
       const status = document.getElementById('maintenance-status');
+
+      if (startAt && endAt && new Date(endAt) < new Date(startAt)) {
+        showToast('وقت النهاية لازم يكون بعد وقت البداية.', 'error');
+        return;
+      }
 
       button.disabled = true;
       button.textContent = 'جاري حفظ الإعدادات…';
       status.textContent = '';
       try {
-        const { data, error } = await supabase.rpc('set_maintenance_mode', {
+        let data = null;
+        let error = null;
+
+        // جرّب التوقيع الجديد (مع الجدول)
+        ({
+          data,
+          error
+        } = await supabase.rpc('set_maintenance_mode', {
           p_enabled: enabled,
-          p_message: message
-        });
-        if (error) throw error;
-        if (!data || data.enabled !== enabled) {
-          throw new Error('تعذر تأكيد حفظ حالة الصيانة.');
+          p_message: message,
+          p_start_at: startAt,
+          p_end_at: endAt
+        }));
+
+        // لو الدالة القديمة لسه شغّالة بدون معاملات الجدول
+        if (error && /could not find|function|PGRST202|42883/i.test(String(error.message || '') + String(error.code || ''))) {
+          ({
+            data,
+            error
+          } = await supabase.rpc('set_maintenance_mode', {
+            p_enabled: enabled,
+            p_message: message
+          }));
+          if (!error) {
+            // احفظ الجدول يدويًا
+            await supabase.from('platform_settings').upsert([
+              {
+                key: 'maintenance_start_at',
+                value: startAt,
+                description: 'بداية نافذة الصيانة'
+              },
+              {
+                key: 'maintenance_end_at',
+                value: endAt,
+                description: 'نهاية نافذة الصيانة'
+              }
+            ], { onConflict: 'key' });
+          }
         }
 
+        if (error) throw error;
+
         window.dispatchEvent(new CustomEvent('nusc:maintenance-updated', {
-          detail: { enabled, message }
+          detail: {
+            enabled,
+            message,
+            start_at: startAt,
+            end_at: endAt,
+            active_now: data?.active_now
+          }
         }));
-        status.textContent = enabled
-          ? 'تم حفظ وضع الصيانة. صفحة الصيانة هتظهر للمستخدمين خلال ثوانٍ.'
-          : 'تم إيقاف الصيانة؛ المنصة متاحة للطلاب.';
-        showToast(enabled ? 'تم تشغيل وضع الصيانة.' : 'تم إيقاف وضع الصيانة.', 'success');
+
+        const activeNow =
+          data?.active_now != null
+            ? data.active_now
+            : enabled || (startAt && (!endAt || new Date(endAt) >= new Date()) && new Date(startAt) <= new Date());
+
+        status.textContent = activeNow
+          ? 'الصيانة فعّالة للطلاب دلوقتي. أنت كأدمن تقدر تتحرك عادي.'
+          : enabled
+            ? 'اتحفظ التشغيل اليدوي.'
+            : startAt
+              ? 'اتحفظ الجدول. الصيانة هتشتغل تلقائي في الوقت المحدد.'
+              : 'تم إيقاف الصيانة؛ المنصة متاحة للطلاب.';
+
+        showToast('تم حفظ إعدادات الصيانة.', 'success');
         await loadSettingsList();
+        await loadMaintenanceSettings();
       } catch (error) {
         console.error('Maintenance settings save failed:', error);
-        status.textContent = 'ماقدرناش نحفظ إعدادات الصيانة.';
+        status.textContent = 'ماقدرناش نحفظ إعدادات الصيانة. نفّذ supabase/maintenance_schedule.sql لو لسه منفّذتهوش.';
         showToast('فشل حفظ إعدادات الصيانة: ' + (error?.message || 'راجع صلاحيات قاعدة البيانات.'), 'error');
       } finally {
         button.disabled = false;
@@ -294,6 +392,7 @@ WHERE email = 'your-admin@email.com';</pre>
     async function init() {
       const result = await protectAdminPage();
       if (!result) return;
+      document.documentElement.classList.remove('admin-auth-pending');
       initIcons();
       document.getElementById('logo-form').addEventListener('submit', saveLogo);
       document.getElementById('site-name-form').addEventListener('submit', savePlatformName);
