@@ -1,0 +1,78 @@
+.store-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (min-width: 720px) {
+  .store-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+}
+.store-card {
+  background: #fff;
+  border: 1px solid #ebe6e1;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+}
+.store-card-media {
+  aspect-ratio: 16 / 10;
+  background: #f3f1ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.store-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.store-card-body { padding: 12px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.store-card-title { font-size: 0.95rem; font-weight: 700; margin: 0; }
+.store-card-desc {
+  font-size: 0.8rem;
+  color: #6b6560;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.store-price {
+  font-weight: 700;
+  color: var(--primary, #c45c26);
+  font-size: 0.95rem;
+  margin-top: auto;
+}
+.store-pay-box {
+  background: #fff;
+  border: 1px solid #ebe6e1;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.store-pay-phone {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  direction: ltr;
+  text-align: right;
+}
+.store-status {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+.store-status-pending { background: #fff7e6; color: #9a6b00; }
+.store-status-approved { background: #e8f6ee; color: #1b6b3a; }
+.store-status-rejected { background: #fdeceb; color: #9b1c1c; }
+.store-preview-video {
+  width: 100%;
+  max-height: 280px;
+  border-radius: 10px;
+  background: #111;
+}
