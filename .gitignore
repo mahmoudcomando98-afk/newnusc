@@ -5,13 +5,6 @@ node_modules/
 dist/
 .vite/
 
-# Capacitor / Android (generated locally — heavy SDK files)
-android/
-.capacitor/
-*.apk
-*.aab
-*.keystore
-
 # Environment
 .env
 .env.local
