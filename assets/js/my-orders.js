@@ -1,6 +1,7 @@
 import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
 import { escapeHtml, showEmpty, showError, showToast, initIcons, formatDate } from './utils.js';
+import { downloadApprovedStoreProduct } from './store-download.js';
 
 function statusLabel(s) {
   if (s === 'approved') return 'مقبول';
@@ -15,25 +16,15 @@ function statusClass(s) {
 
 async function downloadProduct(productId) {
   try {
-    const { data: fileRow, error } = await supabase
-      .from('store_product_files')
-      .select('file_path, file_name')
-      .eq('product_id', productId)
-      .maybeSingle();
-    if (error) throw error;
-    if (!fileRow?.file_path) {
-      showToast('الملف مش متاح.', 'error');
+    const res = await downloadApprovedStoreProduct(productId);
+    if (!res.ok) {
+      if (res.reason === 'not_approved') {
+        showToast('التنزيل بعد موافقة الأدمن فقط.', 'error');
+      } else {
+        showToast('تعذر التنزيل.', 'error');
+      }
       return;
     }
-    const { data, error: sErr } = await supabase.storage.from('store').createSignedUrl(fileRow.file_path, 120);
-    if (sErr) throw sErr;
-    const a = document.createElement('a');
-    a.href = data.signedUrl;
-    a.download = fileRow.file_name || 'template';
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
   } catch (err) {
     console.error(err);
     showToast('تعذر التنزيل.', 'error');

@@ -1,6 +1,7 @@
 import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
 import { escapeHtml, showError, showToast, initIcons } from './utils.js';
+import { downloadApprovedStoreProduct } from './store-download.js';
 
 function formatPrice(price, currency) {
   const n = Number(price);
@@ -30,24 +31,17 @@ async function signedUrl(path, sec = 600) {
 
 async function downloadProduct(productId) {
   try {
-    const { data: fileRow, error } = await supabase
-      .from('store_product_files')
-      .select('file_path, file_name')
-      .eq('product_id', productId)
-      .maybeSingle();
-    if (error) throw error;
-    if (!fileRow?.file_path) {
-      showToast('الملف مش متاح. لو دفعت واتبعت إثبات، استنى موافقة الأدمن.', 'error');
+    const res = await downloadApprovedStoreProduct(productId);
+    if (!res.ok) {
+      if (res.reason === 'not_approved') {
+        showToast('التنزيل بعد موافقة الأدمن على الدفع فقط.', 'error');
+      } else if (res.reason === 'auth') {
+        showToast('سجّل دخول الأول.', 'error');
+      } else {
+        showToast('تعذر التنزيل. تأكد إن الطلب اتقبل.', 'error');
+      }
       return;
     }
-    const url = await signedUrl(fileRow.file_path, 120);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileRow.file_name || 'template';
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
   } catch (err) {
     console.error(err);
     showToast('تعذر التنزيل. تأكد إن الطلب اتقبل.', 'error');
@@ -151,14 +145,6 @@ async function render(productId, userId) {
       }
     }
 
-    const payPhone = settings?.data?.payment_phone || settings?.payment_phone || '';
-    const payName = settings?.data?.payment_name || settings?.payment_name || '';
-    const payInst =
-      settings?.data?.payment_instructions ||
-      settings?.payment_instructions ||
-      'حوّل المبلغ ثم ارفع إثبات التحويل.';
-
-    // fix settings shape (maybeSingle returns data directly)
     const phone = (settings && settings.payment_phone) || '';
     const name = (settings && settings.payment_name) || '';
     const instructions =
