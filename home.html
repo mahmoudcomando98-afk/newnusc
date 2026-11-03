@@ -31,6 +31,22 @@
     }
     .push-enable-inner strong { font-size: 0.85rem; color: #2c2a28; }
   </style>
+  <script>
+    /* One-time: clear empty/stale list caches that blocked data on desktop */
+    (function () {
+      try {
+        var FLAG = 'comando_cache_purged_v1';
+        if (localStorage.getItem(FLAG)) return;
+        var remove = [];
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && (k.indexOf('nusc_cache:') === 0 || k.indexOf('comando_cache:') === 0)) remove.push(k);
+        }
+        remove.forEach(function (k) { localStorage.removeItem(k); });
+        localStorage.setItem(FLAG, '1');
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body class="home-page">
   <div class="offline-banner" id="offline-banner">لا يوجد اتصال بالإنترنت</div>
@@ -147,6 +163,6 @@
     <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
   <script type="module" src="/assets/js/native-app.js?v=2"></script>
-  <script type="module" src="/assets/js/home.js?v=comando-1"></script>
+  <script type="module" src="/assets/js/home.js?v=fast-2"></script>
 </body>
 </html>
