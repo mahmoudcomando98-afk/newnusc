@@ -7,6 +7,7 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="COMANDO" />
   <meta name="description" content="لوحة الطالب — ملفات المواد، الكويزات، والإعلانات على منصة COMANDO التعليمية." />
   <meta property="og:title" content="COMANDO — منصة COMANDO التعليمية" />
   <meta property="og:description" content="ملفات المواد، مواعيد الكويزات، والإعلانات في مكان واحد." />
@@ -15,6 +16,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="/nusc.png.jpeg" />
   <link rel="icon" href="/nusc.png.jpeg" type="image/jpeg" />
+  <link rel="apple-touch-icon" href="/nusc.png.jpeg" />
   <title>الرئيسية | COMANDO</title>
   <link rel="stylesheet" href="/assets/css/main.css?v=comando-1" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-1" />
@@ -24,6 +26,7 @@
   <link rel="stylesheet" href="/assets/css/live-online.css?v=1" />
   <link rel="stylesheet" href="/assets/css/features-polish.css?v=1" />
   <link rel="stylesheet" href="/assets/css/offline-wa.css?v=1" />
+  <link rel="stylesheet" href="/assets/css/install-prompt.css?v=1" />
   <style>
     .push-enable-banner { margin-bottom: 10px; }
     .push-enable-inner {
@@ -82,6 +85,27 @@
         <button type="button" class="wa-gate-done" id="wa-gate-done" disabled>انضممت للجروب — متابعة</button>
       </div>
       <p class="wa-gate-note">مرة واحدة بس. بعد التأكيد مش هتظهر الرسالة دي تاني على الجهاز ده.</p>
+    </div>
+  </div>
+
+  <!-- Install app bottom sheet: only if not added to home screen -->
+  <div class="install-sheet" id="install-sheet" aria-hidden="true" role="dialog" aria-labelledby="install-title">
+    <div class="install-sheet-inner">
+      <div class="install-sheet-top">
+        <div class="install-sheet-icon">
+          <img src="/nusc.png.jpeg" alt="" width="44" height="44" />
+        </div>
+        <div class="install-sheet-copy">
+          <strong id="install-title">حمّل التطبيق الآن</strong>
+          <p>ضيف منصة COMANDO على الشاشة الرئيسية عشان تفتحها بسرعة زي أي تطبيق.</p>
+        </div>
+        <button type="button" class="install-sheet-close" id="install-close" aria-label="إغلاق">×</button>
+      </div>
+      <div class="install-howto" id="install-howto"></div>
+      <div class="install-sheet-actions">
+        <button type="button" class="btn-install" id="install-btn">تثبيت التطبيق</button>
+        <button type="button" class="btn-later" id="install-later">لاحقاً</button>
+      </div>
     </div>
   </div>
 
@@ -201,6 +225,7 @@
   <script type="module">
     import { onConnectivityChange } from '/assets/js/utils.js?v=fast-3';
     import { setupWhatsAppGate } from '/assets/js/whatsapp-gate.js?v=1';
+    import { setupInstallPrompt } from '/assets/js/install-prompt.js?v=1';
     import { protectPage } from '/assets/js/auth.js';
 
     function setOfflineUI(online) {
@@ -229,8 +254,10 @@
         if (!result) return;
         const isAdmin = result.profile?.role === 'admin';
         setupWhatsAppGate({ skip: isAdmin });
+        setupInstallPrompt();
       } catch {
         setupWhatsAppGate();
+        setupInstallPrompt();
       }
     })();
   </script>
