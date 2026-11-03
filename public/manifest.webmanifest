@@ -1,9 +1,8 @@
 {
-  "name": "NUSC — منصة الطلاب",
-  "short_name": "NUSC",
-  "description": "ملفات المواد، الكويزات، والإعلانات لطلاب كلية الحاسبات والمعلومات",
+  "name": "COMANDO — منصة COMANDO التعليمية",
+  "short_name": "COMANDO",
+  "description": "منصة COMANDO التعليمية",
   "start_url": "/home.html",
-  "scope": "/",
   "display": "standalone",
   "background_color": "#faf9f7",
   "theme_color": "#faf9f7",
@@ -12,21 +11,9 @@
   "icons": [
     {
       "src": "/nusc.png.jpeg",
-      "sizes": "192x192",
-      "type": "image/jpeg",
-      "purpose": "any"
-    },
-    {
-      "src": "/nusc.png.jpeg",
       "sizes": "512x512",
       "type": "image/jpeg",
-      "purpose": "any"
-    },
-    {
-      "src": "/nusc.png.jpeg",
-      "sizes": "512x512",
-      "type": "image/jpeg",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }

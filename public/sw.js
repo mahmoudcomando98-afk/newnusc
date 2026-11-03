@@ -1,6 +1,6 @@
-/* NUSC Service Worker — system notification tray */
+/* COMANDO Service Worker — system notification tray */
 const ICON_PATH = '/nusc.png.jpeg';
-const SW_VERSION = 'nusc-sw-v4';
+const SW_VERSION = 'comando-sw-v1';
 
 function iconUrl() {
   try {
@@ -21,10 +21,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('push', (event) => {
   const icon = iconUrl();
   let data = {
-    title: 'NUSC',
+    title: 'COMANDO',
     body: 'لديك إشعار جديد من المنصة',
     url: '/notifications.html',
-    tag: 'nusc-push',
+    tag: 'comando-push',
     icon,
     badge: icon
   };
@@ -43,14 +43,13 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  // Always force site logo for tray icon (same as favicon)
-  const title = String(data.title || 'NUSC').slice(0, 120);
+  const title = String(data.title || 'COMANDO').slice(0, 120);
   const options = {
     body: String(data.body || '').slice(0, 500),
     icon,
     badge: icon,
     data: { url: data.url || '/notifications.html' },
-    tag: data.tag || 'nusc-push',
+    tag: data.tag || 'comando-push',
     renotify: true,
     dir: 'rtl',
     lang: 'ar',
@@ -60,7 +59,7 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(
     self.registration.showNotification(title, options).catch((err) => {
-      console.error('[NUSC SW]', SW_VERSION, 'showNotification failed', err);
+      console.error('[COMANDO SW]', SW_VERSION, 'showNotification failed', err);
     })
   );
 });

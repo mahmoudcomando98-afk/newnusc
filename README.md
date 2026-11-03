@@ -1,6 +1,6 @@
-# NUSC Student Hub
+# COMANDO — منصة COMANDO التعليمية
 
-منصة أكاديمية لطلاب كلية الحاسبات والمعلومات — ملفات المواد، الكويزات، الجدول، والإعلانات.
+منصة تعليمية للملفات، الكويزات، الجدول، والإعلانات.
 
 ## التشغيل المحلي
 
@@ -13,8 +13,6 @@ cp .env.example .env
 npm run dev
 ```
 
-افتح العنوان اللي يظهره Vite (عادةً `http://localhost:5173`).
-
 ## متغيرات البيئة
 
 | المتغير | الوصف |
@@ -25,26 +23,10 @@ npm run dev
 
 **لا تضع Service Role Key في الفرونت أبدًا.**
 
-## Supabase
-
-نفّذ ملفات SQL من مجلد `supabase/` بالترتيب المناسب لمشروعك (على الأقل `schema.sql` و `policies.sql`).  
-لجدول المواعيد الحالي في الإنتاج: `schedule_items` + `fix_student_schedule_read.sql`.
-
 ## Deploy
 
-- الاستضافة: **Vercel** (ربط فرع `main`).
-- بعد كل push كبير: Redeploy بدون Build Cache لو التغييرات مش ظاهرة.
+- الاستضافة: **Vercel** (فرع `main`).
 - Edge Function للإشعارات: `supabase/functions/send-push` (اختياري).
-
-## الصفحات
-
-| المسار | الوصف |
-|--------|--------|
-| `/` | تحويل تلقائي لوجين أو الرئيسية |
-| `/login` `/register` | الحساب |
-| `/home` | لوحة الطالب |
-| `/subjects` `/quizzes` `/schedule` | المحتوى الدراسي |
-| `/admin/*` | لوحة الإدارة (صلاحية admin) |
 
 ## التطوير
 

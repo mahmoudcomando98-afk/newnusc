@@ -1,7 +1,7 @@
 {
-  "name": "nusc-student-hub",
+  "name": "comando-student-hub",
   "version": "1.0.0",
-  "description": "NUSC Student Hub - منصة جامعية متكاملة لطلاب الفرقة الأولى بكلية الحاسبات والمعلومات",
+  "description": "COMANDO — منصة COMANDO التعليمية",
   "type": "module",
   "scripts": {
     "dev": "vite",
