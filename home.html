@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="/assets/css/live-online.css?v=1" />
   <link rel="stylesheet" href="/assets/css/features-polish.css?v=1" />
   <link rel="stylesheet" href="/assets/css/offline-wa.css?v=1" />
-  <link rel="stylesheet" href="/assets/css/install-prompt.css?v=1" />
+  <link rel="stylesheet" href="/assets/css/install-prompt.css?v=2" />
   <style>
     .push-enable-banner { margin-bottom: 10px; }
     .push-enable-inner {
@@ -88,7 +88,7 @@
     </div>
   </div>
 
-  <div class="install-sheet" id="install-sheet" aria-hidden="true" role="dialog" aria-labelledby="install-title">
+  <div class="install-sheet" id="install-sheet" hidden aria-hidden="true" role="dialog" aria-labelledby="install-title" style="display:none">
     <div class="install-sheet-inner">
       <div class="install-sheet-top">
         <div class="install-sheet-icon">
@@ -224,7 +224,7 @@
   <script type="module">
     import { onConnectivityChange } from '/assets/js/utils.js?v=fast-3';
     import { setupWhatsAppGate } from '/assets/js/whatsapp-gate.js?v=1';
-    import { setupInstallPrompt } from '/assets/js/install-prompt.js?v=2';
+    import { setupInstallPrompt } from '/assets/js/install-prompt.js?v=3';
     import { protectPage } from '/assets/js/auth.js';
 
     function setOfflineUI(online) {
