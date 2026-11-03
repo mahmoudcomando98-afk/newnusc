@@ -1,5 +1,6 @@
 /**
  * In-app file viewer — egress-conscious
+ * Files larger than 1MB: download only (no in-app render)
  */
 import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
@@ -10,6 +11,7 @@ import { remindIfAlreadyDownloaded } from './download-guard.js';
 
 const params = new URLSearchParams(window.location.search);
 const materialId = params.get('id');
+const VIEW_MAX_BYTES = 1024 * 1024;
 
 const PDFJS_VERSION = '4.4.168';
 const PDFJS_MAIN = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.min.mjs`;
@@ -20,6 +22,11 @@ let materialMeta = null;
 let viewStarted = false;
 let pdfDoc = null;
 let pagesRendered = 0;
+
+function canViewInApp(fileSize) {
+  const n = Number(fileSize) || 0;
+  return n > 0 && n <= VIEW_MAX_BYTES;
+}
 
 function shortFileType(raw) {
   if (!raw) return '';
@@ -59,6 +66,14 @@ function setLoading(viewer, text) {
 function showIdlePreview(viewer, material) {
   const type = shortFileType(material.file_type) || 'ملف';
   const size = material.file_size ? formatFileSize(material.file_size) : '';
+  if (!canViewInApp(material.file_size)) {
+    viewer.innerHTML = `
+      <div style="padding:32px 20px;text-align:center;min-height:40vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+        <p class="text-sm" style="margin:0">${escapeHtml(type)}${size ? ' · ' + escapeHtml(size) : ''}</p>
+        <p class="text-sm text-muted" style="margin:0;max-width:320px">الملف أكبر من 1 ميجا — العرض جوّه المنصة متوقف لتوفير الاستهلاك. استخدم تنزيل.</p>
+      </div>`;
+    return;
+  }
   viewer.innerHTML = `
     <div style="padding:32px 20px;text-align:center;min-height:40vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
       <p class="text-sm" style="margin:0">${escapeHtml(type)}${size ? ' · ' + escapeHtml(size) : ''}</p>
@@ -194,10 +209,8 @@ async function renderPdf(viewer, url) {
     console.error('[NUSC] PDF.js failed:', err);
     viewer.innerHTML = `
       <div style="padding:28px;text-align:center">
-        <p class="text-sm text-muted mb-2">ما قدرناش نعرض الـ PDF جوّه الصفحة. تقدر تفتحه في تاب جديد.</p>
-        <button type="button" class="btn btn-primary" id="pdf-open-fallback">فتح الملف</button>
+        <p class="text-sm text-muted mb-2">ما قدرناش نعرض الـ PDF جوّه الصفحة. تقدر تنزّله.</p>
       </div>`;
-    document.getElementById('pdf-open-fallback')?.addEventListener('click', openSignedInNewTab);
   }
 }
 
@@ -208,14 +221,16 @@ function renderImage(viewer, url, title) {
 function renderOther(viewer) {
   viewer.innerHTML = `
     <div style="padding:28px;text-align:center">
-      <p class="text-sm text-muted mb-2">نوع الملف ده الأفضل يتفتح برّه أو يتنزّل.</p>
-      <button type="button" class="btn btn-primary" id="other-open">فتح الملف</button>
+      <p class="text-sm text-muted mb-2">نوع الملف ده الأفضل يتنزّل.</p>
     </div>`;
-  document.getElementById('other-open')?.addEventListener('click', openSignedInNewTab);
 }
 
 async function startView() {
   if (viewStarted) return;
+  if (!canViewInApp(materialMeta?.file_size)) {
+    showToast('الملف كبير — استخدم تنزيل.', 'info');
+    return;
+  }
   viewStarted = true;
   const viewer = document.getElementById('file-viewer');
   if (!viewer || !materialMeta) return;
@@ -299,9 +314,10 @@ async function init() {
     `;
 
     const platformUrl = `${window.location.origin}/file-view.html?id=${encodeURIComponent(material.id)}`;
+    const allowView = canViewInApp(material.file_size);
 
     toolbar.innerHTML = `
-      <button type="button" class="btn btn-sm btn-primary" id="btn-open">فتح</button>
+      ${allowView ? '<button type="button" class="btn btn-sm btn-primary" id="btn-open">فتح</button>' : ''}
       <button type="button" class="btn btn-sm btn-secondary" id="btn-download">
         <span class="dl-spinner hidden" aria-hidden="true"></span>
         <span class="material-dl-label">تنزيل</span>

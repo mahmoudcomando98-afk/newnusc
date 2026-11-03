@@ -1,5 +1,6 @@
 /**
  * NUSC Student Hub - Lecture Details
+ * In-app view only when file_size <= 1MB
  */
 
 import { supabase } from './supabase.js';
@@ -12,7 +13,13 @@ import { getSignedMaterialUrl } from './signed-url-cache.js';
 import { downloadFileComplete } from './download-file.js';
 import { remindIfAlreadyDownloaded } from './download-guard.js';
 
+const VIEW_MAX_BYTES = 1024 * 1024;
 const lectureId = new URLSearchParams(window.location.search).get('id');
+
+function canViewInApp(fileSize) {
+  const n = Number(fileSize) || 0;
+  return n > 0 && n <= VIEW_MAX_BYTES;
+}
 
 async function init() {
   if (!lectureId) {
@@ -82,7 +89,11 @@ async function loadLecture() {
         <div class="section mt-3">
           <h3 class="mb-1">ملفات المحاضرة</h3>
           <div class="card">
-            ${materials.map((m) => `
+            ${materials.map((m) => {
+              const viewLink = canViewInApp(m.file_size)
+                ? `<a class="btn btn-sm btn-outline" href="/file-view.html?id=${encodeURIComponent(m.id)}">عرض</a>`
+                : '';
+              return `
               <div class="list-item">
                 <div class="list-item-icon" data-icon="file"></div>
                 <div class="list-item-body">
@@ -92,11 +103,12 @@ async function loadLecture() {
                     ${m.file_size ? ` · ${formatFileSize(m.file_size)}` : ''}
                   </div>
                 </div>
-                <a class="btn btn-sm btn-outline" href="/file-view.html?id=${encodeURIComponent(m.id)}">عرض</a>
+                ${viewLink}
                 <button type="button" class="btn btn-sm btn-secondary" data-path="${escapeHtml(m.file_path || '')}" data-id="${m.id}" data-size="${m.file_size || 0}" data-name="${escapeHtml(m.file_name || m.title || 'file')}">
                   <span data-icon="download"></span>
                 </button>
-              </div>`).join('')}
+              </div>`;
+            }).join('')}
           </div>
         </div>`;
     } else {
