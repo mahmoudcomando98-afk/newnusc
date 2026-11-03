@@ -88,7 +88,6 @@
     </div>
   </div>
 
-  <!-- Install app bottom sheet: only if not added to home screen -->
   <div class="install-sheet" id="install-sheet" aria-hidden="true" role="dialog" aria-labelledby="install-title">
     <div class="install-sheet-inner">
       <div class="install-sheet-top">
@@ -225,7 +224,7 @@
   <script type="module">
     import { onConnectivityChange } from '/assets/js/utils.js?v=fast-3';
     import { setupWhatsAppGate } from '/assets/js/whatsapp-gate.js?v=1';
-    import { setupInstallPrompt } from '/assets/js/install-prompt.js?v=1';
+    import { setupInstallPrompt } from '/assets/js/install-prompt.js?v=2';
     import { protectPage } from '/assets/js/auth.js';
 
     function setOfflineUI(online) {
