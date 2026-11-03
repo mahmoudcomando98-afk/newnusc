@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="/assets/css/home-notice.css?v=1" />
   <link rel="stylesheet" href="/assets/css/live-online.css?v=1" />
   <link rel="stylesheet" href="/assets/css/features-polish.css?v=1" />
+  <link rel="stylesheet" href="/assets/css/offline-wa.css?v=1" />
   <style>
     .push-enable-banner { margin-bottom: 10px; }
     .push-enable-inner {
@@ -32,7 +33,6 @@
     .push-enable-inner strong { font-size: 0.85rem; color: #2c2a28; }
   </style>
   <script>
-    /* One-time: clear empty/stale list caches that blocked data on desktop */
     (function () {
       try {
         var FLAG = 'comando_cache_purged_v1';
@@ -49,7 +49,42 @@
   </script>
 </head>
 <body class="home-page">
-  <div class="offline-banner" id="offline-banner">لا يوجد اتصال بالإنترنت</div>
+  <div class="offline-banner hidden" id="offline-banner" role="status">لا يوجد اتصال بالإنترنت</div>
+
+  <div class="offline-overlay" id="offline-overlay" aria-hidden="true">
+    <div class="offline-overlay-card">
+      <div class="offline-overlay-icon" aria-hidden="true">📡</div>
+      <h2>لا يوجد اتصال بالإنترنت</h2>
+      <p>اتأكد من الشبكة، وبعدين اضغط إعادة المحاولة عشان ترجع تشوف موادك وتحديثاتك.</p>
+      <button type="button" class="btn btn-primary" id="offline-retry-btn">إعادة المحاولة</button>
+    </div>
+  </div>
+
+  <div class="wa-gate" id="wa-gate" aria-hidden="true" role="dialog" aria-labelledby="wa-gate-title">
+    <div class="wa-gate-card">
+      <span class="wa-gate-badge">مطلوب للدخول</span>
+      <div class="wa-gate-logo" aria-hidden="true">WA</div>
+      <h2 id="wa-gate-title">انضم لجروب التحديثات</h2>
+      <p>عشان يوصلك الجديد أول بأول (ملفات · كويزات · إعلانات)، لازم تكون عضو في جروب واتساب المنصة.</p>
+      <div class="wa-gate-steps">
+        <strong>1)</strong> اضغط «انضم للجروب» وافتح الرابط.<br />
+        <strong>2)</strong> اضغط Join / انضمام في واتساب.<br />
+        <strong>3)</strong> ارجع هنا واضغط «انضممت للجروب».
+      </div>
+      <div class="wa-gate-actions">
+        <a
+          class="wa-gate-join"
+          id="wa-gate-join"
+          href="https://chat.whatsapp.com/FOkYIVS0bHdLkdHIuLo7Zp"
+          target="_blank"
+          rel="noopener noreferrer"
+        >انضم للجروب على واتساب</a>
+        <button type="button" class="wa-gate-done" id="wa-gate-done" disabled>انضممت للجروب — متابعة</button>
+      </div>
+      <p class="wa-gate-note">مرة واحدة بس. بعد التأكيد مش هتظهر الرسالة دي تاني على الجهاز ده.</p>
+    </div>
+  </div>
+
   <header class="app-header">
     <div class="container">
       <a href="/home.html" class="logo"><span class="logo-icon">C</span><span class="logo-word">COMANDO</span></a>
@@ -98,7 +133,6 @@
       </section>
 
       <section id="due-reminders" class="due-reminders hidden" aria-live="polite"></section>
-
       <section id="live-online-sections" class="live-online-sections hidden" aria-live="polite"></section>
 
       <section id="important-notice" class="important-notice hidden" aria-live="polite">
@@ -164,5 +198,41 @@
   </nav>
   <script type="module" src="/assets/js/native-app.js?v=2"></script>
   <script type="module" src="/assets/js/home.js?v=fast-2"></script>
+  <script type="module">
+    import { onConnectivityChange } from '/assets/js/utils.js?v=fast-3';
+    import { setupWhatsAppGate } from '/assets/js/whatsapp-gate.js?v=1';
+    import { protectPage } from '/assets/js/auth.js';
+
+    function setOfflineUI(online) {
+      const banner = document.getElementById('offline-banner');
+      const overlay = document.getElementById('offline-overlay');
+      if (banner) {
+        banner.classList.toggle('hidden', online);
+        banner.classList.toggle('is-visible', !online);
+      }
+      if (overlay) {
+        overlay.classList.toggle('is-visible', !online);
+        overlay.setAttribute('aria-hidden', online ? 'true' : 'false');
+      }
+    }
+
+    onConnectivityChange(setOfflineUI);
+
+    document.getElementById('offline-retry-btn')?.addEventListener('click', () => {
+      if (navigator.onLine) location.reload();
+      else setOfflineUI(false);
+    });
+
+    (async () => {
+      try {
+        const result = await protectPage();
+        if (!result) return;
+        const isAdmin = result.profile?.role === 'admin';
+        setupWhatsAppGate({ skip: isAdmin });
+      } catch {
+        setupWhatsAppGate();
+      }
+    })();
+  </script>
 </body>
 </html>
