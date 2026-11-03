@@ -1,19 +1,41 @@
 /**
- * NUSC client cache — localStorage with TTL + stale-while-revalidate.
- * Speeds up repeat visits even when the network is slow or under load.
+ * Client cache — localStorage with TTL + stale-while-revalidate.
+ * Empty arrays/objects are not treated as a lasting success (forces network).
  */
 
-const PREFIX = 'nusc_cache:';
-const DEFAULT_TTL_MS = 3 * 60 * 1000; // 3 minutes fresh
-const DEFAULT_MAX_STALE_MS = 30 * 60 * 1000; // still usable up to 30 min
+const PREFIX = 'comando_cache:';
+const LEGACY_PREFIX = 'nusc_cache:';
+const DEFAULT_TTL_MS = 90 * 1000;
+const DEFAULT_MAX_STALE_MS = 20 * 60 * 1000;
 
 function key(name) {
   return PREFIX + String(name);
 }
 
+function isEmptyPayload(data) {
+  if (data == null) return true;
+  if (Array.isArray(data)) return data.length === 0;
+  if (typeof data === 'object') {
+    if (Array.isArray(data.rows) && data.rows.length === 0) return true;
+    if (Array.isArray(data.assignments) && data.assignments.length === 0 && !data.names) return true;
+  }
+  return false;
+}
+
 function readEntry(name) {
   try {
-    const raw = localStorage.getItem(key(name));
+    let raw = localStorage.getItem(key(name));
+    if (!raw) {
+      raw = localStorage.getItem(LEGACY_PREFIX + String(name));
+      if (raw) {
+        try {
+          localStorage.setItem(key(name), raw);
+          localStorage.removeItem(LEGACY_PREFIX + String(name));
+        } catch {
+          /* ignore */
+        }
+      }
+    }
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return null;
@@ -23,23 +45,18 @@ function readEntry(name) {
   }
 }
 
-/** Fresh data only (within TTL). */
 export function cacheGet(name) {
   const entry = readEntry(name);
   if (!entry) return null;
-  if (entry.exp && Date.now() > entry.exp) {
-    return null;
-  }
+  if (entry.exp && Date.now() > entry.exp) return null;
+  if (isEmptyPayload(entry.data)) return null;
   return entry.data;
 }
 
-/**
- * Return data even if TTL expired, as long as within maxStale window.
- * Useful to paint UI instantly under server pressure.
- */
 export function cacheGetSoft(name, maxStaleMs = DEFAULT_MAX_STALE_MS) {
   const entry = readEntry(name);
   if (!entry) return null;
+  if (isEmptyPayload(entry.data)) return null;
   const written = entry.written || (entry.exp ? entry.exp - DEFAULT_TTL_MS : 0);
   if (written && Date.now() - written > maxStaleMs) {
     try {
@@ -54,6 +71,14 @@ export function cacheGetSoft(name, maxStaleMs = DEFAULT_MAX_STALE_MS) {
 
 export function cacheSet(name, data, ttlMs = DEFAULT_TTL_MS) {
   try {
+    if (isEmptyPayload(data)) {
+      try {
+        localStorage.removeItem(key(name));
+      } catch {
+        /* ignore */
+      }
+      return false;
+    }
     const now = Date.now();
     localStorage.setItem(
       key(name),
@@ -72,6 +97,7 @@ export function cacheSet(name, data, ttlMs = DEFAULT_TTL_MS) {
 export function cacheRemove(name) {
   try {
     localStorage.removeItem(key(name));
+    localStorage.removeItem(LEGACY_PREFIX + String(name));
   } catch {
     /* ignore */
   }
@@ -79,11 +105,11 @@ export function cacheRemove(name) {
 
 export function cacheClear(prefix = '') {
   try {
-    const full = PREFIX + prefix;
+    const prefixes = [PREFIX + prefix, LEGACY_PREFIX + prefix];
     const toRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && k.startsWith(full)) toRemove.push(k);
+      if (k && prefixes.some((p) => k.startsWith(p))) toRemove.push(k);
     }
     toRemove.forEach((k) => localStorage.removeItem(k));
   } catch {
@@ -91,7 +117,6 @@ export function cacheClear(prefix = '') {
   }
 }
 
-/** Fetch with cache: returns cached value if fresh, otherwise runs loader and stores result. */
 export async function cached(name, loader, ttlMs = DEFAULT_TTL_MS) {
   const hit = cacheGet(name);
   if (hit !== null && hit !== undefined) return hit;
@@ -100,12 +125,6 @@ export async function cached(name, loader, ttlMs = DEFAULT_TTL_MS) {
   return data;
 }
 
-/**
- * Stale-while-revalidate:
- * - If any usable cache exists → return it immediately and refresh in background.
- * - If empty → await network once.
- * onUpdate(fresh) is called when background refresh finishes (optional).
- */
 export async function cachedStaleWhileRevalidate(
   name,
   loader,
@@ -121,7 +140,7 @@ export async function cachedStaleWhileRevalidate(
         try {
           onUpdate(data);
         } catch {
-          /* ignore render errors */
+          /* ignore */
         }
       }
       return data;
@@ -135,7 +154,6 @@ export async function cachedStaleWhileRevalidate(
   return refresh;
 }
 
-/** Run independent loaders in parallel; never rejects the whole batch. */
 export async function parallelAll(tasks) {
   const entries = Object.entries(tasks);
   const results = await Promise.all(
