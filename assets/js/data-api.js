@@ -1,8 +1,20 @@
 /**
- * Shared lightweight Supabase loaders used across student pages.
- * Prefer narrow selects; fall back to * if schema differs.
+ * Shared lightweight Supabase loaders.
+ * Narrow selects first; fall back to * if schema differs.
+ * Timeouts so desktop never hangs on a slow request.
  */
 import { supabase } from './supabase.js';
+
+const QUERY_MS = 10000;
+
+function withTimeout(promise, ms = QUERY_MS, label = 'query') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('انتهت مهلة تحميل البيانات (' + label + ')')), ms)
+    )
+  ]);
+}
 
 export function isVisibleRow(row) {
   if (!row) return false;
@@ -23,18 +35,22 @@ async function selectCols(table, cols, { order = 'created_at', ascending = false
   let q = supabase.from(table).select(cols);
   if (order) q = q.order(order, { ascending });
   if (limit) q = q.limit(limit);
-  const { data, error } = await q;
+  const { data, error } = await withTimeout(q, QUERY_MS, table);
   if (error) throw error;
   return data || [];
 }
 
-/** Try narrow columns, then * so missing columns never break the page. */
 async function selectSafe(table, preferredCols, opts) {
   try {
     return await selectCols(table, preferredCols, opts);
   } catch (err) {
-    console.warn('[NUSC] narrow select failed for', table, err?.message || err);
-    return selectCols(table, '*', opts);
+    console.warn('[data-api] narrow select failed for', table, err?.message || err);
+    try {
+      return await selectCols(table, '*', opts);
+    } catch (err2) {
+      console.warn('[data-api] * select failed for', table, err2?.message || err2);
+      return [];
+    }
   }
 }
 
@@ -102,41 +118,31 @@ export async function fetchQuizzes(limit = 30) {
   }
 }
 
-/**
- * Home "آخر المحاضرات": merge lectures table + lecture-like materials.
- */
 export async function fetchLectureFeed(limit = 20) {
-  let materialLectures = [];
-  try {
-    const mats = await selectSafe(
+  const [matsResult, lecResult] = await Promise.all([
+    selectSafe(
       'materials',
       'id, title, subject_id, material_type, file_type, created_at, is_published, publish_at, is_active, is_pinned',
-      { order: 'created_at', ascending: false, limit: Math.max(limit * 5, 40) }
-    );
-    materialLectures = (mats || []).filter(isVisibleRow).filter((m) => isLectureMaterialType(m.material_type));
-  } catch (err) {
-    console.warn('[NUSC] material lectures failed:', err?.message || err);
-    materialLectures = [];
-  }
-
-  let lectureRows = [];
-  try {
-    const rows = await selectSafe(
+      { order: 'created_at', ascending: false, limit: Math.max(limit * 4, 30) }
+    ).catch(() => []),
+    selectSafe(
       'lectures',
       'id, title, subject_id, lecture_number, lecture_date, published_at, created_at, is_published, is_active',
       { order: 'created_at', ascending: false, limit }
-    );
-    lectureRows = (rows || []).filter(isVisibleRow);
-  } catch {
-    lectureRows = [];
-  }
+    ).catch(() => [])
+  ]);
+
+  const materialLectures = (matsResult || [])
+    .filter(isVisibleRow)
+    .filter((m) => isLectureMaterialType(m.material_type));
+  const lectureRows = (lecResult || []).filter(isVisibleRow);
 
   const subjectIds = [
     ...new Set([...lectureRows, ...materialLectures].map((x) => x.subject_id).filter(Boolean))
   ];
   const names = await fetchSubjectNames(subjectIds);
 
-  const feed = [
+  return [
     ...lectureRows.map((lec) => ({
       key: 'lec-' + lec.id,
       title: lec.title || 'محاضرة',
@@ -156,14 +162,16 @@ export async function fetchLectureFeed(limit = 20) {
   ]
     .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
     .slice(0, limit);
-
-  return feed;
 }
 
 export async function fetchSubjectNames(ids) {
   if (!ids?.length) return {};
   try {
-    const { data, error } = await supabase.from('subjects').select('id, name').in('id', ids);
+    const { data, error } = await withTimeout(
+      supabase.from('subjects').select('id, name').in('id', ids),
+      QUERY_MS,
+      'subject-names'
+    );
     if (error) throw error;
     return Object.fromEntries((data || []).map((s) => [s.id, s.name]));
   } catch {
