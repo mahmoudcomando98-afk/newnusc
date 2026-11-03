@@ -1,71 +1,48 @@
 
 /**
- * NUSC Student Hub - Shared Utilities
+ * Shared utilities
  */
 
 export function formatDate(dateStr, options = {}) {
   if (!dateStr) return '';
-
   const d = new Date(dateStr);
   if (isNaN(d)) return '';
-
-  const defaults = {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  };
-
-  return d.toLocaleDateString('ar-EG', {
-    ...defaults,
-    ...options
-  });
+  const defaults = { year: 'numeric', month: 'long', day: 'numeric' };
+  return d.toLocaleDateString('ar-EG', { ...defaults, ...options });
 }
 
 export function formatTime(timeStr) {
   if (!timeStr) return '';
-
   const parts = String(timeStr).split(':');
   if (parts.length < 2) return timeStr;
-
   const h = parseInt(parts[0], 10);
   const m = parts[1];
   const period = h >= 12 ? 'م' : 'ص';
   const hour12 = h % 12 || 12;
-
   return `${hour12}:${m} ${period}`;
 }
 
 export function formatFileSize(bytes) {
   if (!bytes || bytes < 0) return '';
   if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) {
-    return (bytes / 1024).toFixed(1) + ' KB';
-  }
-
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
 export function timeAgo(dateStr) {
   if (!dateStr) return '';
-
   const d = new Date(dateStr);
   const now = new Date();
   const sec = Math.floor((now - d) / 1000);
-
   if (sec < 60) return 'الآن';
   if (sec < 3600) return Math.floor(sec / 60) + ' دقيقة';
   if (sec < 86400) return Math.floor(sec / 3600) + ' ساعة';
   if (sec < 604800) return Math.floor(sec / 86400) + ' يوم';
-
-  return formatDate(dateStr, {
-    month: 'short',
-    day: 'numeric'
-  });
+  return formatDate(dateStr, { month: 'short', day: 'numeric' });
 }
 
 export function escapeHtml(str) {
   if (str == null) return '';
-
   return String(str)
     .replace(/&/g, '&')
     .replace(/</g, '<')
@@ -76,7 +53,6 @@ export function escapeHtml(str) {
 
 export function debounce(fn, wait = 300) {
   let t;
-
   return (...args) => {
     clearTimeout(t);
     t = setTimeout(() => fn(...args), wait);
@@ -85,42 +61,33 @@ export function debounce(fn, wait = 300) {
 
 export function showToast(message, type = 'info', duration = 3500) {
   let container = document.getElementById('toast-container');
-
   if (!container) {
     container = document.createElement('div');
     container.id = 'toast-container';
     container.style.cssText =
       'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;width:90%;max-width:360px;pointer-events:none';
-
     document.body.appendChild(container);
   }
-
   const toast = document.createElement('div');
-
   const colors = {
     success: '#059669',
     error: '#dc2626',
     warning: '#d97706',
     info: '#2563eb'
   };
-
   toast.style.cssText =
     `background:${colors[type] || colors.info};color:#fff;padding:12px 16px;border-radius:10px;font-size:0.9rem;box-shadow:0 4px 12px rgba(0,0,0,.15);pointer-events:auto;text-align:center;width:100%`;
-
   toast.textContent = message;
   container.appendChild(toast);
-
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transition = 'opacity .3s';
-
     setTimeout(() => toast.remove(), 300);
   }, duration);
 }
 
 export function showSkeleton(el, count = 3) {
   if (!el) return;
-
   el.innerHTML = Array.from({ length: count }, () =>
     '<div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div><div class="skeleton skeleton-text short"></div></div>'
   ).join('');
@@ -128,14 +95,11 @@ export function showSkeleton(el, count = 3) {
 
 export function showEmpty(el, message = 'لا توجد بيانات') {
   if (!el) return;
-
-  el.innerHTML =
-    `<div class="empty-state"><p>${escapeHtml(message)}</p></div>`;
+  el.innerHTML = `<div class="empty-state"><p>${escapeHtml(message)}</p></div>`;
 }
 
 export function showError(el, message = 'حدث خطأ') {
   if (!el) return;
-
   el.innerHTML =
     `<div class="empty-state"><p style="color:var(--danger)">${escapeHtml(message)}</p><button type="button" class="btn btn-sm btn-secondary mt-2" onclick="location.reload()">إعادة المحاولة</button></div>`;
 }
@@ -144,9 +108,19 @@ export function isOnline() {
   return navigator.onLine;
 }
 
+/** Subscribe to online/offline and run once with the current state. */
 export function onConnectivityChange(cb) {
-  window.addEventListener('online', () => cb(true));
-  window.addEventListener('offline', () => cb(false));
+  if (typeof cb !== 'function') return;
+  const notify = () => {
+    try {
+      cb(!!navigator.onLine);
+    } catch {
+      /* ignore */
+    }
+  };
+  window.addEventListener('online', notify);
+  window.addEventListener('offline', notify);
+  notify();
 }
 
 export const WEEKDAYS_AR = [
@@ -170,7 +144,6 @@ export function materialTypeLabel(type) {
     pdf: 'PDF',
     slides: 'عرض'
   };
-
   return map[type] || type || '';
 }
 
@@ -181,7 +154,6 @@ export function importanceLabel(level) {
     normal: 'عادي',
     low: 'منخفض'
   };
-
   return map[level] || level || '';
 }
 
@@ -191,88 +163,57 @@ export function quizStatusLabel(status) {
     open: 'مفتوح',
     closed: 'منتهي'
   };
-
   return map[status] || status || '';
 }
 
-/**
- * Always derive status from start/end/duration — never trust a stale DB status alone.
- */
 export function computeQuizStatus(q) {
   if (!q) return 'closed';
-
   const startValue = q.start_at || q.quiz_date || null;
   const saved = ['upcoming', 'open', 'closed'].includes(q.status) ? q.status : null;
-
-  if (!startValue) {
-    // No schedule → use saved only if present, else treat as closed to avoid "قادم" forever
-    return saved || 'closed';
-  }
-
+  if (!startValue) return saved || 'closed';
   const start = new Date(startValue).getTime();
   if (Number.isNaN(start)) return saved || 'closed';
-
   const now = Date.now();
   if (now < start) return 'upcoming';
-
   const explicitEnd = q.end_at ? new Date(q.end_at).getTime() : NaN;
-  if (!Number.isNaN(explicitEnd)) {
-    return now <= explicitEnd ? 'open' : 'closed';
-  }
-
+  if (!Number.isNaN(explicitEnd)) return now <= explicitEnd ? 'open' : 'closed';
   if (q.duration_minutes) {
     const end = start + Number(q.duration_minutes) * 60 * 1000;
     return now <= end ? 'open' : 'closed';
   }
-
-  // Started, no end → open unless admin forced closed
   return saved === 'closed' ? 'closed' : 'open';
 }
 
 export function createCountdown(targetDate, el) {
   if (!el || !targetDate) return null;
-
   const target = new Date(targetDate).getTime();
-
   const tick = () => {
     const diff = target - Date.now();
-
     if (diff <= 0) {
       el.textContent = 'بدأ';
       return;
     }
-
     const d = Math.floor(diff / 86400000);
     const h = Math.floor((diff % 86400000) / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
     const s = Math.floor((diff % 60000) / 1000);
-
     el.textContent =
       d > 0
         ? `${d}ي ${h}س ${m}د`
         : `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
-
   tick();
   return setInterval(tick, 1000);
 }
 
 export async function withLoading(btn, asyncFn) {
-  if (typeof asyncFn !== 'function') {
-    throw new Error('تعذر تشغيل العملية المطلوبة');
-  }
-
-  if (!btn) {
-    return await asyncFn();
-  }
-
+  if (typeof asyncFn !== 'function') throw new Error('تعذر تشغيل العملية المطلوبة');
+  if (!btn) return await asyncFn();
   const original = btn.innerHTML;
   const wasDisabled = btn.disabled;
-
   btn.disabled = true;
   btn.setAttribute('aria-busy', 'true');
   btn.innerHTML = '<span class="spinner"></span>';
-
   try {
     return await asyncFn();
   } finally {
@@ -285,32 +226,25 @@ export async function withLoading(btn, asyncFn) {
 export async function requireAuth(redirectTo = '/login.html') {
   const { getSession } = await import('./supabase.js');
   const session = await getSession();
-
   if (!session) {
     window.location.href = redirectTo;
     return null;
   }
-
   return session;
 }
 
 export async function redirectIfAuthenticated(to = '/home.html') {
   const { getSession } = await import('./supabase.js');
   const session = await getSession();
-
-  if (session) {
-    window.location.href = to;
-  }
+  if (session) window.location.href = to;
 }
 
 export function setActiveNav(key) {
   document.querySelectorAll('[data-nav]').forEach((el) => {
     el.classList.toggle('active', el.dataset.nav === key);
   });
-
   document.querySelectorAll('.bottom-nav a').forEach((a) => {
     const href = a.getAttribute('href') || '';
-
     if (key === 'home' && href.includes('home')) a.classList.add('active');
     else if (key === 'subjects' && href.includes('subjects')) a.classList.add('active');
     else if (key === 'quizzes' && href.includes('quizzes')) a.classList.add('active');
@@ -350,9 +284,6 @@ export function initIcons() {
   });
 }
 
-// Render static navigation icons as soon as the shared module loads.
-// This keeps the bottom navigation icons visible even if page authentication
-// or data initialization is delayed or fails.
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initIcons, { once: true });
 } else {
