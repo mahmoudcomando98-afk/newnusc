@@ -1,0 +1,194 @@
+/* Offline banner + full overlay */
+.offline-banner {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  padding: 10px 14px;
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #fff;
+  background: #b45309;
+}
+.offline-banner.is-visible,
+.offline-banner:not(.hidden) {
+  display: block;
+}
+.offline-banner.hidden {
+  display: none !important;
+}
+
+.offline-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(250, 249, 247, 0.92);
+  backdrop-filter: blur(4px);
+}
+.offline-overlay.is-visible {
+  display: flex;
+}
+.offline-overlay-card {
+  width: min(380px, 100%);
+  padding: 28px 22px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid #ebe6e1;
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(44, 42, 40, 0.08);
+}
+.offline-overlay-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #f8efe8;
+  border: 1px solid #eee0d5;
+  font-size: 1.4rem;
+}
+.offline-overlay-card h2 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  color: #2c2a28;
+}
+.offline-overlay-card p {
+  margin: 0 0 18px;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: #7a736c;
+}
+.offline-overlay-card .btn {
+  min-width: 140px;
+}
+
+/* WhatsApp mandatory join gate */
+.wa-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(28, 25, 23, 0.45);
+}
+.wa-gate.is-visible {
+  display: flex;
+}
+.wa-gate-card {
+  width: min(400px, 100%);
+  padding: 26px 20px 20px;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #ebe6e1;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+  text-align: center;
+}
+.wa-gate-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #166534;
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+}
+.wa-gate-logo {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #25d366;
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 700;
+  box-shadow: 0 6px 16px rgba(37, 211, 102, 0.35);
+}
+.wa-gate-card h2 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  color: #2c2a28;
+}
+.wa-gate-card p {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: #6b645c;
+}
+.wa-gate-steps {
+  text-align: right;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  background: #faf8f5;
+  border: 1px solid #ebe6e1;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  color: #4a4540;
+  line-height: 1.8;
+}
+.wa-gate-steps strong {
+  color: #2c2a28;
+}
+.wa-gate-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.wa-gate-join {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 10px;
+  background: #25d366;
+  color: #fff !important;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: none !important;
+  cursor: pointer;
+  font-family: inherit;
+}
+.wa-gate-join:hover {
+  background: #1ebe57;
+}
+.wa-gate-done {
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid #e0d4ca;
+  background: #fff;
+  color: #2c2a28;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+.wa-gate-done:hover {
+  background: #f7f5f2;
+}
+.wa-gate-done:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.wa-gate-note {
+  margin: 12px 0 0;
+  font-size: 0.75rem;
+  color: #9a928a;
+  line-height: 1.5;
+}
