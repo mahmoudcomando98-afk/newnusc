@@ -1,10 +1,9 @@
 /**
- * Bottom sheet: "حمّل التطبيق الآن" when the site is NOT running as installed PWA.
- * Hidden permanently while display-mode is standalone / iOS home-screen.
- * "لاحقاً" hides for the current tab session only; next visit shows again if still not installed.
+ * Bottom sheet: "حمّل التطبيق الآن" when NOT installed as PWA.
+ * - Installed (standalone / home screen) → never show
+ * - "لاحقاً" / إغلاق → يخفي النافذة فوراً في الزيارة الحالية فقط
+ * - أي دخول تاني للرئيسية (تحديث أو فتح من جديد) → تظهر تاني لو لسه مش متثبتة
  */
-
-const SESSION_DISMISS = 'comando_install_dismiss_session';
 
 let deferredPrompt = null;
 
@@ -16,7 +15,6 @@ export function isAppInstalled() {
   } catch {
     /* ignore */
   }
-  // iOS Safari home screen
   if (typeof navigator !== 'undefined' && navigator.standalone === true) return true;
   try {
     if (window.Capacitor?.isNativePlatform?.()) return true;
@@ -29,22 +27,6 @@ export function isAppInstalled() {
 function isIos() {
   const ua = navigator.userAgent || '';
   return /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-}
-
-function isSessionDismissed() {
-  try {
-    return sessionStorage.getItem(SESSION_DISMISS) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function markSessionDismissed() {
-  try {
-    sessionStorage.setItem(SESSION_DISMISS, '1');
-  } catch {
-    /* ignore */
-  }
 }
 
 function waitForWaGateClosed(maxMs = 120000) {
@@ -76,7 +58,6 @@ function showSheet(sheet) {
   sheet.setAttribute('aria-hidden', 'false');
 }
 
-/** Capture Chrome/Edge install event early */
 export function captureInstallPrompt() {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
@@ -85,8 +66,8 @@ export function captureInstallPrompt() {
   });
   window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
-    const sheet = document.getElementById('install-sheet');
-    hideSheet(sheet);
+    window.__comandoDeferredInstall = null;
+    hideSheet(document.getElementById('install-sheet'));
   });
 }
 
@@ -99,15 +80,16 @@ export async function setupInstallPrompt() {
     return;
   }
 
-  if (isSessionDismissed()) {
-    hideSheet(sheet);
-    return;
+  // امسح أي إخفاء قديم من جلسات سابقة عشان تظهر كل دخول جديد
+  try {
+    sessionStorage.removeItem('comando_install_dismiss_session');
+  } catch {
+    /* ignore */
   }
 
   await waitForWaGateClosed();
 
-  // Re-check after WA gate (user might have switched)
-  if (isAppInstalled() || isSessionDismissed()) {
+  if (isAppInstalled()) {
     hideSheet(sheet);
     return;
   }
@@ -125,13 +107,12 @@ export async function setupInstallPrompt() {
       '<strong>إضافة للشاشة الرئيسية:</strong><br />من قائمة المتصفح ⋮ اختار «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».';
   }
 
-  const dismiss = () => {
-    markSessionDismissed();
+  const dismissNow = () => {
     hideSheet(sheet);
   };
 
-  btnLater?.addEventListener('click', dismiss);
-  btnClose?.addEventListener('click', dismiss);
+  btnLater?.addEventListener('click', dismissNow);
+  btnClose?.addEventListener('click', dismissNow);
 
   btnInstall?.addEventListener('click', async () => {
     const promptEvent = deferredPrompt || window.__comandoDeferredInstall;
@@ -146,16 +127,13 @@ export async function setupInstallPrompt() {
           return;
         }
       } catch {
-        /* fall through to howto */
+        /* fall through */
       }
     }
-    // No native prompt (iOS / unsupported) → show steps
     if (howto) howto.classList.add('is-open');
   });
 
-  // Small delay so home content paints first
-  setTimeout(() => showSheet(sheet), 600);
+  setTimeout(() => showSheet(sheet), 500);
 }
 
-// Start listening as soon as module loads
 captureInstallPrompt();
