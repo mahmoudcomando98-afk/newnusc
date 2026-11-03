@@ -1,34 +1,33 @@
-/* Install / Add to Home Screen — bottom sheet */
+/* Install / Add to Home Screen — bottom sheet
+   Default: completely removed from layout (no partial strip under nav) */
 .install-sheet {
+  display: none !important;
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 12px;
+  right: 12px;
+  bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   z-index: 8500;
-  padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px));
+  margin: 0;
+  padding: 0;
   pointer-events: none;
-  transform: translateY(110%);
-  transition: transform 0.28s ease;
+  visibility: hidden;
+  opacity: 0;
 }
+
 .install-sheet.is-visible {
-  transform: translateY(0);
+  display: block !important;
   pointer-events: auto;
+  visibility: visible;
+  opacity: 1;
 }
-/* Sit above bottom nav on mobile */
-body.home-page .install-sheet {
-  bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-}
+
 @media (min-width: 900px) {
-  body.home-page .install-sheet {
-    bottom: 16px;
+  .install-sheet {
     left: 50%;
     right: auto;
+    bottom: 24px;
     width: min(420px, calc(100% - 24px));
-    transform: translate(-50%, 110%);
-    padding: 0;
-  }
-  body.home-page .install-sheet.is-visible {
-    transform: translate(-50%, 0);
+    transform: translateX(-50%);
   }
 }
 
@@ -39,8 +38,8 @@ body.home-page .install-sheet {
   padding: 14px 14px 12px;
   background: #fff;
   border: 1px solid #ebe6e1;
-  border-radius: 14px 14px 12px 12px;
-  box-shadow: 0 -4px 24px rgba(44, 42, 40, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(44, 42, 40, 0.14);
 }
 
 .install-sheet-top {
