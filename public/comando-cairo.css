@@ -1,0 +1,27 @@
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap");
+
+html,
+body,
+button,
+input,
+select,
+textarea,
+.btn,
+.card,
+.app-header,
+.bottom-nav,
+a,
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+span,
+label,
+li,
+td,
+th {
+  font-family: "Cairo", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif !important;
+}
