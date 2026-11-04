@@ -2,7 +2,7 @@
  * COMANDO base stylesheet
  * All @import must come first (CSS rule).
  */
-@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap");
+@import url("/comando-cairo.css?v=3");
 @import url("https://cdn.jsdelivr.net/gh/mahmoudcomando98-afk/newnusc@d4c287642f0327f903a447de0c6cf37f484dedfb/assets/css/main.css");
 @import url("/assets/css/mobile-polish.css");
 @import url("/assets/css/app-compact.css");
@@ -13,7 +13,7 @@
   --nusc-space-3: 12px;
   --nusc-space-4: 16px;
   --nusc-space-5: 24px;
-  --font: "Cairo", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+  --font: "Cairo", Tahoma, Arial, sans-serif;
 }
 
 html,
@@ -39,5 +39,5 @@ label,
 li,
 td,
 th {
-  font-family: "Cairo", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif !important;
+  font-family: "Cairo", Tahoma, Arial, sans-serif !important;
 }
