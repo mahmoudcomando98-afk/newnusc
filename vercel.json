@@ -15,6 +15,7 @@
     { "source": "/my-orders", "destination": "/my-orders.html" },
     { "source": "/admin/midterm-schedule", "destination": "/admin/midterm-schedule.html" },
     { "source": "/admin/store", "destination": "/admin/store.html" },
+    { "source": "/admin/statistics", "destination": "/admin/statistics.html" },
     { "source": "/announcements", "destination": "/announcements.html" },
     { "source": "/notifications", "destination": "/notifications.html" },
     { "source": "/profile", "destination": "/profile.html" },
