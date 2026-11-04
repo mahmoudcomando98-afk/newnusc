@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>أداء الكويز | COMANDO</title>
+  <link rel="stylesheet" href="/comando-cairo.css?v=3" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=comando-cairo-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-cairo-2" />
+  <style>
+    .quiz-timer {
+      position: sticky; top: 56px; z-index: 20;
+      background: #fff; border: 1px solid var(--border, #ebe6e1);
+      border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      font-weight: 700;
+    }
+    .quiz-timer.warn { color: #a55a5a; border-color: #e8d5d5; }
+    .q-card { margin-bottom: 12px; }
+    .q-opt {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 10px 12px; border: 1px solid var(--border, #ebe6e1);
+      border-radius: 8px; margin-top: 8px; cursor: pointer; background: #fff;
+    }
+    .q-opt:has(input:checked) { border-color: #c56a3a; background: #f8efe8; }
+    .q-opt input { margin-top: 3px; }
+    .result-box { text-align: center; padding: 28px 16px; }
+    .result-score { font-size: 2rem; font-weight: 800; color: var(--primary, #c56a3a); }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/quizzes.html" class="logo"><span class="logo-icon">C</span><span>الكويز</span></a>
+      <a href="/quizzes.html" class="btn btn-sm btn-secondary">خروج</a>
+    </div>
+  </header>
+  <main class="page">
+    <div class="container page-content" id="root">
+      <div class="skeleton-card"><div class="skeleton skeleton-title"></div></div>
+    </div>
+  </main>
+  <script type="module">
+    import { protectPage } from '/assets/js/auth.js';
+    import { supabase } from '/assets/js/supabase.js';
+    import { escapeHtml, showError, showToast, initIcons } from '/assets/js/utils.js';
+
+    const quizId = new URLSearchParams(location.search).get('id');
+    const root = document.getElementById('root');
+    let attemptId = null;
+    let endsAt = null;
+    let timerIv = null;
+    let questions = [];
+
+    function renderTimer() {
+      const el = document.getElementById('quiz-timer');
+      if (!el || !endsAt) return;
+      const left = Math.max(0, endsAt - Date.now());
+      const m = Math.floor(left / 60000);
+      const s = Math.floor((left % 60000) / 1000);
+      el.textContent = `الوقت المتبقي: ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      el.classList.toggle('warn', left < 60000);
+      if (left <= 0) {
+        clearInterval(timerIv);
+        submitAnswers(true);
+      }
+    }
+
+    function renderQuestions(title) {
+      root.innerHTML = `
+        <h1 style="font-size:1.15rem;margin:0 0 8px">${escapeHtml(title || 'الكويز')}</h1>
+        <div class="quiz-timer" id="quiz-timer">جاري الحساب...</div>
+        <form id="quiz-form">
+          ${questions
+            .map(
+              (q, i) => `
+            <div class="card q-card">
+              <p><strong>س ${i + 1}.</strong> ${escapeHtml(q.prompt)}</p>
+              ${(Array.isArray(q.options) ? q.options : [])
+                .map(
+                  (opt, oi) => `
+                <label class="q-opt">
+                  <input type="radio" name="q_${q.id}" value="${oi}" required />
+                  <span>${escapeHtml(String(opt))}</span>
+                </label>`
+                )
+                .join('')}
+            </div>`
+            )
+            .join('')}
+          <button type="submit" class="btn btn-primary btn-block" id="submit-btn">تسليم الإجابات</button>
+        </form>`;
+      document.getElementById('quiz-form').onsubmit = (e) => {
+        e.preventDefault();
+        submitAnswers(false);
+      };
+      renderTimer();
+      timerIv = setInterval(renderTimer, 1000);
+      initIcons();
+    }
+
+    function collectAnswers() {
+      const answers = {};
+      questions.forEach((q) => {
+        const sel = document.querySelector(`input[name="q_${q.id}"]:checked`);
+        if (sel) answers[q.id] = Number(sel.value);
+      });
+      return answers;
+    }
+
+    async function submitAnswers(auto) {
+      if (!attemptId) return;
+      const btn = document.getElementById('submit-btn');
+      if (btn) btn.disabled = true;
+      clearInterval(timerIv);
+      try {
+        const { data, error } = await supabase.rpc('submit_quiz_attempt', {
+          p_attempt_id: attemptId,
+          p_answers: collectAnswers()
+        });
+        if (error) throw error;
+        if (!data?.ok) {
+          showToast(data?.error || 'فشل التسليم', 'error');
+          if (btn) btn.disabled = false;
+          return;
+        }
+        root.innerHTML = `
+          <div class="card result-box">
+            <p class="text-sm text-muted">${auto ? 'انتهى الوقت — تم التسليم تلقائيًا' : 'تم تسليم إجاباتك'}</p>
+            <p class="result-score">${data.score ?? 0} / ${data.max_score ?? 0}</p>
+            <p class="text-sm">النسبة: ${data.percent ?? 0}%</p>
+            <a href="/quizzes.html" class="btn btn-primary mt-2">رجوع للكويزات</a>
+          </div>`;
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'تعذر التسليم. تأكد إن SQL اتنفذ.', 'error');
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function init() {
+      const result = await protectPage();
+      if (!result) return;
+      if (!quizId) {
+        showError(root, 'رابط الكويز غير صحيح.');
+        return;
+      }
+      try {
+        const { data, error } = await supabase.rpc('start_quiz_attempt', { p_quiz_id: quizId });
+        if (error) throw error;
+        if (!data?.ok) {
+          showError(root, data?.error || 'مش هتقدر تبدأ الكويز دلوقتي.');
+          return;
+        }
+        attemptId = data.attempt_id;
+        endsAt = data.ends_at ? new Date(data.ends_at).getTime() : null;
+        questions = data.questions || [];
+        if (!questions.length) {
+          showError(root, 'مفيش أسئلة.');
+          return;
+        }
+        renderQuestions(data.title);
+      } catch (err) {
+        console.error(err);
+        showError(
+          root,
+          'تعذر بدء الكويز. لو أنت الأدمن: نفّذ ملف supabase/interactive_quizzes.sql في Supabase.'
+        );
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
