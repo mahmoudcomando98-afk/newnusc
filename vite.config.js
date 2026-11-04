@@ -65,6 +65,7 @@ export default defineConfig(({ mode }) => {
           'maintenance-mode': resolve(__dirname, 'maintenance-mode.html'),
           maintenance: resolve(__dirname, 'maintenance.html'),
           'admin-index': resolve(__dirname, 'admin/index.html'),
+          'admin-statistics': resolve(__dirname, 'admin/statistics.html'),
           'admin-students': resolve(__dirname, 'admin/students.html'),
           'admin-subjects': resolve(__dirname, 'admin/subjects.html'),
           'admin-materials': resolve(__dirname, 'admin/materials.html'),
