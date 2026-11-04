@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <style>html.admin-auth-pending body{visibility:hidden!important}</style>
+  <script>document.documentElement.classList.add('admin-auth-pending')</script>
+  <title>أسئلة الكويز | لوحة الإدارة</title>
+  <link rel="stylesheet" href="/comando-cairo.css?v=3" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=comando-cairo-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-cairo-2" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/quizzes.html" class="logo">
+        <span class="logo-icon">C</span>
+        <span>أسئلة الكويز</span>
+      </a>
+      <a href="/admin/quizzes.html" class="btn btn-sm btn-secondary">رجوع</a>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:32px">
+    <div class="container page-content">
+      <h1 class="mb-1" style="font-size:1.15rem" id="quiz-title">أسئلة الكويز</h1>
+      <p class="text-sm text-muted mb-3" id="quiz-meta"></p>
+
+      <div class="card mb-3">
+        <h2 class="card-title">إضافة سؤال</h2>
+        <form id="q-form">
+          <div class="form-group">
+            <label class="form-label">نص السؤال *</label>
+            <textarea id="prompt" class="form-textarea" required rows="2"></textarea>
+          </div>
+          <div class="form-group"><label class="form-label">اختيار 1 *</label><input type="text" id="opt0" class="form-input" required /></div>
+          <div class="form-group"><label class="form-label">اختيار 2 *</label><input type="text" id="opt1" class="form-input" required /></div>
+          <div class="form-group"><label class="form-label">اختيار 3 (اختياري)</label><input type="text" id="opt2" class="form-input" /></div>
+          <div class="form-group"><label class="form-label">اختيار 4 (اختياري)</label><input type="text" id="opt3" class="form-input" /></div>
+          <div class="form-group">
+            <label class="form-label">الإجابة الصحيحة</label>
+            <select id="correct" class="form-select">
+              <option value="0">اختيار 1</option>
+              <option value="1">اختيار 2</option>
+              <option value="2">اختيار 3</option>
+              <option value="3">اختيار 4</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">درجة السؤال</label>
+            <input type="number" id="points" class="form-input" min="0.5" step="0.5" value="1" />
+          </div>
+          <button type="submit" class="btn btn-primary">حفظ السؤال</button>
+        </form>
+      </div>
+
+      <div id="list"></div>
+    </div>
+  </main>
+  <script type="module">
+    import { supabase } from '../assets/js/supabase.js';
+    import { protectAdminPage } from '../assets/js/auth.js';
+    import { escapeHtml, showEmpty, showError, showToast, initIcons } from '../assets/js/utils.js';
+
+    const params = new URLSearchParams(location.search);
+    const quizId = params.get('quiz') || params.get('id');
+
+    async function init() {
+      const ok = await protectAdminPage();
+      if (!ok) return;
+      document.documentElement.classList.remove('admin-auth-pending');
+      initIcons();
+      if (!quizId) {
+        showError(document.getElementById('list'), 'مفيش كويز محدد. ارجع من قائمة الكويزات واضغط «الأسئلة».');
+        return;
+      }
+      const { data: quiz } = await supabase.from('quizzes').select('id, title, duration_minutes, start_at, end_at').eq('id', quizId).maybeSingle();
+      if (quiz) {
+        document.getElementById('quiz-title').textContent = 'أسئلة: ' + (quiz.title || 'كويز');
+        document.getElementById('quiz-meta').textContent =
+          (quiz.duration_minutes ? 'المدة: ' + quiz.duration_minutes + ' دقيقة · ' : '') +
+          'الطالب يشوف الأسئلة بترتيب مختلف كل مرة';
+      }
+      document.getElementById('q-form').onsubmit = save;
+      await load();
+    }
+
+    async function load() {
+      const el = document.getElementById('list');
+      const { data, error } = await supabase
+        .from('quiz_questions')
+        .select('id, prompt, options, correct_option, points, position')
+        .eq('quiz_id', quizId)
+        .order('position', { ascending: true })
+        .order('created_at', { ascending: true });
+      if (error) {
+        showError(el, 'تعذر تحميل الأسئلة. نفّذ ملف SQL: supabase/interactive_quizzes.sql — ' + (error.message || ''));
+        return;
+      }
+      if (!data?.length) {
+        showEmpty(el, 'لسه مفيش أسئلة. ضيف أول سؤال من النموذج فوق.');
+        return;
+      }
+      el.innerHTML = data.map((q, i) => {
+        const opts = Array.isArray(q.options) ? q.options : [];
+        return `<div class="card mb-2">
+          <div class="flex justify-between gap-1 flex-wrap">
+            <strong>س ${i + 1}</strong>
+            <button type="button" class="btn btn-sm btn-danger" data-del="${q.id}">حذف</button>
+          </div>
+          <p class="mt-1">${escapeHtml(q.prompt)}</p>
+          <ul class="text-sm" style="margin:8px 0 0;padding-right:18px">
+            ${opts.map((o, idx) => `<li>${idx === q.correct_option ? '✓ ' : ''}${escapeHtml(String(o))}${idx === q.correct_option ? ' <span class="badge badge-success">صح</span>' : ''}</li>`).join('')}
+          </ul>
+          <p class="text-sm text-muted mt-1">الدرجة: ${q.points ?? 1}</p>
+        </div>`;
+      }).join('');
+      el.querySelectorAll('[data-del]').forEach((btn) => {
+        btn.onclick = async () => {
+          if (!confirm('حذف السؤال؟')) return;
+          await supabase.from('quiz_questions').delete().eq('id', btn.dataset.del);
+          showToast('تم الحذف', 'success');
+          await load();
+        };
+      });
+    }
+
+    async function save(e) {
+      e.preventDefault();
+      const opts = [0, 1, 2, 3]
+        .map((i) => document.getElementById('opt' + i).value.trim())
+        .filter(Boolean);
+      if (opts.length < 2) {
+        showToast('لازم اختيارين على الأقل', 'error');
+        return;
+      }
+      let correct = Number(document.getElementById('correct').value) || 0;
+      if (correct >= opts.length) correct = 0;
+      const { count } = await supabase
+        .from('quiz_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('quiz_id', quizId);
+      const { error } = await supabase.from('quiz_questions').insert({
+        quiz_id: quizId,
+        prompt: document.getElementById('prompt').value.trim(),
+        options: opts,
+        correct_option: correct,
+        points: Number(document.getElementById('points').value) || 1,
+        position: (count || 0) + 1
+      });
+      if (error) {
+        showToast(error.message || 'فشل الحفظ. نفّذ interactive_quizzes.sql', 'error');
+        return;
+      }
+      await supabase.from('quizzes').update({ has_questions: true }).eq('id', quizId);
+      showToast('اتضاف السؤال', 'success');
+      e.target.reset();
+      document.getElementById('points').value = '1';
+      await load();
+    }
+
+    init();
+  </script>
+</body>
+</html>
