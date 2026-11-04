@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap");
+
 /* NUSC — white + soft orange identity, practical student-tool UI */
 :root {
   color-scheme: light;
@@ -307,4 +309,19 @@ a[class*="gray"],
   color: #ffffff !important;
   border-color: #3b3b3b !important;
   box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 2px 5px rgba(0,0,0,.22) !important;
+}
+
+
+/* Global Cairo typography: one font across student, public and admin interfaces. */
+:root {
+  --font: "Cairo", sans-serif !important;
+}
+html, body, body *,
+body *::before,
+body *::after,
+button, input, select, textarea {
+  font-family: "Cairo", sans-serif !important;
+}
+input::placeholder, textarea::placeholder {
+  font-family: "Cairo", sans-serif !important;
 }
