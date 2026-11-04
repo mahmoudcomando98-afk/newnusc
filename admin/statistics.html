@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <style>html.admin-auth-pending body{visibility:hidden!important}</style>
+  <script>document.documentElement.classList.add('admin-auth-pending')</script>
+  <title>الإحصائيات | لوحة الإدارة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=comando-cairo-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-cairo-1" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo">
+        <span class="logo-icon">C</span>
+        <span>الإحصائيات</span>
+      </a>
+      <a href="/admin/index.html" class="btn btn-sm btn-secondary">رجوع للوحة</a>
+    </div>
+  </header>
+
+  <main class="page" style="padding-bottom:32px">
+    <div class="container page-content">
+      <h1 class="mb-2" style="font-size:1.2rem">الإحصائيات</h1>
+      <p class="text-sm text-muted mb-3">ملخص الاستخدام والمشاكل اللي محتاجة مراجعة من الأدمن.</p>
+
+      <div class="card-grid mb-3" id="summary-cards">
+        <div class="card"><div class="skeleton skeleton-title"></div></div>
+        <div class="card"><div class="skeleton skeleton-title"></div></div>
+        <div class="card"><div class="skeleton skeleton-title"></div></div>
+        <div class="card"><div class="skeleton skeleton-title"></div></div>
+      </div>
+
+      <section class="card mb-3">
+        <h2 class="card-title">أكثر الملفات تحميلًا</h2>
+        <div id="top-downloads" class="text-sm"><div class="skeleton skeleton-text"></div></div>
+      </section>
+
+      <section class="card mb-3">
+        <h2 class="card-title">المستخدمون</h2>
+        <div id="users-block" class="text-sm"><div class="skeleton skeleton-text"></div></div>
+      </section>
+
+      <section class="card mb-3">
+        <h2 class="card-title">مشاكل تحتاج مراجعة</h2>
+        <p class="text-sm text-muted mb-2">نقاط مستخرجة من البيانات الحالية عشان تصلحها بسرعة.</p>
+        <div id="issues-block" class="text-sm"><div class="skeleton skeleton-text"></div></div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase } from '../assets/js/supabase.js';
+    import { protectAdminPage } from '../assets/js/auth.js';
+    import { escapeHtml, showError, initIcons } from '../assets/js/utils.js';
+
+    function card(label, value) {
+      return `<div class="card text-center"><p class="text-muted text-sm">${escapeHtml(label)}</p><p style="font-size:1.45rem;font-weight:700;color:var(--primary);margin:4px 0">${value}</p></div>`;
+    }
+
+    async function init() {
+      const ok = await protectAdminPage();
+      if (!ok) return;
+      document.documentElement.classList.remove('admin-auth-pending');
+      initIcons();
+
+      const summaryEl = document.getElementById('summary-cards');
+      const topEl = document.getElementById('top-downloads');
+      const usersEl = document.getElementById('users-block');
+      const issuesEl = document.getElementById('issues-block');
+
+      try {
+        const [
+          students,
+          allProfiles,
+          banned,
+          materials,
+          topMats,
+          pushCount,
+          pendingOrders,
+          unpublished,
+          missingPath
+        ] = await Promise.all([
+          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'student'),
+          supabase.from('profiles').select('id, full_name, name, email, role, is_banned, created_at').order('created_at', { ascending: false }).limit(30),
+          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_banned', true),
+          supabase.from('materials').select('id', { count: 'exact', head: true }),
+          supabase.from('materials').select('id, title, download_count, material_type, is_published').order('download_count', { ascending: false }).limit(15),
+          supabase.from('push_subscriptions').select('id', { count: 'exact', head: true }),
+          supabase.from('store_orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('materials').select('id, title').eq('is_published', false).limit(20),
+          supabase.from('materials').select('id, title, file_path').is('file_path', null).limit(20)
+        ]);
+
+        const studentCount = students.count ?? 0;
+        const bannedCount = banned.count ?? 0;
+        const matCount = materials.count ?? 0;
+        const push = pushCount.count ?? 0;
+        const pending = pendingOrders.count ?? 0;
+
+        summaryEl.innerHTML =
+          card('الطلاب', studentCount) +
+          card('الملفات', matCount) +
+          card('أجهزة الإشعارات', push) +
+          card('محظورون', bannedCount);
+
+        const topRows = (topMats.data || []).filter((r) => (r.download_count || 0) > 0);
+        if (!topRows.length) {
+          topEl.innerHTML = '<p class="text-muted">لسه مفيش تنزيلات مسجّلة على الملفات.</p>';
+        } else {
+          topEl.innerHTML =
+            '<ul style="list-style:none;padding:0;margin:0">' +
+            topRows
+              .map(
+                (r, i) =>
+                  `<li style="padding:8px 0;border-bottom:1px solid var(--border)">
+                    <strong>${i + 1}. ${escapeHtml(r.title || 'ملف')}</strong>
+                    <span class="text-muted"> — ${r.download_count || 0} تحميل</span>
+                    ${r.is_published === false ? ' <span class="badge">مسودة</span>' : ''}
+                  </li>`
+              )
+              .join('') +
+            '</ul>';
+        }
+
+        const recent = allProfiles.data || [];
+        const roleCounts = { student: 0, admin: 0, moderator: 0, other: 0 };
+        recent.forEach((p) => {
+          const role = p.role || 'other';
+          if (roleCounts[role] != null) roleCounts[role] += 1;
+          else roleCounts.other += 1;
+        });
+
+        usersEl.innerHTML = `
+          <p class="mb-2"><strong>إجمالي الطلاب:</strong> ${studentCount}</p>
+          <p class="mb-2 text-muted">آخر الحسابات (حتى 30):</p>
+          <ul style="list-style:none;padding:0;margin:0">
+            ${recent
+              .map((p) => {
+                const name = p.full_name || p.name || 'بدون اسم';
+                const ban = p.is_banned ? ' <span class="badge" style="color:var(--danger)">محظور</span>' : '';
+                return `<li style="padding:6px 0;border-bottom:1px solid var(--border)">${escapeHtml(name)} — <span class="text-muted">${escapeHtml(p.email || '')}</span> · ${escapeHtml(p.role || 'student')}${ban}</li>`;
+              })
+              .join('') || '<li class="text-muted">لا توجد حسابات</li>'}
+          </ul>`;
+
+        const issues = [];
+        if (pending > 0) {
+          issues.push(`فيه <strong>${pending}</strong> طلب متجر بانتظار الموافقة — راجع <a href="/admin/store.html">المتجر</a>.`);
+        }
+        const drafts = unpublished.data || [];
+        if (drafts.length) {
+          issues.push(
+            `فيه <strong>${drafts.length}</strong> ملف/ملفات مسودة مش منشورة:` +
+              '<ul style="margin:6px 0 0;padding-right:18px">' +
+              drafts.map((d) => `<li>${escapeHtml(d.title || d.id)}</li>`).join('') +
+              '</ul>'
+          );
+        }
+        const noPath = (missingPath.data || []).filter((m) => !m.file_path);
+        // second query used .is null — also check empty string from top list
+        const brokenFromTop = (topMats.data || []).filter((m) => m.file_path === '' || m.file_path === undefined);
+        if (noPath.length) {
+          issues.push(
+            `ملفات بدون مسار ملف (file_path فاضي) — ${noPath.length}:` +
+              '<ul style="margin:6px 0 0;padding-right:18px">' +
+              noPath.map((d) => `<li>${escapeHtml(d.title || d.id)}</li>`).join('') +
+              '</ul>'
+          );
+        }
+        if (bannedCount > 0) {
+          issues.push(`عدد المحظورين: <strong>${bannedCount}</strong> — راجع <a href="/admin/students.html">الطلاب</a>.`);
+        }
+        if (!issues.length) {
+          issuesEl.innerHTML = '<p class="text-muted">مفيش مشاكل واضحة من البيانات الحالية.</p>';
+        } else {
+          issuesEl.innerHTML =
+            '<ul style="padding-right:18px;margin:0;line-height:1.7">' +
+            issues.map((t) => `<li style="margin-bottom:10px">${t}</li>`).join('') +
+            '</ul>';
+        }
+      } catch (err) {
+        console.error(err);
+        showError(summaryEl, 'تعذر تحميل الإحصائيات. حاول مرة أخرى.');
+        topEl.innerHTML = '';
+        usersEl.innerHTML = '';
+        issuesEl.innerHTML = '';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
