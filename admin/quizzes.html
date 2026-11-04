@@ -5,14 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
-  <title>إدارة الكويزات | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=neutral-v2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=neutral-v2" />
+  <title>إدارة الكويزات | COMANDO</title>
+  <link rel="stylesheet" href="/comando-cairo.css?v=3" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=comando-cairo-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-cairo-2" />
 </head>
 <body>
   <header class="app-header">
     <div class="container">
-      <a href="/admin/index.html" class="logo"><span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span><span>الكويزات</span></a>
+      <a href="/admin/index.html" class="logo"><span class="logo-icon">C</span><span>الكويزات</span></a>
       <button type="button" class="btn btn-sm btn-primary" id="add-btn">+ كويز</button>
     </div>
   </header>
@@ -23,16 +24,17 @@
           <div class="form-group"><label class="form-label">العنوان *</label><input type="text" id="title" class="form-input" required /></div>
           <div class="form-group"><label class="form-label">القواعد / التعليمات</label><textarea id="rules" class="form-textarea"></textarea></div>
           <div class="form-group"><label class="form-label">المادة</label><select id="subject_id" class="form-select"><option value="">— اختر —</option></select></div>
-          <div class="form-group"><label class="form-label">الدرجة الكلية</label><input type="number" min="0" id="total_marks" class="form-input" /></div>
-          <div class="form-group"><label class="form-label">درجة النجاح</label><input type="number" min="0" id="passing_score" class="form-input" /></div>
-          <div class="form-group"><label class="form-label">المدة بالدقائق</label><input type="number" min="1" id="duration_minutes" class="form-input" /></div>
-          <div class="form-group"><label class="form-label">بداية</label><input type="datetime-local" id="quiz_date" class="form-input" dir="ltr" /></div>
-          <div class="form-group"><label class="form-label">رابط دخول الامتحان</label><input type="url" id="quiz_url" class="form-input" dir="ltr" placeholder="https://forms.google.com/..." /><p class="form-hint">ضع رابط Google Forms أو أي منصة امتحانات، وسيظهر للطلاب زر دخول الامتحان.</p></div>
+          <div class="form-group"><label class="form-label">الدرجة الكلية (اختياري)</label><input type="number" min="0" id="total_marks" class="form-input" /></div>
+          <div class="form-group"><label class="form-label">درجة النجاح (اختياري)</label><input type="number" min="0" id="passing_score" class="form-input" /></div>
+          <div class="form-group"><label class="form-label">مدة الحل للطالب (دقائق)</label><input type="number" min="1" id="duration_minutes" class="form-input" placeholder="مثال: 30" /><p class="form-hint">من لحظة ما الطالب يضغط ابدأ — العداد يبدأ.</p></div>
+          <div class="form-group"><label class="form-label">يفتح من</label><input type="datetime-local" id="quiz_date" class="form-input" dir="ltr" /></div>
+          <div class="form-group"><label class="form-label">يقفل في</label><input type="datetime-local" id="end_at" class="form-input" dir="ltr" /><p class="form-hint">بعد الوقت ده مش هيقدر أي طالب يبدأ الكويز.</p></div>
+          <div class="form-group"><label class="form-label">رابط خارجي (اختياري — Google Forms وغيره)</label><input type="url" id="quiz_url" class="form-input" dir="ltr" placeholder="https://forms.google.com/..." /><p class="form-hint">لو هتعمل أسئلة جوه المنصة من زر «الأسئلة»، مش محتاج رابط خارجي.</p></div>
           <div class="form-group">
             <label class="form-label" for="solution_image">صورة حل الكويز (اختياري)</label>
             <input type="file" id="solution_image" class="form-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
-            <p class="form-hint">صورة الحل تظهر للطالب بزر «عرض الحل».</p>
           </div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" id="allow_retake" /><span>السماح بإعادة المحاولة</span></label></div>
           <div class="form-group"><label class="form-check"><input type="checkbox" id="is_published" checked /><span>منشور</span></label></div>
           <div class="flex gap-1"><button type="submit" class="btn btn-primary">حفظ</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
         </form>
@@ -51,6 +53,7 @@
     async function init() {
       const result = await protectAdminPage(); if (!result) return;
       profile = result.profile; initIcons();
+      document.documentElement.classList.remove('admin-auth-pending');
       const { data: subjects, error: subjectsError } = await supabase.from('subjects').select('id, name').order('name');
       if (subjectsError) console.warn('Could not load subjects:', subjectsError.message);
       const subjectSelect = document.getElementById('subject_id');
@@ -85,7 +88,7 @@
         const { error } = await supabase.from('quizzes').update({ solution_image_path: path }).eq('id', quizId);
         if (error) {
           await supabase.storage.from('materials').remove([path]);
-          showToast(error.message || 'تعذر حفظ صورة الحل. نفّذ supabase/fix_solution_images.sql', 'error');
+          showToast(error.message || 'تعذر حفظ صورة الحل.', 'error');
           return;
         }
         if (existing?.solution_image_path && existing.solution_image_path !== path) {
@@ -94,7 +97,6 @@
         showToast('تم حفظ صورة حل الكويز.', 'success');
         await load();
       } catch (err) {
-        console.error(err);
         showToast(err.message || 'فشل رفع صورة الحل.', 'error');
       }
     }
@@ -102,7 +104,7 @@
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase.from('quizzes').select('id, title, start_at, duration_minutes, is_published, quiz_url, total_marks, passing_score, subject_id, solution_image_path').order('start_at', { ascending: false });
+        const { data, error } = await supabase.from('quizzes').select('id, title, start_at, end_at, duration_minutes, is_published, quiz_url, total_marks, passing_score, subject_id, solution_image_path, has_questions, allow_retake').order('start_at', { ascending: false });
         if (error) throw error;
         if (!data?.length) { showEmpty(el, 'لا توجد كويزات'); return; }
         el.innerHTML = data.map(q => {
@@ -111,18 +113,18 @@
             <div class="flex justify-between flex-wrap gap-1">
               <div>
                 <h3 class="card-title">${escapeHtml(q.title)}</h3>
-                <p class="text-sm text-muted">${q.start_at ? formatDate(q.start_at,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</p>
-                <p class="text-sm mt-1">${hasSolution ? '<span class="badge badge-success">صورة الحل موجودة</span>' : '<span class="badge badge-warning">مفيش صورة حل</span>'}</p>
+                <p class="text-sm text-muted">${q.start_at ? 'يفتح: ' + formatDate(q.start_at,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}${q.end_at ? ' · يقفل: ' + formatDate(q.end_at,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : ''}</p>
+                <p class="text-sm mt-1">${q.has_questions ? '<span class="badge badge-success">أسئلة داخل المنصة</span>' : '<span class="badge">مفيش أسئلة داخلية</span>'} ${hasSolution ? '<span class="badge badge-success">صورة حل</span>' : ''}</p>
               </div>
               <div class="flex gap-1 flex-wrap">
-                <button type="button" class="btn btn-sm btn-secondary" data-sol="${q.id}">${hasSolution ? 'تغيير صورة الحل' : 'إضافة صورة الحل'}</button>
+                <a class="btn btn-sm btn-primary" href="/admin/quiz-questions.html?quiz=${q.id}">الأسئلة</a>
+                <button type="button" class="btn btn-sm btn-secondary" data-sol="${q.id}">${hasSolution ? 'تغيير صورة الحل' : 'صورة الحل'}</button>
                 <button type="button" class="btn btn-sm btn-danger" data-del="${q.id}">حذف</button>
               </div>
             </div>
-            ${q.quiz_url ? `<div class="mt-2"><p class="text-sm text-muted" dir="ltr" style="overflow-wrap:anywhere">${escapeHtml(q.quiz_url)}</p><div class="flex flex-wrap gap-1 mt-1"><button type="button" class="btn btn-sm btn-secondary" data-copy="${escapeHtml(q.quiz_url)}">نسخ رابط الامتحان</button><a class="btn btn-sm btn-outline" href="https://wa.me/?text=${encodeURIComponent((q.title || 'كويز') + ' - رابط الامتحان: ' + q.quiz_url)}" target="_blank" rel="noopener noreferrer">إرسال عبر واتساب</a><a class="btn btn-sm btn-outline" href="${escapeHtml(q.quiz_url)}" target="_blank" rel="noopener noreferrer">فتح الرابط</a></div></div>` : `<p class="text-sm text-muted mt-1">لم تتم إضافة رابط امتحان لهذا الكويز.</p>`}
+            ${q.quiz_url ? `<div class="mt-2"><p class="text-sm text-muted" dir="ltr" style="overflow-wrap:anywhere">${escapeHtml(q.quiz_url)}</p></div>` : ''}
           </div>`;
         }).join('');
-        el.querySelectorAll('[data-copy]').forEach(btn => btn.onclick = async () => { try { await navigator.clipboard.writeText(btn.dataset.copy); showToast('تم نسخ رابط الامتحان', 'success'); } catch { window.prompt('انسخ رابط الامتحان:', btn.dataset.copy); } });
         el.querySelectorAll('[data-sol]').forEach(btn => btn.onclick = () => {
           attachTargetId = btn.dataset.sol;
           document.getElementById('solution-attach-input').value = '';
@@ -132,56 +134,53 @@
           if(!confirm('حذف؟')) return;
           const item = data.find(q => String(q.id) === String(btn.dataset.del));
           await supabase.from('quizzes').delete().eq('id', btn.dataset.del);
-          if (item?.solution_image_path) {
-            await supabase.storage.from('materials').remove([item.solution_image_path]).catch(() => {});
-          }
+          if (item?.solution_image_path) await supabase.storage.from('materials').remove([item.solution_image_path]).catch(() => {});
           await load();
         });
       } catch (error) {
-        console.error('Admin quizzes loading error:', { code: error?.code, message: error?.message, details: error?.details, hint: error?.hint });
-        showError(el, 'تعذر تحميل الكويزات. تحقق من أعمدة جدول quizzes وسياسات القراءة في Supabase.');
+        showError(el, 'تعذر تحميل الكويزات.');
       }
     }
 
     async function save(e) {
       e.preventDefault();
       const solutionFile = document.getElementById('solution_image').files?.[0] || null;
-      if (solutionFile && !/^image\/(jpeg|png|webp)$/i.test(solutionFile.type) && !/\.(jpe?g|png|webp)$/i.test(solutionFile.name)) {
-        showToast('صورة الحل لازم تكون JPG أو PNG أو WebP.', 'error');
-        return;
-      }
       await withLoading(e.target.querySelector('[type=submit]'), async () => {
         let solutionPath = null;
         if (solutionFile) {
-          try {
-            solutionPath = await uploadSolutionImage(solutionFile);
-          } catch (err) {
-            showToast(err.message || 'فشل رفع صورة الحل.', 'error');
-            return;
-          }
+          try { solutionPath = await uploadSolutionImage(solutionFile); }
+          catch (err) { showToast(err.message || 'فشل رفع صورة الحل.', 'error'); return; }
         }
         const payload = {
           title: document.getElementById('title').value.trim(),
           instructions: document.getElementById('rules').value.trim() || null,
           subject_id: document.getElementById('subject_id').value || null,
           start_at: document.getElementById('quiz_date').value ? new Date(document.getElementById('quiz_date').value).toISOString() : null,
+          end_at: document.getElementById('end_at').value ? new Date(document.getElementById('end_at').value).toISOString() : null,
           quiz_url: document.getElementById('quiz_url').value.trim() || null,
           duration_minutes: document.getElementById('duration_minutes').value ? Number(document.getElementById('duration_minutes').value) : null,
           total_marks: document.getElementById('total_marks').value ? Number(document.getElementById('total_marks').value) : null,
           passing_score: document.getElementById('passing_score').value ? Number(document.getElementById('passing_score').value) : null,
+          allow_retake: document.getElementById('allow_retake').checked,
           is_published: document.getElementById('is_published').checked
         };
         if (solutionPath) payload.solution_image_path = solutionPath;
 
-        const { error } = await supabase.from('quizzes').insert(payload);
+        let { error } = await supabase.from('quizzes').insert(payload);
+        if (error && /allow_retake|has_questions|end_at/i.test(String(error.message || ''))) {
+          delete payload.allow_retake;
+          ({ error } = await supabase.from('quizzes').insert(payload));
+        }
         if (error) {
           if (solutionPath) await supabase.storage.from('materials').remove([solutionPath]).catch(() => {});
-          showToast(error.message + (String(error.message).includes('solution_image') ? ' — نفّذ supabase/fix_solution_images.sql' : ''), 'error');
+          showToast(error.message, 'error');
           return;
         }
-        showToast('تم', 'success');
+        showToast('تم حفظ الكويز — من زر الأسئلة ضيف الأسئلة', 'success');
         document.getElementById('form-panel').classList.add('hidden');
-        e.target.reset(); await load();
+        e.target.reset();
+        document.getElementById('is_published').checked = true;
+        await load();
       });
     }
     init();
