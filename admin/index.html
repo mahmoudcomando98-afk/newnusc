@@ -6,8 +6,11 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>لوحة الإدارة | COMANDO</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=comando-2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-2" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=comando-cairo-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-cairo-1" />
 </head>
 <body>
   <header class="app-header">
@@ -37,6 +40,10 @@
 
       <h2 class="mb-2 mt-3" style="font-size:1.05rem">الأقسام</h2>
       <div class="card-grid">
+        <a href="/admin/statistics.html" class="card" style="text-decoration:none;color:inherit">
+          <h3 class="card-title">الإحصائيات</h3>
+          <p class="text-sm text-muted">تحميلات · مستخدمون · مشاكل تحتاج مراجعة</p>
+        </a>
         <a href="/admin/subjects.html" class="card" style="text-decoration:none;color:inherit">
           <h3 class="card-title">المواد الدراسية</h3>
           <p class="text-sm text-muted">إضافة وتعديل المواد</p>
