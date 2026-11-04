@@ -1,18 +1,31 @@
 /*
- * NUSC base stylesheet.
- * Layout primitives live in the historical base file; identity colors + polish
- * are applied by neutral-theme.css (loaded after this file on every page).
- * Kept as a stable import so existing class names continue to work.
+ * COMANDO base stylesheet.
+ * Layout primitives from historical base; identity in neutral-theme.css.
  */
 @import url("https://cdn.jsdelivr.net/gh/mahmoudcomando98-afk/newnusc@d4c287642f0327f903a447de0c6cf37f484dedfb/assets/css/main.css");
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap");
 
-/* Local spacing tokens used by pages even if CDN is slow */
 :root {
   --nusc-space-1: 4px;
   --nusc-space-2: 8px;
   --nusc-space-3: 12px;
   --nusc-space-4: 16px;
   --nusc-space-5: 24px;
+  --font: "Cairo", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+}
+
+/* Cairo على المنصة كلها — بعد أي ستايل أساسي */
+html,
+body,
+button,
+input,
+select,
+textarea,
+.btn,
+.card,
+.app-header,
+.bottom-nav {
+  font-family: "Cairo", system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif !important;
 }
 
 @import url("/assets/css/mobile-polish.css");
