@@ -6,11 +6,9 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <title>الإحصائيات | لوحة الإدارة</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/assets/css/main.css?v=comando-cairo-1" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-cairo-1" />
+  <link rel="stylesheet" href="/comando-cairo.css" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=comando-cairo-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-cairo-2" />
 </head>
 <body>
   <header class="app-header">
@@ -62,6 +60,26 @@
       return `<div class="card text-center"><p class="text-muted text-sm">${escapeHtml(label)}</p><p style="font-size:1.45rem;font-weight:700;color:var(--primary);margin:4px 0">${value}</p></div>`;
     }
 
+    async function safeCount(query) {
+      try {
+        const { count, error } = await query;
+        if (error) return 0;
+        return count ?? 0;
+      } catch {
+        return 0;
+      }
+    }
+
+    async function safeSelect(query) {
+      try {
+        const { data, error } = await query;
+        if (error) return [];
+        return data || [];
+      } catch {
+        return [];
+      }
+    }
+
     async function init() {
       const ok = await protectAdminPage();
       if (!ok) return;
@@ -75,32 +93,38 @@
 
       try {
         const [
-          students,
-          allProfiles,
-          banned,
-          materials,
-          topMats,
-          pushCount,
-          pendingOrders,
-          unpublished,
-          missingPath
+          studentCount,
+          recent,
+          bannedCount,
+          matCount,
+          topRowsRaw,
+          push,
+          pending,
+          drafts,
+          noPath
         ] = await Promise.all([
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'student'),
-          supabase.from('profiles').select('id, full_name, name, email, role, is_banned, created_at').order('created_at', { ascending: false }).limit(30),
-          supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_banned', true),
-          supabase.from('materials').select('id', { count: 'exact', head: true }),
-          supabase.from('materials').select('id, title, download_count, material_type, is_published').order('download_count', { ascending: false }).limit(15),
-          supabase.from('push_subscriptions').select('id', { count: 'exact', head: true }),
-          supabase.from('store_orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-          supabase.from('materials').select('id, title').eq('is_published', false).limit(20),
-          supabase.from('materials').select('id, title, file_path').is('file_path', null).limit(20)
+          safeCount(supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'student')),
+          safeSelect(
+            supabase
+              .from('profiles')
+              .select('id, full_name, name, email, role, is_banned, created_at')
+              .order('created_at', { ascending: false })
+              .limit(30)
+          ),
+          safeCount(supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_banned', true)),
+          safeCount(supabase.from('materials').select('id', { count: 'exact', head: true })),
+          safeSelect(
+            supabase
+              .from('materials')
+              .select('id, title, download_count, material_type, is_published')
+              .order('download_count', { ascending: false })
+              .limit(15)
+          ),
+          safeCount(supabase.from('push_subscriptions').select('id', { count: 'exact', head: true })),
+          safeCount(supabase.from('store_orders').select('id', { count: 'exact', head: true }).eq('status', 'pending')),
+          safeSelect(supabase.from('materials').select('id, title').eq('is_published', false).limit(20)),
+          safeSelect(supabase.from('materials').select('id, title, file_path').is('file_path', null).limit(20))
         ]);
-
-        const studentCount = students.count ?? 0;
-        const bannedCount = banned.count ?? 0;
-        const matCount = materials.count ?? 0;
-        const push = pushCount.count ?? 0;
-        const pending = pendingOrders.count ?? 0;
 
         summaryEl.innerHTML =
           card('الطلاب', studentCount) +
@@ -108,7 +132,7 @@
           card('أجهزة الإشعارات', push) +
           card('محظورون', bannedCount);
 
-        const topRows = (topMats.data || []).filter((r) => (r.download_count || 0) > 0);
+        const topRows = topRowsRaw.filter((r) => (r.download_count || 0) > 0);
         if (!topRows.length) {
           topEl.innerHTML = '<p class="text-muted">لسه مفيش تنزيلات مسجّلة على الملفات.</p>';
         } else {
@@ -127,14 +151,6 @@
             '</ul>';
         }
 
-        const recent = allProfiles.data || [];
-        const roleCounts = { student: 0, admin: 0, moderator: 0, other: 0 };
-        recent.forEach((p) => {
-          const role = p.role || 'other';
-          if (roleCounts[role] != null) roleCounts[role] += 1;
-          else roleCounts.other += 1;
-        });
-
         usersEl.innerHTML = `
           <p class="mb-2"><strong>إجمالي الطلاب:</strong> ${studentCount}</p>
           <p class="mb-2 text-muted">آخر الحسابات (حتى 30):</p>
@@ -152,7 +168,6 @@
         if (pending > 0) {
           issues.push(`فيه <strong>${pending}</strong> طلب متجر بانتظار الموافقة — راجع <a href="/admin/store.html">المتجر</a>.`);
         }
-        const drafts = unpublished.data || [];
         if (drafts.length) {
           issues.push(
             `فيه <strong>${drafts.length}</strong> ملف/ملفات مسودة مش منشورة:` +
@@ -161,12 +176,9 @@
               '</ul>'
           );
         }
-        const noPath = (missingPath.data || []).filter((m) => !m.file_path);
-        // second query used .is null — also check empty string from top list
-        const brokenFromTop = (topMats.data || []).filter((m) => m.file_path === '' || m.file_path === undefined);
         if (noPath.length) {
           issues.push(
-            `ملفات بدون مسار ملف (file_path فاضي) — ${noPath.length}:` +
+            `ملفات بدون مسار ملف — ${noPath.length}:` +
               '<ul style="margin:6px 0 0;padding-right:18px">' +
               noPath.map((d) => `<li>${escapeHtml(d.title || d.id)}</li>`).join('') +
               '</ul>'
@@ -185,6 +197,7 @@
         }
       } catch (err) {
         console.error(err);
+        document.documentElement.classList.remove('admin-auth-pending');
         showError(summaryEl, 'تعذر تحميل الإحصائيات. حاول مرة أخرى.');
         topEl.innerHTML = '';
         usersEl.innerHTML = '';
