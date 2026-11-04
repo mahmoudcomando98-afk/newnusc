@@ -1,6 +1,6 @@
-/* COMANDO Service Worker — system notification tray */
+/* COMANDO Service Worker — push + installability (desktop/mobile) */
 const ICON_PATH = '/nusc.png.jpeg';
-const SW_VERSION = 'comando-sw-v1';
+const SW_VERSION = 'comando-sw-v2';
 
 function iconUrl() {
   try {
@@ -16,6 +16,21 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
+});
+
+/* Required for installability on many Chromium builds */
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    fetch(event.request).catch(() => {
+      if (event.request.mode === 'navigate') {
+        return new Response(
+          '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>COMANDO</title></head><body style="font-family:sans-serif;text-align:center;padding:40px"><h1>لا يوجد اتصال</h1><p>اتأكد من الشبكة ثم أعد المحاولة.</p></body></html>',
+          { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+        );
+      }
+      return new Response('', { status: 503, statusText: 'Offline' });
+    })
+  );
 });
 
 self.addEventListener('push', (event) => {
