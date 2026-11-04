@@ -18,14 +18,17 @@
   <link rel="icon" href="/nusc.png.jpeg" type="image/jpeg" />
   <link rel="apple-touch-icon" href="/nusc.png.jpeg" />
   <title>الرئيسية | COMANDO</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=comando-1" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=comando-cairo-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-cairo-1" />
   <link rel="stylesheet" href="/assets/css/mobile-polish.css?v=comando-1" />
   <link rel="stylesheet" href="/assets/css/home-subjects.css?v=4" />
   <link rel="stylesheet" href="/assets/css/home-notice.css?v=1" />
   <link rel="stylesheet" href="/assets/css/live-online.css?v=1" />
   <link rel="stylesheet" href="/assets/css/features-polish.css?v=1" />
-  <link rel="stylesheet" href="/assets/css/offline-wa.css?v=1" />
+  <link rel="stylesheet" href="/assets/css/offline-wa.css?v=2" />
   <link rel="stylesheet" href="/assets/css/install-prompt.css?v=2" />
   <style>
     .push-enable-banner { margin-bottom: 10px; }
@@ -60,31 +63,6 @@
       <h2>لا يوجد اتصال بالإنترنت</h2>
       <p>اتأكد من الشبكة، وبعدين اضغط إعادة المحاولة عشان ترجع تشوف موادك وتحديثاتك.</p>
       <button type="button" class="btn btn-primary" id="offline-retry-btn">إعادة المحاولة</button>
-    </div>
-  </div>
-
-  <div class="wa-gate" id="wa-gate" aria-hidden="true" role="dialog" aria-labelledby="wa-gate-title">
-    <div class="wa-gate-card">
-      <span class="wa-gate-badge">مطلوب للدخول</span>
-      <div class="wa-gate-logo" aria-hidden="true">WA</div>
-      <h2 id="wa-gate-title">انضم لجروب التحديثات</h2>
-      <p>عشان يوصلك الجديد أول بأول (ملفات · كويزات · إعلانات)، لازم تكون عضو في جروب واتساب المنصة.</p>
-      <div class="wa-gate-steps">
-        <strong>1)</strong> اضغط «انضم للجروب» وافتح الرابط.<br />
-        <strong>2)</strong> اضغط Join / انضمام في واتساب.<br />
-        <strong>3)</strong> ارجع هنا واضغط «انضممت للجروب».
-      </div>
-      <div class="wa-gate-actions">
-        <a
-          class="wa-gate-join"
-          id="wa-gate-join"
-          href="https://chat.whatsapp.com/FOkYIVS0bHdLkdHIuLo7Zp"
-          target="_blank"
-          rel="noopener noreferrer"
-        >انضم للجروب على واتساب</a>
-        <button type="button" class="wa-gate-done" id="wa-gate-done" disabled>انضممت للجروب — متابعة</button>
-      </div>
-      <p class="wa-gate-note">مرة واحدة بس. بعد التأكيد مش هتظهر الرسالة دي تاني على الجهاز ده.</p>
     </div>
   </div>
 
@@ -223,7 +201,6 @@
   <script type="module" src="/assets/js/home.js?v=fast-2"></script>
   <script type="module">
     import { onConnectivityChange } from '/assets/js/utils.js?v=fast-3';
-    import { setupWhatsAppGate } from '/assets/js/whatsapp-gate.js?v=1';
     import { setupInstallPrompt } from '/assets/js/install-prompt.js?v=4';
     import { protectPage } from '/assets/js/auth.js';
 
@@ -251,11 +228,8 @@
       try {
         const result = await protectPage();
         if (!result) return;
-        const isAdmin = result.profile?.role === 'admin';
-        setupWhatsAppGate({ skip: isAdmin });
         setupInstallPrompt();
       } catch {
-        setupWhatsAppGate();
         setupInstallPrompt();
       }
     })();
