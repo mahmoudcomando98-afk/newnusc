@@ -40,7 +40,7 @@
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://supabase.co https://*.supabase.in wss://*.supabase.in https://cdn.jsdelivr.net; frame-src 'self' blob: data: https://*.supabase.co https://*.supabase.in; object-src 'self' blob: data: https://*.supabase.co https://*.supabase.in; media-src 'self' blob: data: https://*.supabase.co https://*.supabase.in; worker-src 'self' blob: https://cdn.jsdelivr.net; child-src 'self' blob: https://cdn.jsdelivr.net; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://supabase.co https://*.supabase.in wss://*.supabase.in https://cdn.jsdelivr.net; frame-src 'self' blob: data: https://*.supabase.co https://*.supabase.in; object-src 'self' blob: data: https://*.supabase.co https://*.supabase.in; media-src 'self' blob: data: https://*.supabase.co https://*.supabase.in; worker-src 'self' blob: https://cdn.jsdelivr.net; child-src 'self' blob: https://cdn.jsdelivr.net; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         }
       ]
     },
@@ -49,6 +49,12 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" },
         { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/comando-cairo.css",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
       ]
     },
     {
