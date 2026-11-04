@@ -1,7 +1,8 @@
+import './cairo-font.js';
 import './egyptian-ar.js';
 
 /**
- * NUSC Student Hub - Supabase Client
+ * COMANDO Student Hub - Supabase Client
  * Fallback values are public publishable keys (safe for frontend with RLS)
  */
 
@@ -127,7 +128,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     flowType: 'pkce'
   },
   global: {
-    headers: { 'x-client-info': 'nusc-student-hub' }
+    headers: { 'x-client-info': 'comando-student-hub' }
   }
 });
 
@@ -254,7 +255,6 @@ function parseSettingTimestamp(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** فوري أو داخل نافذة الجدولة */
 export function isMaintenanceActiveFromSettings(settingsMap) {
   const get = (key) =>
     settingsMap instanceof Map ? settingsMap.get(key) : settingsMap?.[key];
@@ -304,7 +304,6 @@ async function enforceMaintenanceMode(enabled) {
   const pathname = window.location.pathname.toLowerCase();
   if (pathname === '/maintenance-mode.html') return false;
   if (!enabled) return false;
-  // الأدمن يدخل كل الصفحات بما فيها لوحة التحكم والمنصة نفسها
   if (await isActiveAdmin()) return false;
   if (isMaintenanceExemptPath(pathname)) return false;
   window.location.replace('/maintenance-mode.html');
@@ -330,7 +329,7 @@ function startMaintenanceMonitor() {
         await enforceMaintenanceMode(true);
       }
     } catch (error) {
-      console.warn('[NUSC] Maintenance status refresh failed:', error?.message || error);
+      console.warn('[COMANDO] Maintenance status refresh failed:', error?.message || error);
     }
   }, 60000);
 }
@@ -359,7 +358,7 @@ async function loadPlatformBranding() {
     const redirected = await enforceMaintenanceMode(isMaintenanceActiveFromSettings(settings));
     if (!redirected) startMaintenanceMonitor();
   } catch (error) {
-    console.warn('[NUSC] Could not load platform settings:', error?.message || error);
+    console.warn('[COMANDO] Could not load platform settings:', error?.message || error);
   }
 }
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
@@ -419,15 +418,14 @@ function withTimeout(promise, ms = 12000) {
   ]);
 }
 
-/** Fast session read — does not block on refresh when logged out */
 export async function getSession() {
   if (!isSupabaseConfigured()) return null;
   try {
     const { data, error } = await supabase.auth.getSession();
-    if (error) console.warn('[NUSC] getSession:', error.message);
+    if (error) console.warn('[COMANDO] getSession:', error.message);
     return data?.session || null;
   } catch (err) {
-    console.warn('[NUSC] getSession failed:', err?.message || err);
+    console.warn('[COMANDO] getSession failed:', err?.message || err);
     return null;
   }
 }
@@ -446,7 +444,6 @@ export async function getCurrentUser() {
   }
 }
 
-/** Build a minimal profile from auth user when profiles table is blocked */
 function profileFromAuthUser(user) {
   if (!user?.id) return null;
   const meta = user.user_metadata || {};
@@ -492,9 +489,9 @@ export async function getProfile(userId = null) {
       if (!data.email && authUser?.email) data.email = authUser.email;
       return data;
     }
-    if (error) console.warn('[NUSC] profile:', error.message);
+    if (error) console.warn('[COMANDO] profile:', error.message);
   } catch (err) {
-    console.warn('[NUSC] getProfile:', err?.message || err);
+    console.warn('[COMANDO] getProfile:', err?.message || err);
   }
 
   if (authUser?.id === uid) return profileFromAuthUser(authUser);
