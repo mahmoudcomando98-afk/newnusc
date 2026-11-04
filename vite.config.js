@@ -1,6 +1,27 @@
 import { defineConfig, loadEnv } from 'vite';
 import { resolve } from 'path';
 
+const CAIRO_HEAD_SNIPPET = `
+  <link rel="stylesheet" href="/comando-cairo.css?v=3" />
+  <style id="comando-cairo-boot">html,body,button,input,select,textarea{font-family:"Cairo",Tahoma,Arial,sans-serif!important}</style>
+`;
+
+function injectCairoPlugin() {
+  return {
+    name: 'inject-cairo-font',
+    transformIndexHtml(html) {
+      if (html.includes('comando-cairo.css')) return html;
+      if (html.includes('<head>')) {
+        return html.replace('<head>', `<head>${CAIRO_HEAD_SNIPPET}`);
+      }
+      if (html.includes('<head ')) {
+        return html.replace(/<head([^>]*)>/i, `<head$1>${CAIRO_HEAD_SNIPPET}`);
+      }
+      return html;
+    }
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), ['VITE_', 'NEXT_PUBLIC_']);
 
@@ -8,6 +29,7 @@ export default defineConfig(({ mode }) => {
     root: '.',
     publicDir: 'public',
     envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
+    plugins: [injectCairoPlugin()],
     define: {
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(
         env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || ''
