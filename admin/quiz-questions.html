@@ -26,7 +26,6 @@
       <p class="text-sm text-muted mb-3" id="quiz-meta"></p>
       <p class="text-sm mb-2" id="q-count" style="font-weight:700;color:var(--primary)"></p>
 
-      <!-- استيراد من كود ذكاء اصطناعي -->
       <div class="card mb-3">
         <h2 class="card-title">استيراد أسئلة من كود (PDF → AI)</h2>
         <p class="text-sm text-muted mb-2">
@@ -106,7 +105,7 @@
     const quizId = params.get('quiz') || params.get('id');
 
     function questionText(row) {
-      return row.prompt || row.question_text || row.question || '';
+      return row.text || row.prompt || row.question_text || row.question || '';
     }
 
     function questionOptions(row) {
@@ -151,9 +150,7 @@
     function parseImportText(text) {
       let t = String(text || '').trim();
       if (!t) throw new Error('الصق الكود الأول');
-      // شيل markdown لو AI حطه
       t = t.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-      // حاول تطلع أول مصفوفة أو كائن JSON
       const arrStart = t.indexOf('[');
       const objStart = t.indexOf('{');
       if (arrStart >= 0 && (objStart < 0 || arrStart < objStart)) {
@@ -168,7 +165,7 @@
       if (Array.isArray(data)) list = data;
       else if (Array.isArray(data.questions)) list = data.questions;
       else if (Array.isArray(data.items)) list = data.items;
-      else if (data.prompt || data.question) list = [data];
+      else if (data.prompt || data.question || data.text) list = [data];
       else throw new Error('شكل الكود مش مفهوم — لازم مصفوفة أسئلة');
 
       const out = [];
@@ -180,29 +177,71 @@
       return out;
     }
 
-    async function insertOne(payload, position) {
-      const row = {
+    /** يملأ كل أسماء الأعمدة المحتملة عشان أي سكيمة قديمة تشتغل */
+    function buildInsertRow(payload, position) {
+      const t = payload.prompt;
+      return {
         quiz_id: quizId,
-        prompt: payload.prompt,
+        text: t,
+        prompt: t,
+        question_text: t,
+        question: t,
         options: payload.options,
+        choices: payload.options,
         correct_option: payload.correct_option,
+        correct_index: payload.correct_option,
+        answer_index: payload.correct_option,
         points: payload.points,
-        position
+        position,
+        sort_order: position
       };
-      let { error } = await supabase.from('quiz_questions').insert(row);
-      if (error && /prompt|column|42703|PGRST204/i.test(String(error.message || '') + String(error.code || ''))) {
-        ({ error } = await supabase.from('quiz_questions').insert({
-          quiz_id: quizId,
-          question_text: payload.prompt,
-          question: payload.prompt,
-          options: payload.options,
-          choices: payload.options,
-          correct_option: payload.correct_option,
-          correct_index: payload.correct_option,
-          points: payload.points,
-          position,
-          sort_order: position
-        }));
+    }
+
+    async function insertOne(payload, position) {
+      const full = buildInsertRow(payload, position);
+      let { error } = await supabase.from('quiz_questions').insert(full);
+
+      // لو فيه أعمدة مش موجودة في الجدول، PostgREST بيرفض — جرّب صف أصغر بالتدريج
+      if (error && /column|PGRST204|42703|schema cache/i.test(String(error.message || '') + String(error.code || ''))) {
+        const attempts = [
+          {
+            quiz_id: quizId,
+            text: payload.prompt,
+            options: payload.options,
+            correct_option: payload.correct_option,
+            points: payload.points,
+            position
+          },
+          {
+            quiz_id: quizId,
+            text: payload.prompt,
+            prompt: payload.prompt,
+            options: payload.options,
+            correct_option: payload.correct_option,
+            points: payload.points,
+            position
+          },
+          {
+            quiz_id: quizId,
+            text: payload.prompt,
+            choices: payload.options,
+            correct_index: payload.correct_option,
+            points: payload.points
+          },
+          {
+            quiz_id: quizId,
+            text: payload.prompt,
+            options: payload.options,
+            correct_option: payload.correct_option
+          }
+        ];
+        for (const row of attempts) {
+          const res = await supabase.from('quiz_questions').insert(row);
+          if (!res.error) return null;
+          error = res.error;
+          // لو لسه null في text أو قيد تاني مختلف، كمل المحاولات
+          if (!/column|PGRST204|42703|schema cache/i.test(String(error.message || ''))) break;
+        }
       }
       return error;
     }
@@ -244,7 +283,7 @@
     async function fetchQuestions() {
       let res = await supabase
         .from('quiz_questions')
-        .select('id, prompt, question_text, question, options, choices, correct_option, correct_index, answer_index, points, position, sort_order, created_at')
+        .select('id, text, prompt, question_text, question, options, choices, correct_option, correct_index, answer_index, points, position, sort_order, created_at')
         .eq('quiz_id', quizId)
         .order('position', { ascending: true });
 
@@ -365,7 +404,7 @@
         document.getElementById('import-json').value = '';
         await load();
       } else {
-        showToast(lastErr || 'فشل الاستيراد — تأكد من تنفيذ fix_quiz_questions_columns.sql', 'error');
+        showToast(lastErr || 'فشل الاستيراد', 'error');
       }
     }
 
@@ -405,11 +444,7 @@
       if (btn) btn.disabled = false;
 
       if (error) {
-        showToast(
-          (error.message || 'فشل الحفظ') +
-            ' — نفّذ supabase/fix_quiz_questions_columns.sql في Supabase',
-          'error'
-        );
+        showToast(error.message || 'فشل الحفظ', 'error');
         return;
       }
 
