@@ -28,8 +28,8 @@
           <div class="form-group"><label class="form-label">درجة النجاح (اختياري)</label><input type="number" min="0" id="passing_score" class="form-input" /></div>
           <div class="form-group"><label class="form-label">مدة الحل للطالب (دقائق)</label><input type="number" min="1" id="duration_minutes" class="form-input" placeholder="مثال: 30" /><p class="form-hint">من لحظة ما الطالب يضغط ابدأ — العداد يبدأ.</p></div>
           <div class="form-group"><label class="form-label">يفتح من</label><input type="datetime-local" id="quiz_date" class="form-input" dir="ltr" /></div>
-          <div class="form-group"><label class="form-label">يقفل في</label><input type="datetime-local" id="end_at" class="form-input" dir="ltr" /><p class="form-hint">بعد الوقت ده مش هيقدر أي طالب يبدأ الكويز.</p></div>
-          <div class="form-group"><label class="form-label">رابط خارجي (اختياري — Google Forms وغيره)</label><input type="url" id="quiz_url" class="form-input" dir="ltr" placeholder="https://forms.google.com/..." /><p class="form-hint">لو هتعمل أسئلة جوه المنصة من زر «الأسئلة»، مش محتاج رابط خارجي.</p></div>
+          <div class="form-group"><label class="form-label">يقفل في</label><input type="datetime-local" id="end_at" class="form-input" dir="ltr" /><p class="form-hint">بعد الوقت ده مش هيقدر أي طالب يبدأ الكويز، وبعده تظهر الإجابات التفصيلية.</p></div>
+          <div class="form-group"><label class="form-label">رابط خارجي (اختياري)</label><input type="url" id="quiz_url" class="form-input" dir="ltr" placeholder="https://forms.google.com/..." /></div>
           <div class="form-group">
             <label class="form-label" for="solution_image">صورة حل الكويز (اختياري)</label>
             <input type="file" id="solution_image" class="form-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
@@ -118,6 +118,7 @@
               </div>
               <div class="flex gap-1 flex-wrap">
                 <a class="btn btn-sm btn-primary" href="/admin/quiz-questions.html?quiz=${q.id}">الأسئلة</a>
+                <a class="btn btn-sm btn-secondary" href="/admin/quiz-results.html?quiz=${q.id}">النتائج</a>
                 <button type="button" class="btn btn-sm btn-secondary" data-sol="${q.id}">${hasSolution ? 'تغيير صورة الحل' : 'صورة الحل'}</button>
                 <button type="button" class="btn btn-sm btn-danger" data-del="${q.id}">حذف</button>
               </div>
