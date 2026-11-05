@@ -24,13 +24,15 @@
     <div class="container page-content">
       <h1 class="mb-1" style="font-size:1.15rem" id="quiz-title">أسئلة الكويز</h1>
       <p class="text-sm text-muted mb-3" id="quiz-meta"></p>
+      <p class="text-sm mb-2" id="q-count" style="font-weight:700;color:var(--primary)"></p>
 
       <div class="card mb-3">
-        <h2 class="card-title">إضافة سؤال</h2>
+        <h2 class="card-title">إضافة سؤال جديد</h2>
+        <p class="text-sm text-muted mb-2">تقدر تضيف أي عدد من الأسئلة. بعد كل حفظ النموذج بيتفضى عشان تضيف اللي بعده.</p>
         <form id="q-form">
           <div class="form-group">
             <label class="form-label">نص السؤال *</label>
-            <textarea id="prompt" class="form-textarea" required rows="2"></textarea>
+            <textarea id="prompt" class="form-textarea" required rows="2" placeholder="اكتب السؤال هنا"></textarea>
           </div>
           <div class="form-group"><label class="form-label">اختيار 1 *</label><input type="text" id="opt0" class="form-input" required /></div>
           <div class="form-group"><label class="form-label">اختيار 2 *</label><input type="text" id="opt1" class="form-input" required /></div>
@@ -49,10 +51,11 @@
             <label class="form-label">درجة السؤال</label>
             <input type="number" id="points" class="form-input" min="0.5" step="0.5" value="1" />
           </div>
-          <button type="submit" class="btn btn-primary">حفظ السؤال</button>
+          <button type="submit" class="btn btn-primary" id="save-btn">حفظ وإضافة سؤال تاني</button>
         </form>
       </div>
 
+      <h2 class="mb-2" style="font-size:1.05rem">الأسئلة الحالية</h2>
       <div id="list"></div>
     </div>
   </main>
@@ -63,6 +66,20 @@
 
     const params = new URLSearchParams(location.search);
     const quizId = params.get('quiz') || params.get('id');
+
+    function questionText(row) {
+      return row.prompt || row.question_text || row.question || '';
+    }
+
+    function questionOptions(row) {
+      const o = row.options || row.choices;
+      return Array.isArray(o) ? o : [];
+    }
+
+    function correctIndex(row) {
+      const v = row.correct_option ?? row.correct_index ?? row.answer_index ?? 0;
+      return Number(v) || 0;
+    }
 
     async function init() {
       const ok = await protectAdminPage();
@@ -78,46 +95,80 @@
         document.getElementById('quiz-title').textContent = 'أسئلة: ' + (quiz.title || 'كويز');
         document.getElementById('quiz-meta').textContent =
           (quiz.duration_minutes ? 'المدة: ' + quiz.duration_minutes + ' دقيقة · ' : '') +
-          'الطالب يشوف الأسئلة بترتيب مختلف كل مرة';
+          'الطالب يشوف الأسئلة بترتيب مختلف كل مرة · تقدر تضيف أسئلة كتير';
       }
       document.getElementById('q-form').onsubmit = save;
       await load();
     }
 
+    async function fetchQuestions() {
+      // جرّب الأعمدة الكاملة، ولو فشلت جيب الكل
+      let res = await supabase
+        .from('quiz_questions')
+        .select('id, prompt, question_text, question, options, choices, correct_option, correct_index, answer_index, points, position, sort_order, created_at')
+        .eq('quiz_id', quizId)
+        .order('position', { ascending: true });
+
+      if (res.error && /column|42703|PGRST204/i.test(String(res.error.message || '') + String(res.error.code || ''))) {
+        res = await supabase.from('quiz_questions').select('*').eq('quiz_id', quizId);
+      }
+      return res;
+    }
+
     async function load() {
       const el = document.getElementById('list');
-      const { data, error } = await supabase
-        .from('quiz_questions')
-        .select('id, prompt, options, correct_option, points, position')
-        .eq('quiz_id', quizId)
-        .order('position', { ascending: true })
-        .order('created_at', { ascending: true });
+      const countEl = document.getElementById('q-count');
+      const { data, error } = await fetchQuestions();
       if (error) {
-        showError(el, 'تعذر تحميل الأسئلة. نفّذ ملف SQL: supabase/interactive_quizzes.sql — ' + (error.message || ''));
+        showError(
+          el,
+          'تعذر تحميل الأسئلة. نفّذ في Supabase SQL Editor الملف: supabase/fix_quiz_questions_columns.sql — ' +
+            (error.message || '')
+        );
+        if (countEl) countEl.textContent = '';
         return;
       }
-      if (!data?.length) {
-        showEmpty(el, 'لسه مفيش أسئلة. ضيف أول سؤال من النموذج فوق.');
+      const rows = (data || []).slice().sort((a, b) => {
+        const pa = a.position ?? a.sort_order ?? 0;
+        const pb = b.position ?? b.sort_order ?? 0;
+        return pa - pb;
+      });
+      if (countEl) countEl.textContent = rows.length ? `عدد الأسئلة: ${rows.length}` : 'لسه مفيش أسئلة';
+      if (!rows.length) {
+        showEmpty(el, 'لسه مفيش أسئلة. ضيف من النموذج فوق — تقدر تضيف قد ما تحب.');
         return;
       }
-      el.innerHTML = data.map((q, i) => {
-        const opts = Array.isArray(q.options) ? q.options : [];
-        return `<div class="card mb-2">
+      el.innerHTML = rows
+        .map((q, i) => {
+          const opts = questionOptions(q);
+          const correct = correctIndex(q);
+          const text = questionText(q);
+          return `<div class="card mb-2">
           <div class="flex justify-between gap-1 flex-wrap">
             <strong>س ${i + 1}</strong>
             <button type="button" class="btn btn-sm btn-danger" data-del="${q.id}">حذف</button>
           </div>
-          <p class="mt-1">${escapeHtml(q.prompt)}</p>
+          <p class="mt-1">${escapeHtml(text)}</p>
           <ul class="text-sm" style="margin:8px 0 0;padding-right:18px">
-            ${opts.map((o, idx) => `<li>${idx === q.correct_option ? '✓ ' : ''}${escapeHtml(String(o))}${idx === q.correct_option ? ' <span class="badge badge-success">صح</span>' : ''}</li>`).join('')}
+            ${opts
+              .map(
+                (o, idx) =>
+                  `<li>${idx === correct ? '✓ ' : ''}${escapeHtml(String(o))}${idx === correct ? ' <span class="badge badge-success">صح</span>' : ''}</li>`
+              )
+              .join('')}
           </ul>
           <p class="text-sm text-muted mt-1">الدرجة: ${q.points ?? 1}</p>
         </div>`;
-      }).join('');
+        })
+        .join('');
       el.querySelectorAll('[data-del]').forEach((btn) => {
         btn.onclick = async () => {
           if (!confirm('حذف السؤال؟')) return;
-          await supabase.from('quiz_questions').delete().eq('id', btn.dataset.del);
+          const { error: delErr } = await supabase.from('quiz_questions').delete().eq('id', btn.dataset.del);
+          if (delErr) {
+            showToast(delErr.message || 'فشل الحذف', 'error');
+            return;
+          }
           showToast('تم الحذف', 'success');
           await load();
         };
@@ -126,6 +177,7 @@
 
     async function save(e) {
       e.preventDefault();
+      const btn = document.getElementById('save-btn');
       const opts = [0, 1, 2, 3]
         .map((i) => document.getElementById('opt' + i).value.trim())
         .filter(Boolean);
@@ -135,26 +187,62 @@
       }
       let correct = Number(document.getElementById('correct').value) || 0;
       if (correct >= opts.length) correct = 0;
+      const text = document.getElementById('prompt').value.trim();
+      if (!text) {
+        showToast('اكتب نص السؤال', 'error');
+        return;
+      }
+
       const { count } = await supabase
         .from('quiz_questions')
         .select('id', { count: 'exact', head: true })
         .eq('quiz_id', quizId);
-      const { error } = await supabase.from('quiz_questions').insert({
+
+      const payload = {
         quiz_id: quizId,
-        prompt: document.getElementById('prompt').value.trim(),
+        prompt: text,
         options: opts,
         correct_option: correct,
         points: Number(document.getElementById('points').value) || 1,
         position: (count || 0) + 1
-      });
+      };
+
+      if (btn) btn.disabled = true;
+      let { error } = await supabase.from('quiz_questions').insert(payload);
+
+      // لو عمود prompt مش موجود / أسماء مختلفة
+      if (error && /prompt|column|42703|PGRST204/i.test(String(error.message || '') + String(error.code || ''))) {
+        const alt = {
+          quiz_id: quizId,
+          question_text: text,
+          question: text,
+          options: opts,
+          choices: opts,
+          correct_option: correct,
+          correct_index: correct,
+          points: payload.points,
+          position: payload.position,
+          sort_order: payload.position
+        };
+        ({ error } = await supabase.from('quiz_questions').insert(alt));
+      }
+
+      if (btn) btn.disabled = false;
+
       if (error) {
-        showToast(error.message || 'فشل الحفظ. نفّذ interactive_quizzes.sql', 'error');
+        showToast(
+          (error.message || 'فشل الحفظ') +
+            ' — نفّذ supabase/fix_quiz_questions_columns.sql في Supabase',
+          'error'
+        );
         return;
       }
-      await supabase.from('quizzes').update({ has_questions: true }).eq('id', quizId);
-      showToast('اتضاف السؤال', 'success');
+
+      await supabase.from('quizzes').update({ has_questions: true }).eq('id', quizId).catch(() => {});
+      showToast('اتضاف السؤال — ضيف اللي بعده لو حابب', 'success');
       e.target.reset();
       document.getElementById('points').value = '1';
+      document.getElementById('prompt').focus();
       await load();
     }
 
