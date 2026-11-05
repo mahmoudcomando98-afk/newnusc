@@ -11,21 +11,38 @@
     .quiz-timer {
       position: sticky; top: 56px; z-index: 20;
       background: #fff; border: 1px solid var(--border, #ebe6e1);
-      border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;
+      border-radius: 10px; padding: 10px 14px; margin-bottom: 14px;
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
-      font-weight: 700;
+      font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,.04);
     }
-    .quiz-timer.warn { color: #a55a5a; border-color: #e8d5d5; }
-    .q-card { margin-bottom: 12px; }
+    .quiz-timer.warn { color: #a55a5a; border-color: #e8d5d5; background: #fdf8f8; }
+    .progress-track { height: 6px; background: #efeae6; border-radius: 99px; overflow: hidden; margin-bottom: 14px; }
+    .progress-fill { height: 100%; background: var(--primary, #c56a3a); border-radius: 99px; transition: width .35s ease; }
+    .q-stage { animation: qIn .28s ease; }
+    @keyframes qIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
     .q-opt {
-      display: flex; align-items: flex-start; gap: 8px;
-      padding: 10px 12px; border: 1px solid var(--border, #ebe6e1);
-      border-radius: 8px; margin-top: 8px; cursor: pointer; background: #fff;
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 14px; border: 1.5px solid var(--border, #ebe6e1);
+      border-radius: 10px; margin-top: 10px; cursor: pointer; background: #fff;
+      transition: border-color .15s, background .15s, transform .12s;
     }
+    .q-opt:hover { border-color: #d4b5a0; }
     .q-opt:has(input:checked) { border-color: #c56a3a; background: #f8efe8; }
     .q-opt input { margin-top: 3px; }
-    .result-box { text-align: center; padding: 28px 16px; }
-    .result-score { font-size: 2rem; font-weight: 800; color: var(--primary, #c56a3a); }
+    .nav-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+    .nav-row .btn { flex: 1; min-width: 120px; }
+    .result-box { text-align: center; padding: 28px 16px; animation: qIn .35s ease; }
+    .result-score { font-size: 2.1rem; font-weight: 800; color: var(--primary, #c56a3a); margin: 8px 0; }
+    .review-item { border: 1px solid var(--border,#ebe6e1); border-radius: 10px; padding: 12px; margin-bottom: 10px; background:#fff; }
+    .ok-line { color: #2f6b4f; }
+    .bad-line { color: #a55a5a; }
+    .dots { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin: 8px 0 14px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #ddd; }
+    .dot.on { background: var(--primary,#c56a3a); }
+    .dot.done { background: #c9b5a8; }
   </style>
 </head>
 <body>
@@ -47,65 +64,213 @@
 
     const quizId = new URLSearchParams(location.search).get('id');
     const root = document.getElementById('root');
+
     let attemptId = null;
     let endsAt = null;
+    let quizEndAt = null;
     let timerIv = null;
     let questions = [];
+    let answers = {};
+    let idx = 0;
+    let title = '';
+    let phase = 'take'; // take | review | done | reveal
+    let lastResult = null;
 
-    function renderTimer() {
-      const el = document.getElementById('quiz-timer');
-      if (!el || !endsAt) return;
-      const left = Math.max(0, endsAt - Date.now());
+    function fmtLeft(ms) {
+      const left = Math.max(0, ms);
       const m = Math.floor(left / 60000);
       const s = Math.floor((left % 60000) / 1000);
-      el.textContent = `الوقت المتبقي: ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function canRevealNow() {
+      if (!quizEndAt) return true;
+      return Date.now() >= quizEndAt;
+    }
+
+    function renderTimerBar() {
+      const el = document.getElementById('quiz-timer');
+      if (!el || !endsAt) return;
+      const left = endsAt - Date.now();
+      el.textContent = `الوقت المتبقي: ${fmtLeft(left)}`;
       el.classList.toggle('warn', left < 60000);
-      if (left <= 0) {
+      if (left <= 0 && phase !== 'done' && phase !== 'reveal') {
         clearInterval(timerIv);
         submitAnswers(true);
       }
     }
 
-    function renderQuestions(title) {
+    function progressHtml() {
+      const pct = questions.length ? Math.round(((idx + 1) / questions.length) * 100) : 0;
+      const dots = questions
+        .map((_, i) => `<span class="dot ${i === idx ? 'on' : i < idx ? 'done' : ''}"></span>`)
+        .join('');
+      return `
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="dots">${dots}</div>
+        <p class="text-sm text-muted" style="text-align:center;margin:0 0 10px">سؤال ${idx + 1} من ${questions.length}</p>`;
+    }
+
+    function renderTake() {
+      phase = 'take';
+      const q = questions[idx];
+      if (!q) return;
+      const opts = Array.isArray(q.options) ? q.options : [];
+      const selected = answers[q.id];
       root.innerHTML = `
-        <h1 style="font-size:1.15rem;margin:0 0 8px">${escapeHtml(title || 'الكويز')}</h1>
+        <h1 style="font-size:1.1rem;margin:0 0 8px">${escapeHtml(title || 'الكويز')}</h1>
         <div class="quiz-timer" id="quiz-timer">جاري الحساب...</div>
-        <form id="quiz-form">
-          ${questions
+        ${progressHtml()}
+        <div class="card q-stage">
+          <p style="font-weight:700;line-height:1.6;margin:0 0 4px">${escapeHtml(q.prompt || '')}</p>
+          <p class="text-sm text-muted">درجة السؤال: ${q.points ?? 1}</p>
+          ${opts
             .map(
-              (q, i) => `
-            <div class="card q-card">
-              <p><strong>س ${i + 1}.</strong> ${escapeHtml(q.prompt)}</p>
-              ${(Array.isArray(q.options) ? q.options : [])
-                .map(
-                  (opt, oi) => `
-                <label class="q-opt">
-                  <input type="radio" name="q_${q.id}" value="${oi}" required />
-                  <span>${escapeHtml(String(opt))}</span>
-                </label>`
-                )
-                .join('')}
-            </div>`
+              (opt, oi) => `
+            <label class="q-opt">
+              <input type="radio" name="cur" value="${oi}" ${selected === oi ? 'checked' : ''} />
+              <span>${escapeHtml(String(opt))}</span>
+            </label>`
             )
             .join('')}
-          <button type="submit" class="btn btn-primary btn-block" id="submit-btn">تسليم الإجابات</button>
-        </form>`;
-      document.getElementById('quiz-form').onsubmit = (e) => {
-        e.preventDefault();
-        submitAnswers(false);
+        </div>
+        <div class="nav-row">
+          <button type="button" class="btn btn-secondary" id="btn-prev" ${idx === 0 ? 'disabled' : ''}>السابق</button>
+          ${idx < questions.length - 1
+            ? `<button type="button" class="btn btn-primary" id="btn-next">التالي</button>`
+            : `<button type="button" class="btn btn-primary" id="btn-review">مراجعة الإجابات</button>`}
+        </div>`;
+
+      document.querySelectorAll('input[name=cur]').forEach((inp) => {
+        inp.onchange = () => {
+          answers[q.id] = Number(inp.value);
+        };
+      });
+      const prev = document.getElementById('btn-prev');
+      if (prev) prev.onclick = () => { saveCurrent(); idx = Math.max(0, idx - 1); renderTake(); };
+      const next = document.getElementById('btn-next');
+      if (next) next.onclick = () => {
+        if (answers[q.id] === undefined) {
+          showToast('اختار إجابة أو كمّل بدون اختيار', 'info');
+        }
+        saveCurrent();
+        idx = Math.min(questions.length - 1, idx + 1);
+        renderTake();
       };
-      renderTimer();
-      timerIv = setInterval(renderTimer, 1000);
+      const rev = document.getElementById('btn-review');
+      if (rev) rev.onclick = () => { saveCurrent(); renderReview(); };
+      renderTimerBar();
       initIcons();
     }
 
-    function collectAnswers() {
-      const answers = {};
-      questions.forEach((q) => {
-        const sel = document.querySelector(`input[name="q_${q.id}"]:checked`);
-        if (sel) answers[q.id] = Number(sel.value);
+    function saveCurrent() {
+      const q = questions[idx];
+      if (!q) return;
+      const sel = document.querySelector('input[name=cur]:checked');
+      if (sel) answers[q.id] = Number(sel.value);
+    }
+
+    function renderReview() {
+      phase = 'review';
+      root.innerHTML = `
+        <h1 style="font-size:1.1rem;margin:0 0 8px">مراجعة الإجابات</h1>
+        <div class="quiz-timer" id="quiz-timer">جاري الحساب...</div>
+        <p class="text-sm text-muted mb-2">اتأكد من إجاباتك قبل التسليم. بعد التسليم هتشوف درجتك فقط.</p>
+        ${questions
+          .map((q, i) => {
+            const opts = Array.isArray(q.options) ? q.options : [];
+            const ch = answers[q.id];
+            const label = ch === undefined ? 'لم تُجب' : escapeHtml(String(opts[ch] ?? ch));
+            return `<div class="review-item">
+              <strong>س ${i + 1}.</strong> ${escapeHtml(q.prompt || '')}
+              <p class="text-sm mt-1"><strong>إجابتك:</strong> ${label}</p>
+              <button type="button" class="btn btn-sm btn-secondary mt-1" data-jump="${i}">تعديل</button>
+            </div>`;
+          })
+          .join('')}
+        <div class="nav-row">
+          <button type="button" class="btn btn-secondary" id="back-q">رجوع للأسئلة</button>
+          <button type="button" class="btn btn-primary" id="submit-btn">تسليم الامتحان</button>
+        </div>`;
+      document.querySelectorAll('[data-jump]').forEach((b) => {
+        b.onclick = () => { idx = Number(b.dataset.jump) || 0; renderTake(); };
       });
-      return answers;
+      document.getElementById('back-q').onclick = () => renderTake();
+      document.getElementById('submit-btn').onclick = () => {
+        if (!confirm('تسليم الامتحان؟ مش هتقدر تعدّل بعد كده.')) return;
+        submitAnswers(false);
+      };
+      renderTimerBar();
+    }
+
+    function renderDone(data, auto) {
+      phase = 'done';
+      lastResult = data;
+      if (data.quiz_end_at) quizEndAt = new Date(data.quiz_end_at).getTime();
+      const revealReady = data.can_reveal || canRevealNow();
+      root.innerHTML = `
+        <div class="card result-box">
+          <p class="text-sm text-muted">${auto ? 'انتهى الوقت — تم التسليم تلقائيًا' : 'تم تسليم إجاباتك بنجاح'}</p>
+          <p class="result-score">${data.score ?? 0} / ${data.max_score ?? 0}</p>
+          <p class="text-sm">النسبة: ${data.percent ?? 0}%</p>
+          <p class="text-sm mt-2" style="line-height:1.6;max-width:360px;margin-inline:auto">
+            الإجابات التفصيلية (الصح والغلط) هتظهر بعد ما يخلص <strong>وقت الكويز كامل</strong>، مش مجرد وقت حلّك.
+          </p>
+          <div class="mt-2" id="reveal-slot">
+            ${revealReady
+              ? `<button type="button" class="btn btn-primary" id="btn-reveal">عرض النتيجة التفصيلية</button>`
+              : `<button type="button" class="btn btn-secondary" id="btn-reveal" disabled>عرض النتيجة — بعد انتهاء وقت الكويز</button>`}
+          </div>
+          <a href="/quizzes.html" class="btn btn-secondary mt-2">رجوع للكويزات</a>
+        </div>`;
+      const btn = document.getElementById('btn-reveal');
+      if (btn && !btn.disabled) btn.onclick = () => loadReveal();
+      if (!revealReady && quizEndAt) {
+        const check = setInterval(() => {
+          if (canRevealNow()) {
+            clearInterval(check);
+            const slot = document.getElementById('reveal-slot');
+            if (slot) {
+              slot.innerHTML = `<button type="button" class="btn btn-primary" id="btn-reveal">عرض النتيجة التفصيلية</button>`;
+              document.getElementById('btn-reveal').onclick = () => loadReveal();
+            }
+          }
+        }, 15000);
+      }
+    }
+
+    async function loadReveal() {
+      try {
+        const { data, error } = await supabase.rpc('get_quiz_review', { p_quiz_id: quizId });
+        if (error) throw error;
+        if (!data?.ok) {
+          showToast(data?.error || 'لسه التفاصيل مش متاحة', 'info');
+          return;
+        }
+        phase = 'reveal';
+        const list = data.questions || [];
+        root.innerHTML = `
+          <div class="card result-box" style="padding-bottom:12px">
+            <p class="text-sm text-muted">${escapeHtml(data.title || 'النتيجة التفصيلية')}</p>
+            <p class="result-score">${data.score ?? 0} / ${data.max_score ?? 0}</p>
+          </div>
+          ${list
+            .map((q, i) => {
+              const opts = Array.isArray(q.options) ? q.options : [];
+              const chosen = q.chosen;
+              const correct = q.correct_option;
+              const ok = !!q.is_correct;
+              return `<div class="review-item q-stage">
+                <p><strong>س ${i + 1}.</strong> ${escapeHtml(q.prompt || '')}</p>
+                <p class="text-sm ${ok ? 'ok-line' : 'bad-line'}">إجابتك: ${chosen == null ? '—' : escapeHtml(String(opts[chosen] ?? chosen))} ${ok ? '✓' : '✗'}</p>
+                ${!ok ? `<p class="text-sm ok-line">الصح: ${escapeHtml(String(opts[correct] ?? correct))}</p>` : ''}
+              </div>`;
+            })
+            .join('')}
+          <a href="/quizzes.html" class="btn btn-primary btn-block mt-2">رجوع</a>`;
+      } catch (err) {
+        showToast(err.message || 'تعذر تحميل التفاصيل — نفّذ SQL الجديد', 'error');
+      }
     }
 
     async function submitAnswers(auto) {
@@ -113,10 +278,11 @@
       const btn = document.getElementById('submit-btn');
       if (btn) btn.disabled = true;
       clearInterval(timerIv);
+      saveCurrent();
       try {
         const { data, error } = await supabase.rpc('submit_quiz_attempt', {
           p_attempt_id: attemptId,
-          p_answers: collectAnswers()
+          p_answers: answers
         });
         if (error) throw error;
         if (!data?.ok) {
@@ -124,16 +290,10 @@
           if (btn) btn.disabled = false;
           return;
         }
-        root.innerHTML = `
-          <div class="card result-box">
-            <p class="text-sm text-muted">${auto ? 'انتهى الوقت — تم التسليم تلقائيًا' : 'تم تسليم إجاباتك'}</p>
-            <p class="result-score">${data.score ?? 0} / ${data.max_score ?? 0}</p>
-            <p class="text-sm">النسبة: ${data.percent ?? 0}%</p>
-            <a href="/quizzes.html" class="btn btn-primary mt-2">رجوع للكويزات</a>
-          </div>`;
+        renderDone(data, auto);
       } catch (err) {
         console.error(err);
-        showToast(err.message || 'تعذر التسليم. تأكد إن SQL اتنفذ.', 'error');
+        showToast(err.message || 'تعذر التسليم. نفّذ supabase/fix_quiz_results_and_scoring.sql', 'error');
         if (btn) btn.disabled = false;
       }
     }
@@ -145,6 +305,26 @@
         showError(root, 'رابط الكويز غير صحيح.');
         return;
       }
+
+      // لو خلص قبل كده — اعرض النتيجة
+      try {
+        const { data: prev } = await supabase.rpc('get_my_quiz_result', { p_quiz_id: quizId });
+        if (prev?.has_result) {
+          if (prev.quiz_end_at) quizEndAt = new Date(prev.quiz_end_at).getTime();
+          renderDone(
+            {
+              score: prev.score,
+              max_score: prev.max_score,
+              percent: prev.max_score ? Math.round((prev.score / prev.max_score) * 100) : 0,
+              quiz_end_at: prev.quiz_end_at,
+              can_reveal: prev.can_reveal
+            },
+            false
+          );
+          return;
+        }
+      } catch { /* ignore */ }
+
       try {
         const { data, error } = await supabase.rpc('start_quiz_attempt', { p_quiz_id: quizId });
         if (error) throw error;
@@ -154,17 +334,21 @@
         }
         attemptId = data.attempt_id;
         endsAt = data.ends_at ? new Date(data.ends_at).getTime() : null;
+        quizEndAt = data.quiz_end_at ? new Date(data.quiz_end_at).getTime() : null;
         questions = data.questions || [];
+        title = data.title || '';
         if (!questions.length) {
           showError(root, 'مفيش أسئلة.');
           return;
         }
-        renderQuestions(data.title);
+        idx = 0;
+        renderTake();
+        timerIv = setInterval(renderTimerBar, 1000);
       } catch (err) {
         console.error(err);
         showError(
           root,
-          'تعذر بدء الكويز. لو أنت الأدمن: نفّذ ملف supabase/interactive_quizzes.sql في Supabase.'
+          'تعذر بدء الكويز. نفّذ في Supabase: supabase/fix_quiz_results_and_scoring.sql'
         );
       }
     }
