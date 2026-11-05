@@ -95,6 +95,7 @@ export default defineConfig(({ mode }) => {
           'admin-teacher-links': resolve(__dirname, 'admin/teacher-links.html'),
           'admin-quizzes': resolve(__dirname, 'admin/quizzes.html'),
           'admin-quiz-questions': resolve(__dirname, 'admin/quiz-questions.html'),
+          'admin-quiz-results': resolve(__dirname, 'admin/quiz-results.html'),
           'admin-schedule': resolve(__dirname, 'admin/schedule.html'),
           'admin-online-sections': resolve(__dirname, 'admin/online-sections.html'),
           'admin-online-schedule': resolve(__dirname, 'admin/online-schedule.html'),
