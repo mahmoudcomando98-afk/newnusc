@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <style>html.admin-auth-pending body{visibility:hidden!important}</style>
+  <script>document.documentElement.classList.add('admin-auth-pending')</script>
+  <title>نتائج الكويز | لوحة الإدارة</title>
+  <link rel="stylesheet" href="/comando-cairo.css?v=3" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=comando-cairo-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-cairo-2" />
+  <style>
+    @media print {
+      .app-header, .no-print { display: none !important; }
+      body { background: #fff; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #ccc; padding: 6px 8px; font-size: 12px; }
+    }
+    .results-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    .results-table th, .results-table td { border-bottom: 1px solid var(--border,#eee); padding: 8px 6px; text-align: right; }
+    .results-table th { background: #faf8f6; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <header class="app-header no-print">
+    <div class="container">
+      <a href="/admin/quizzes.html" class="logo"><span class="logo-icon">C</span><span>نتائج الكويز</span></a>
+      <div class="flex gap-1">
+        <button type="button" class="btn btn-sm btn-primary" id="print-btn">طباعة</button>
+        <a href="/admin/quizzes.html" class="btn btn-sm btn-secondary">رجوع</a>
+      </div>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:32px">
+    <div class="container page-content">
+      <h1 class="mb-1" style="font-size:1.15rem" id="title">نتائج الكويز</h1>
+      <p class="text-sm text-muted mb-3" id="meta"></p>
+      <div id="list"></div>
+    </div>
+  </main>
+  <script type="module">
+    import { supabase } from '../assets/js/supabase.js';
+    import { protectAdminPage } from '../assets/js/auth.js';
+    import { escapeHtml, formatDate, showEmpty, showError, showToast, initIcons } from '../assets/js/utils.js';
+
+    const quizId = new URLSearchParams(location.search).get('quiz') || new URLSearchParams(location.search).get('id');
+
+    async function init() {
+      const ok = await protectAdminPage();
+      if (!ok) return;
+      document.documentElement.classList.remove('admin-auth-pending');
+      initIcons();
+      document.getElementById('print-btn').onclick = () => window.print();
+      if (!quizId) {
+        showError(document.getElementById('list'), 'مفيش كويز محدد.');
+        return;
+      }
+      const { data: quiz } = await supabase.from('quizzes').select('id, title, end_at, duration_minutes').eq('id', quizId).maybeSingle();
+      if (quiz) {
+        document.getElementById('title').textContent = 'نتائج: ' + (quiz.title || 'كويز');
+        document.getElementById('meta').textContent =
+          (quiz.end_at ? 'يقفل: ' + formatDate(quiz.end_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' · ' : '') +
+          'الطلاب اللي سلّموا فقط';
+      }
+      await load();
+    }
+
+    async function load() {
+      const el = document.getElementById('list');
+      el.innerHTML = '<div class="skeleton-card"><div class="skeleton skeleton-title"></div></div>';
+      try {
+        const { data, error } = await supabase.rpc('admin_quiz_results', { p_quiz_id: quizId });
+        if (error) throw error;
+        if (!data?.ok) {
+          showError(el, data?.error || 'تعذر التحميل');
+          return;
+        }
+        const rows = data.rows || [];
+        if (!rows.length) {
+          showEmpty(el, 'لسه مفيش حد سلّم الكويز.');
+          return;
+        }
+        el.innerHTML = `
+          <p class="mb-2" style="font-weight:700">عدد اللي دخلوا وسلّموا: ${data.count ?? rows.length}</p>
+          <div class="card" style="overflow-x:auto">
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>الاسم</th>
+                  <th>البريد</th>
+                  <th>الدرجة</th>
+                  <th>النسبة</th>
+                  <th>وقت التسليم</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows
+                  .map(
+                    (r, i) => `<tr>
+                  <td>${i + 1}</td>
+                  <td>${escapeHtml(r.full_name || '—')}</td>
+                  <td dir="ltr">${escapeHtml(r.email || '—')}</td>
+                  <td>${r.score ?? 0} / ${r.max_score ?? 0}</td>
+                  <td>${r.percent ?? 0}%</td>
+                  <td>${r.submitted_at ? escapeHtml(formatDate(r.submitted_at, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })) : '—'}</td>
+                </tr>`
+                  )
+                  .join('')}
+              </tbody>
+            </table>
+          </div>`;
+      } catch (err) {
+        showError(
+          el,
+          'تعذر تحميل النتائج. نفّذ في Supabase: supabase/fix_quiz_results_and_scoring.sql — ' +
+            (err.message || '')
+        );
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
