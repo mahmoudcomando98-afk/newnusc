@@ -162,6 +162,8 @@ function renderQuizzes() {
       const subjectName = quiz.subjects?.name || quiz.subject_name || '';
       const hasSolution = !!quiz.solution_image_path;
       const interactive = !!quiz.has_questions;
+      const done = quiz.my_score != null;
+      const canReveal = !!quiz.can_reveal;
 
       return `
       <article class="card quiz-card mb-2">
@@ -175,11 +177,16 @@ function renderQuizzes() {
         ${quiz.duration_minutes ? `<p class="text-sm mt-1">مدة الحل: ${Number(quiz.duration_minutes)} دقيقة من لحظة البدء</p>` : ''}
         ${quiz.description ? `<p class="text-sm text-muted mt-1">${escapeHtml(quiz.description)}</p>` : ''}
         ${instructions ? `<p class="text-sm mt-1"><strong>التعليمات:</strong> ${escapeHtml(instructions)}</p>` : ''}
-        ${quiz.my_score != null ? `<p class="text-sm mt-1"><strong>درجتك:</strong> ${quiz.my_score} / ${quiz.my_max_score ?? '—'}</p>` : ''}
+        ${done ? `<p class="text-sm mt-1"><strong>درجتك:</strong> ${quiz.my_score} / ${quiz.my_max_score ?? '—'}</p>` : ''}
         <div class="mt-2 flex flex-wrap gap-1">
           ${
-            interactive && status === 'open'
+            interactive && status === 'open' && !done
               ? `<a class="btn btn-primary" href="/quiz-take.html?id=${encodeURIComponent(quiz.id)}">ابدأ الكويز</a>`
+              : ''
+          }
+          ${
+            interactive && done
+              ? `<a class="btn btn-secondary" href="/quiz-take.html?id=${encodeURIComponent(quiz.id)}">${canReveal ? 'عرض التفاصيل' : 'عرض درجتك'}</a>`
               : ''
           }
           ${
@@ -188,7 +195,7 @@ function renderQuizzes() {
               : ''
           }
           ${quiz.quiz_url ? `<a class="btn ${interactive ? 'btn-secondary' : 'btn-primary'}" href="${escapeHtml(quiz.quiz_url)}" target="_blank" rel="noopener noreferrer">رابط خارجي</a>` : ''}
-          ${hasSolution ? `<button type="button" class="btn btn-secondary" data-solution="${escapeHtml(encodeURIComponent(quiz.solution_image_path || ''))}">عرض الحل</button>` : ''}
+          ${hasSolution && (status === 'closed' || canReveal) ? `<button type="button" class="btn btn-secondary" data-solution="${escapeHtml(encodeURIComponent(quiz.solution_image_path || ''))}">عرض الحل</button>` : ''}
         </div>
       </article>`;
     })
@@ -250,11 +257,13 @@ async function loadQuizzes() {
       rows.map(async (q) => {
         let my_score = null;
         let my_max_score = null;
+        let can_reveal = false;
         try {
           const { data: res } = await supabase.rpc('get_my_quiz_result', { p_quiz_id: q.id });
           if (res?.has_result) {
             my_score = res.score;
             my_max_score = res.max_score;
+            can_reveal = !!res.can_reveal;
           }
         } catch {
           /* RPC may not exist yet */
@@ -263,7 +272,8 @@ async function loadQuizzes() {
           ...q,
           subject_name: subjectNames[q.subject_id] || '',
           my_score,
-          my_max_score
+          my_max_score,
+          can_reveal
         };
       })
     );
