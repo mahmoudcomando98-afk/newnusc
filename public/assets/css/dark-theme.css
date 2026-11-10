@@ -1,0 +1,442 @@
+/* COMANDO — الوضع الليلي (Dark Mode)
+   يُحمَّل بعد باقي الأنماط؛ كل قاعدة تستخدم :root[data-theme="dark"]
+   لكسب specificity فوق قواعد neutral-theme.css (كلها !important). */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --primary: #e0965f !important;
+  --primary-light: #2b241e !important;
+  --primary-dark: #cf8150 !important;
+  --accent: #e0965f !important;
+  --success: #8fbc9a !important;
+  --danger: #d69a9a !important;
+  --warning: #d8b878 !important;
+  --info: #e0965f !important;
+
+  --bg: #171512 !important;
+  --surface: #201d1a !important;
+  --surface-soft: #292622 !important;
+  --text: #ede9e3 !important;
+  --text-muted: #a9a499 !important;
+  --border: #322e29 !important;
+  --shadow: none !important;
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.45) !important;
+
+  --auth-ink: #ede9e3 !important;
+  --auth-muted: #a9a499 !important;
+  --auth-green: #e0965f !important;
+  --auth-green-hover: #cf8150 !important;
+  --auth-gold: #e0965f !important;
+  --auth-line: #322e29 !important;
+  --auth-panel: #201d1a !important;
+
+  --gray: #d8d4cc !important;
+  --gray-dark: #f0ece6 !important;
+  --gray-light: #292622 !important;
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+/* ---------- ترويسة علوية ونافذة سفلية ---------- */
+:root[data-theme="dark"] .app-header {
+  background: #1e1b18 !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+:root[data-theme="dark"] .header-btn,
+:root[data-theme="dark"] .user-chip {
+  background: #252219 !important;
+  color: var(--text-muted) !important;
+  border-color: var(--border) !important;
+}
+:root[data-theme="dark"] .header-btn:hover,
+:root[data-theme="dark"] .user-chip:hover { color: var(--text) !important; }
+:root[data-theme="dark"] .logo-icon {
+  background: var(--surface-soft) !important;
+  color: var(--primary) !important;
+}
+:root[data-theme="dark"] .bottom-nav {
+  background: #1e1b18 !important;
+  border-top: 1px solid var(--border) !important;
+}
+:root[data-theme="dark"] .bottom-nav a.active { color: var(--primary) !important; }
+
+/* ---------- بطاقات وأسطح ---------- */
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .subject-card,
+:root[data-theme="dark"] .shortcut-card,
+:root[data-theme="dark"] .feed-panel,
+:root[data-theme="dark"] .notification-card,
+:root[data-theme="dark"] .important-notice,
+:root[data-theme="dark"] .subjects-intro,
+:root[data-theme="dark"] .quiz-card,
+:root[data-theme="dark"] .lecture-card,
+:root[data-theme="dark"] .announcement-card,
+:root[data-theme="dark"] .material-card,
+:root[data-theme="dark"] .stat-card,
+:root[data-theme="dark"] .profile-card,
+:root[data-theme="dark"] .schedule-card,
+:root[data-theme="dark"] .faq-item,
+:root[data-theme="dark"] .admin-card,
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .modal-content,
+:root[data-theme="dark"] .dropdown-menu,
+:root[data-theme="dark"] .skeleton-card {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+:root[data-theme="dark"] .card:hover,
+:root[data-theme="dark"] .subject-card:hover,
+:root[data-theme="dark"] .shortcut-card:hover,
+:root[data-theme="dark"] .quiz-card:hover,
+:root[data-theme="dark"] .lecture-card:hover,
+:root[data-theme="dark"] .announcement-card:hover,
+:root[data-theme="dark"] .material-card:hover {
+  border-color: #3f3a34 !important;
+}
+:root[data-theme="dark"] .home-hero,
+:root[data-theme="dark"] .welcome-banner,
+:root[data-theme="dark"] .page-hero,
+:root[data-theme="dark"] .subjects-intro,
+:root[data-theme="dark"] .profile-hero,
+:root[data-theme="dark"] .admin-hero {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+/* ---------- home / subjects / features surfaces ---------- */
+:root[data-theme="dark"] .important-notice,
+:root[data-theme="dark"] .notice-icon-wrap,
+:root[data-theme="dark"] .notice-open,
+:root[data-theme="dark"] a.home-subject-card,
+:root[data-theme="dark"] a.home-subject-card:hover,
+:root[data-theme="dark"] .subjects-page .subjects-toolbar .search-box,
+:root[data-theme="dark"] .subjects-page .subject-tile,
+:root[data-theme="dark"] .subjects-page .subject-tile-btn,
+:root[data-theme="dark"] .due-reminders-card,
+:root[data-theme="dark"] .due-reminders-item {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+:root[data-theme="dark"] .notice-open:hover,
+:root[data-theme="dark"] .subjects-page .subject-tile-btn:hover {
+  background: var(--surface-soft) !important;
+}
+:root[data-theme="dark"] .subjects-page .subjects-count {
+  background: var(--surface-soft) !important;
+}
+
+/* شارات باستيلية → نغمات داكنة مقروءة */
+:root[data-theme="dark"] .badge-new-visit {
+  background: rgba(64, 145, 108, 0.22) !important;
+  color: #8fd3a8 !important;
+  border-color: rgba(64, 145, 108, 0.4) !important;
+}
+:root[data-theme="dark"] .badge-important-flag {
+  background: rgba(196, 84, 84, 0.22) !important;
+  color: #f0a8a8 !important;
+  border-color: rgba(196, 84, 84, 0.4) !important;
+}
+:root[data-theme="dark"] .material-card-due,
+:root[data-theme="dark"] .due-reminders-item.is-soon,
+:root[data-theme="dark"] .assignment-due-ended,
+:root[data-theme="dark"] .due-reminders-item.is-ended {
+  background: rgba(196, 120, 60, 0.18) !important;
+  border-color: rgba(196, 120, 60, 0.35) !important;
+}
+:root[data-theme="dark"] .material-note-badge {
+  background: rgba(216, 184, 120, 0.18) !important;
+  color: #e8d4a0 !important;
+  border-color: rgba(216, 184, 120, 0.35) !important;
+}
+
+/* ---------- أزرار ---------- */
+:root[data-theme="dark"] .btn-secondary,
+:root[data-theme="dark"] .btn-outline,
+:root[data-theme="dark"] .btn-light,
+:root[data-theme="dark"] .hero-secondary-link {
+  background: var(--surface-soft) !important;
+  color: var(--primary) !important;
+  border-color: #3f3a34 !important;
+}
+:root[data-theme="dark"] .btn-secondary:hover,
+:root[data-theme="dark"] .btn-outline:hover {
+  background: #322d28 !important;
+  color: var(--primary) !important;
+}
+:root[data-theme="dark"] .btn-danger {
+  background: rgba(214, 132, 132, 0.12) !important;
+  color: var(--danger) !important;
+  border-color: rgba(214, 132, 132, 0.35) !important;
+}
+:root[data-theme="dark"] .btn-danger:hover {
+  background: rgba(214, 132, 132, 0.2) !important;
+}
+
+/* ---------- حقول إدخال ---------- */
+:root[data-theme="dark"] .form-input,
+:root[data-theme="dark"] .form-select,
+:root[data-theme="dark"] .form-textarea,
+:root[data-theme="dark"] input[type="text"],
+:root[data-theme="dark"] input[type="email"],
+:root[data-theme="dark"] input[type="password"],
+:root[data-theme="dark"] input[type="url"],
+:root[data-theme="dark"] input[type="time"],
+:root[data-theme="dark"] input[type="date"],
+:root[data-theme="dark"] input[type="search"],
+:root[data-theme="dark"] input[type="tel"],
+:root[data-theme="dark"] input[type="number"],
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select {
+  background: #262320 !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+:root[data-theme="dark"] .form-input::placeholder,
+:root[data-theme="dark"] textarea::placeholder,
+:root[data-theme="dark"] input::placeholder { color: #6f6a62 !important; }
+:root[data-theme="dark"] .form-input:focus,
+:root[data-theme="dark"] .form-select:focus,
+:root[data-theme="dark"] .form-textarea:focus,
+:root[data-theme="dark"] input:focus,
+:root[data-theme="dark"] textarea:focus,
+:root[data-theme="dark"] select:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px rgba(224, 150, 95, 0.18) !important;
+}
+
+/* ---------- تبويبات وشارات ---------- */
+:root[data-theme="dark"] .tab {
+  background: var(--surface-soft) !important;
+  color: var(--text-muted) !important;
+  border-color: var(--border) !important;
+}
+:root[data-theme="dark"] .tab.active {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
+:root[data-theme="dark"] .badge,
+:root[data-theme="dark"] .pill,
+:root[data-theme="dark"] .tag,
+:root[data-theme="dark"] .tab.active {
+  border-color: var(--border) !important;
+}
+
+/* ---------- حالات فارغة / تحميل ---------- */
+:root[data-theme="dark"] .empty-state,
+:root[data-theme="dark"] .error-state {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+:root[data-theme="dark"] .skeleton,
+:root[data-theme="dark"] .skeleton-card {
+  background-color: #2a2723 !important;
+}
+
+/* ---------- جداول ---------- */
+:root[data-theme="dark"] th { color: var(--text-muted) !important; }
+:root[data-theme="dark"] th, :root[data-theme="dark"] td {
+  border-bottom-color: var(--border) !important;
+}
+
+/* ---------- نوافذ منبثقة ---------- */
+:root[data-theme="dark"] .modal-backdrop {
+  background: rgba(0, 0, 0, 0.65) !important;
+}
+
+/* ---------- صفحات الدخول والتسجيل ---------- */
+:root[data-theme="dark"] .auth-page {
+  background:
+    radial-gradient(ellipse at 6% 8%, rgba(224, 150, 95, 0.08), transparent 32%),
+    radial-gradient(ellipse at 92% 92%, rgba(224, 150, 95, 0.06), transparent 30%),
+    var(--bg) !important;
+}
+:root[data-theme="dark"] .auth-page::before,
+:root[data-theme="dark"] .auth-page::after {
+  border-color: rgba(224, 150, 95, 0.12) !important;
+}
+:root[data-theme="dark"] .auth-layout {
+  background: rgba(32, 29, 26, 0.9) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5) !important;
+}
+:root[data-theme="dark"] .auth-main {
+  background: rgba(32, 29, 26, 0.96) !important;
+}
+:root[data-theme="dark"] .auth-aside {
+  background: var(--surface-soft) !important;
+}
+:root[data-theme="dark"] .auth-brand-dot {
+  box-shadow: 0 0 0 5px rgba(224, 150, 95, 0.15) !important;
+}
+:root[data-theme="dark"] .auth-eyebrow {
+  background: rgba(224, 150, 95, 0.12) !important;
+  border-color: rgba(224, 150, 95, 0.3) !important;
+  color: var(--primary) !important;
+}
+:root[data-theme="dark"] .auth-eyebrow-dot { background: var(--primary) !important; }
+:root[data-theme="dark"] .auth-field label,
+:root[data-theme="dark"] .auth-field .form-label {
+  color: var(--text) !important;
+}
+:root[data-theme="dark"] .auth-input {
+  background: #262320 !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+:root[data-theme="dark"] .bg-white {
+  background: var(--surface) !important;
+}
+
+/* ---------- تمييز النص وشريط التمرير ---------- */
+:root[data-theme="dark"] ::selection {
+  background: rgba(224, 150, 95, 0.35);
+  color: #fff;
+}
+:root[data-theme="dark"] :focus-visible {
+  outline-color: #e0965f !important;
+}
+
+/* ============================================================
+   زر تبديل الوضع الليلي + انميشن التبديل
+   ============================================================ */
+.theme-toggle {
+  position: fixed;
+  inset-inline-end: auto;
+  left: 16px;
+  bottom: calc(var(--bottom-nav-h, 60px) + env(safe-area-inset-bottom, 0px) + 14px);
+  z-index: 160;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+  transition: transform 0.25s ease, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.theme-toggle:hover { transform: translateY(-2px) scale(1.05); }
+.theme-toggle:active { transform: scale(0.94); }
+.theme-toggle:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+:root[data-theme="dark"] .theme-toggle {
+  background: #2a2723;
+  border-color: #3f3a34;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(224, 150, 95, 0.12);
+}
+.theme-toggle .theme-icon {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  transition: transform 0.45s cubic-bezier(0.34, 1.4, 0.44, 1), opacity 0.3s ease;
+}
+.theme-toggle .icon-sun { transform: rotate(0) scale(1); opacity: 1; }
+.theme-toggle .icon-moon { transform: rotate(90deg) scale(0.4); opacity: 0; }
+:root[data-theme="dark"] .theme-toggle .icon-sun { transform: rotate(-90deg) scale(0.4); opacity: 0; }
+:root[data-theme="dark"] .theme-toggle .icon-moon { transform: rotate(0) scale(1); opacity: 1; color: #e0965f; }
+
+/* ومضة نبض عند التبديل */
+@keyframes theme-pulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.theme-toggle.pulse { animation: theme-pulse 0.5s cubic-bezier(0.34, 1.4, 0.44, 1); }
+
+/* انتقال ناعم لكل الألوان أثناء تبديل الثيم */
+html.theme-anim,
+html.theme-anim * {
+  transition: background-color 0.45s ease, color 0.45s ease,
+    border-color 0.45s ease, box-shadow 0.45s ease, fill 0.45s ease !important;
+}
+
+@media (min-width: 900px) {
+  .theme-toggle { bottom: 22px; left: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle, .theme-toggle .theme-icon, html.theme-anim, html.theme-anim * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+@media print {
+  .theme-toggle { display: none !important; }
+}
+
+/* ---------- ????? ??????: ???? ????? ????? ??? ??????? ---------- */
+:root[data-theme="dark"] .auth-status-pill,
+:root[data-theme="dark"] .auth-benefit-check,
+:root[data-theme="dark"] .auth-preview,
+:root[data-theme="dark"] .auth-preview-tag,
+:root[data-theme="dark"] .auth-preview-icon {
+  background: var(--surface-soft) !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+:root[data-theme="dark"] .install-sheet-inner,
+:root[data-theme="dark"] .install-sheet-actions .btn-later,
+:root[data-theme="dark"] .live-os-card,
+:root[data-theme="dark"] .midterm-table-wrap,
+:root[data-theme="dark"] .midterm-table .exam-row td,
+:root[data-theme="dark"] .midterm-empty,
+:root[data-theme="dark"] .offline-overlay-card,
+:root[data-theme="dark"] .wa-gate-card,
+:root[data-theme="dark"] .wa-gate-done,
+:root[data-theme="dark"] .maintenance-card {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+:root[data-theme="dark"] .install-sheet-actions .btn-later { color: var(--text-muted) !important; }
+
+/* ---------- ???? ????? ????? (???? ??? ????? ?????) ---------- */
+:root[data-theme="dark"] .text-muted,
+:root[data-theme="dark"] .text-gray,
+:root[data-theme="dark"] .text-gray-500,
+:root[data-theme="dark"] .text-gray-600,
+:root[data-theme="dark"] .text-secondary,
+:root[data-theme="dark"] .muted,
+:root[data-theme="dark"] .secondary-text { color: var(--text-muted) !important; }
+
+:root[data-theme="dark"] .auth-page,
+:root[data-theme="dark"] .auth-brand,
+:root[data-theme="dark"] .auth-heading,
+:root[data-theme="dark"] .auth-heading h1,
+:root[data-theme="dark"] .auth-field .form-label,
+:root[data-theme="dark"] .auth-field label,
+:root[data-theme="dark"] .due-reminders-card h2,
+:root[data-theme="dark"] .subjects-page .subjects-intro h1,
+:root[data-theme="dark"] .subjects-page .subjects-count strong,
+:root[data-theme="dark"] .subjects-page .subject-tile-title,
+:root[data-theme="dark"] .subjects-page .subject-tile-btn:hover,
+:root[data-theme="dark"] .install-sheet-copy strong,
+:root[data-theme="dark"] .install-howto strong,
+:root[data-theme="dark"] .offline-overlay-card h2,
+:root[data-theme="dark"] .push-enable-inner strong,
+:root[data-theme="dark"] .maintenance-card h1 { color: var(--text) !important; }
+
+:root[data-theme="dark"] .auth-input {
+  background: #262320 !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
+}
+
+/* ???? ????? ????????? ???? ?????? ???????? */
+:root[data-theme="dark"] .push-enable-inner {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+:root[data-theme="dark"] .push-enable-inner strong,
+:root[data-theme="dark"] .push-enable-inner p,
+:root[data-theme="dark"] .push-enable-inner span,
+:root[data-theme="dark"] .push-enable-inner small { color: var(--text) !important; }

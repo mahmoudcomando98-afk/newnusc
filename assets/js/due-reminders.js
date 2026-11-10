@@ -1,11 +1,13 @@
 /**
- * Send due-date reminders (24h / 3h) once per assignment.
- * Runs when a student opens home — throttled per session.
+ * تذكيرات مواعيد تسليم الواجبات (24 ساعة / 3 ساعات).
+ * تعمل على جهاز الطالب: إشعار محلي عبر الـ Service Worker — بدون أي كتابة في قاعدة البيانات
+ * (سياسات RLS تمنع الطلاب من إدخال إشعارات عامة، والدالة send-push مقصورة على الأدمن).
+ * يُعرض أيضًا قسم "المهام القادمة" في الصفحة الرئيسية كعرض داخل التطبيق.
  */
 import { supabase } from './supabase.js';
-import { sendPushToAll } from './push.js';
+import { showLocalNotification } from './push.js';
 
-const SESSION_KEY = 'nusc_due_reminders_ran';
+const FLAG_PREFIX = 'nusc_due_notified_';
 const HOUR = 60 * 60 * 1000;
 
 function windowHit(dueMs, targetHours, toleranceHours) {
@@ -15,35 +17,33 @@ function windowHit(dueMs, targetHours, toleranceHours) {
   return left > 0 && left <= target + tol && left >= target - tol;
 }
 
-export async function runDueRemindersOnce() {
+function flagSet(key) {
   try {
-    if (sessionStorage.getItem(SESSION_KEY)) return;
-    sessionStorage.setItem(SESSION_KEY, '1');
+    return localStorage.getItem(FLAG_PREFIX + key) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function flagSetMark(key) {
+  try {
+    localStorage.setItem(FLAG_PREFIX + key, '1');
   } catch {
     /* private mode */
   }
+}
 
+export async function runDueRemindersOnce() {
   try {
     let { data, error } = await supabase
       .from('materials')
       .select(
-        'id, title, subject_id, due_at, is_published, is_delivered, reminder_sent_24h, reminder_sent_3h, material_type'
+        'id, title, subject_id, due_at, is_published, is_delivered, material_type'
       )
       .eq('material_type', 'assignment')
       .not('due_at', 'is', null)
       .limit(40);
 
-    if (error) {
-      // columns may be missing — still try basic select
-      const fallback = await supabase
-        .from('materials')
-        .select('id, title, subject_id, due_at, is_published, is_delivered, material_type')
-        .eq('material_type', 'assignment')
-        .not('due_at', 'is', null)
-        .limit(40);
-      data = fallback.data;
-      error = fallback.error;
-    }
     if (error || !data?.length) return;
 
     const subjectIds = [...new Set(data.map((m) => m.subject_id).filter(Boolean))];
@@ -67,55 +67,34 @@ export async function runDueRemindersOnce() {
         timeStyle: 'short'
       });
 
-      // ~3 hours left
-      if (!row.reminder_sent_3h && windowHit(dueMs, 3, 0.75)) {
-        await dispatchReminder(row, {
-          flag: 'reminder_sent_3h',
-          title: subjectName,
-          body: `تذكير: باقي حوالي 3 ساعات على تسليم «${row.title || 'الواجب'}». آخر موعد: ${dueText}`,
-          link
-        });
+      // ~3 ساعات متبقية
+      if (windowHit(dueMs, 3, 0.75)) {
+        const key = `${row.id}_3h`;
+        if (!flagSet(key)) {
+          flagSetMark(key);
+          await showLocalNotification(subjectName, {
+            body: `تذكير: باقي حوالي 3 ساعات على تسليم «${row.title || 'الواجب'}». آخر موعد: ${dueText}`,
+            url: link,
+            tag: `due-${row.id}-3h`
+          });
+        }
         continue;
       }
 
-      // ~24 hours left
-      if (!row.reminder_sent_24h && windowHit(dueMs, 24, 2)) {
-        await dispatchReminder(row, {
-          flag: 'reminder_sent_24h',
-          title: subjectName,
-          body: `تذكير: باقي يوم على تسليم «${row.title || 'الواجب'}». آخر موعد: ${dueText}`,
-          link
-        });
+      // ~24 ساعة متبقية
+      if (windowHit(dueMs, 24, 2)) {
+        const key = `${row.id}_24h`;
+        if (!flagSet(key)) {
+          flagSetMark(key);
+          await showLocalNotification(subjectName, {
+            body: `تذكير: باقي يوم على تسليم «${row.title || 'الواجب'}». آخر موعد: ${dueText}`,
+            url: link,
+            tag: `due-${row.id}-24h`
+          });
+        }
       }
     }
   } catch (err) {
     console.warn('[NUSC] due reminders:', err);
-  }
-}
-
-async function dispatchReminder(row, { flag, title, body, link }) {
-  try {
-    await supabase.from('notifications').insert({
-      title: title.slice(0, 120),
-      body: body.slice(0, 500),
-      type: 'warning',
-      link,
-      is_global: true,
-      user_id: null
-    });
-  } catch (e) {
-    console.warn('[NUSC] due in-app notify:', e);
-  }
-
-  try {
-    await sendPushToAll({ title: title.slice(0, 120), body: body.slice(0, 500), url: link });
-  } catch (e) {
-    console.warn('[NUSC] due push:', e);
-  }
-
-  try {
-    await supabase.from('materials').update({ [flag]: true }).eq('id', row.id);
-  } catch (e) {
-    console.warn('[NUSC] due flag update (run SQL migration if column missing):', e);
   }
 }

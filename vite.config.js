@@ -6,6 +6,33 @@ const CAIRO_HEAD_SNIPPET = `
   <style id="comando-cairo-boot">html,body,button,input,select,textarea{font-family:"Cairo",Tahoma,Arial,sans-serif!important}</style>
 `;
 
+/* يُحقن في كل صفحة: سكربت تهيئة الوضع الليلي (قبل الرسم لمنع الوميض) + ملف أنماطه + سكربت الزر */
+const THEME_HEAD_SNIPPET = `
+  <script id="comando-theme-init">(function(){try{var t=localStorage.getItem('comando-theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}}catch(e){t='light';}document.documentElement.setAttribute('data-theme',t);})();</script>
+  <link rel="stylesheet" href="/assets/css/dark-theme.css?v=1" />
+`;
+const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=1"></script>`;
+
+function injectThemePlugin() {
+  return {
+    name: 'inject-theme',
+    transformIndexHtml(html) {
+      let out = html;
+      if (!out.includes('comando-theme-init')) {
+        if (out.includes('<head>')) {
+          out = out.replace('<head>', `<head>${THEME_HEAD_SNIPPET}`);
+        } else if (out.includes('<head ')) {
+          out = out.replace(/<head([^>]*)>/i, `<head$1>${THEME_HEAD_SNIPPET}`);
+        }
+      }
+      if (!out.includes('/assets/js/theme.js') && out.includes('</body>')) {
+        out = out.replace('</body>', `${THEME_BODY_SNIPPET}\n</body>`);
+      }
+      return out;
+    }
+  };
+}
+
 function injectCairoPlugin() {
   return {
     name: 'inject-cairo-font',
@@ -29,7 +56,7 @@ export default defineConfig(({ mode }) => {
     root: '.',
     publicDir: 'public',
     envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
-    plugins: [injectCairoPlugin()],
+    plugins: [injectCairoPlugin(), injectThemePlugin()],
     define: {
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(
         env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -47,61 +74,61 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       rollupOptions: {
         input: {
-          main: resolve(__dirname, 'index.html'),
-          '404': resolve(__dirname, '404.html'),
-          '500': resolve(__dirname, '500.html'),
-          offline: resolve(__dirname, 'offline.html'),
-          banned: resolve(__dirname, 'banned.html'),
-          'devtools-blocked': resolve(__dirname, 'devtools-blocked.html'),
-          'chrome-required': resolve(__dirname, 'chrome-required.html'),
-          about: resolve(__dirname, 'about.html'),
-          contact: resolve(__dirname, 'contact.html'),
-          privacy: resolve(__dirname, 'privacy.html'),
-          login: resolve(__dirname, 'login.html'),
-          register: resolve(__dirname, 'register.html'),
-          'forgot-password': resolve(__dirname, 'forgot-password.html'),
-          'reset-password': resolve(__dirname, 'reset-password.html'),
-          home: resolve(__dirname, 'home.html'),
-          subjects: resolve(__dirname, 'subjects.html'),
-          'past-exams': resolve(__dirname, 'past-exams.html'),
-          'past-exam-subject': resolve(__dirname, 'past-exam-subject.html'),
-          'subject-details': resolve(__dirname, 'subject-details.html'),
-          'file-view': resolve(__dirname, 'file-view.html'),
-          'lecture-details': resolve(__dirname, 'lecture-details.html'),
-          quizzes: resolve(__dirname, 'quizzes.html'),
-          'quiz-take': resolve(__dirname, 'quiz-take.html'),
-          'quiz-rules': resolve(__dirname, 'quiz-rules.html'),
-          schedule: resolve(__dirname, 'schedule.html'),
-          'online-sections': resolve(__dirname, 'online-sections.html'),
-          'online-schedule': resolve(__dirname, 'online-schedule.html'),
-          'midterm-schedule': resolve(__dirname, 'midterm-schedule.html'),
-          announcements: resolve(__dirname, 'announcements.html'),
-          notifications: resolve(__dirname, 'notifications.html'),
-          updates: resolve(__dirname, 'updates.html'),
-          favorites: resolve(__dirname, 'favorites.html'),
-          faq: resolve(__dirname, 'faq.html'),
-          profile: resolve(__dirname, 'profile.html'),
-          'teacher-upload': resolve(__dirname, 'teacher-upload.html'),
-          'maintenance-mode': resolve(__dirname, 'maintenance-mode.html'),
-          maintenance: resolve(__dirname, 'maintenance.html'),
-          'admin-index': resolve(__dirname, 'admin/index.html'),
-          'admin-statistics': resolve(__dirname, 'admin/statistics.html'),
-          'admin-students': resolve(__dirname, 'admin/students.html'),
-          'admin-subjects': resolve(__dirname, 'admin/subjects.html'),
-          'admin-materials': resolve(__dirname, 'admin/materials.html'),
-          'admin-teacher-links': resolve(__dirname, 'admin/teacher-links.html'),
-          'admin-quizzes': resolve(__dirname, 'admin/quizzes.html'),
-          'admin-quiz-questions': resolve(__dirname, 'admin/quiz-questions.html'),
-          'admin-quiz-results': resolve(__dirname, 'admin/quiz-results.html'),
-          'admin-schedule': resolve(__dirname, 'admin/schedule.html'),
-          'admin-online-sections': resolve(__dirname, 'admin/online-sections.html'),
-          'admin-online-schedule': resolve(__dirname, 'admin/online-schedule.html'),
-          'admin-midterm-schedule': resolve(__dirname, 'admin/midterm-schedule.html'),
-          'admin-announcements': resolve(__dirname, 'admin/announcements.html'),
-          'admin-notifications': resolve(__dirname, 'admin/notifications.html'),
-          'admin-faq': resolve(__dirname, 'admin/faq.html'),
-          'admin-settings': resolve(__dirname, 'admin/settings.html'),
-          'admin-hackers': resolve(__dirname, 'admin/hackers.html')
+          main: resolve(import.meta.dirname, 'index.html'),
+          '404': resolve(import.meta.dirname, '404.html'),
+          '500': resolve(import.meta.dirname, '500.html'),
+          offline: resolve(import.meta.dirname, 'offline.html'),
+          banned: resolve(import.meta.dirname, 'banned.html'),
+          'devtools-blocked': resolve(import.meta.dirname, 'devtools-blocked.html'),
+          'chrome-required': resolve(import.meta.dirname, 'chrome-required.html'),
+          about: resolve(import.meta.dirname, 'about.html'),
+          contact: resolve(import.meta.dirname, 'contact.html'),
+          privacy: resolve(import.meta.dirname, 'privacy.html'),
+          login: resolve(import.meta.dirname, 'login.html'),
+          register: resolve(import.meta.dirname, 'register.html'),
+          'forgot-password': resolve(import.meta.dirname, 'forgot-password.html'),
+          'reset-password': resolve(import.meta.dirname, 'reset-password.html'),
+          home: resolve(import.meta.dirname, 'home.html'),
+          subjects: resolve(import.meta.dirname, 'subjects.html'),
+          'past-exams': resolve(import.meta.dirname, 'past-exams.html'),
+          'past-exam-subject': resolve(import.meta.dirname, 'past-exam-subject.html'),
+          'subject-details': resolve(import.meta.dirname, 'subject-details.html'),
+          'file-view': resolve(import.meta.dirname, 'file-view.html'),
+          'lecture-details': resolve(import.meta.dirname, 'lecture-details.html'),
+          quizzes: resolve(import.meta.dirname, 'quizzes.html'),
+          'quiz-take': resolve(import.meta.dirname, 'quiz-take.html'),
+          'quiz-rules': resolve(import.meta.dirname, 'quiz-rules.html'),
+          schedule: resolve(import.meta.dirname, 'schedule.html'),
+          'online-sections': resolve(import.meta.dirname, 'online-sections.html'),
+          'online-schedule': resolve(import.meta.dirname, 'online-schedule.html'),
+          'midterm-schedule': resolve(import.meta.dirname, 'midterm-schedule.html'),
+          announcements: resolve(import.meta.dirname, 'announcements.html'),
+          notifications: resolve(import.meta.dirname, 'notifications.html'),
+          updates: resolve(import.meta.dirname, 'updates.html'),
+          favorites: resolve(import.meta.dirname, 'favorites.html'),
+          faq: resolve(import.meta.dirname, 'faq.html'),
+          profile: resolve(import.meta.dirname, 'profile.html'),
+          'teacher-upload': resolve(import.meta.dirname, 'teacher-upload.html'),
+          'maintenance-mode': resolve(import.meta.dirname, 'maintenance-mode.html'),
+          maintenance: resolve(import.meta.dirname, 'maintenance.html'),
+          'admin-index': resolve(import.meta.dirname, 'admin/index.html'),
+          'admin-statistics': resolve(import.meta.dirname, 'admin/statistics.html'),
+          'admin-students': resolve(import.meta.dirname, 'admin/students.html'),
+          'admin-subjects': resolve(import.meta.dirname, 'admin/subjects.html'),
+          'admin-materials': resolve(import.meta.dirname, 'admin/materials.html'),
+          'admin-teacher-links': resolve(import.meta.dirname, 'admin/teacher-links.html'),
+          'admin-quizzes': resolve(import.meta.dirname, 'admin/quizzes.html'),
+          'admin-quiz-questions': resolve(import.meta.dirname, 'admin/quiz-questions.html'),
+          'admin-quiz-results': resolve(import.meta.dirname, 'admin/quiz-results.html'),
+          'admin-schedule': resolve(import.meta.dirname, 'admin/schedule.html'),
+          'admin-online-sections': resolve(import.meta.dirname, 'admin/online-sections.html'),
+          'admin-online-schedule': resolve(import.meta.dirname, 'admin/online-schedule.html'),
+          'admin-midterm-schedule': resolve(import.meta.dirname, 'admin/midterm-schedule.html'),
+          'admin-announcements': resolve(import.meta.dirname, 'admin/announcements.html'),
+          'admin-notifications': resolve(import.meta.dirname, 'admin/notifications.html'),
+          'admin-faq': resolve(import.meta.dirname, 'admin/faq.html'),
+          'admin-settings': resolve(import.meta.dirname, 'admin/settings.html'),
+          'admin-hackers': resolve(import.meta.dirname, 'admin/hackers.html')
         }
       }
     },

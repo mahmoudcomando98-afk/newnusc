@@ -63,6 +63,9 @@ async function init() {
     import('./due-reminders.js')
       .then((m) => m.runDueRemindersOnce())
       .catch(() => {});
+    import('./weekly-report.js')
+      .then((m) => m.runWeeklyReportOnce())
+      .catch(() => {});
   } catch (error) {
     console.error('[NUSC] home init:', error);
   }
