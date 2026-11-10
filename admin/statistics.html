@@ -99,7 +99,6 @@
           matCount,
           topRowsRaw,
           push,
-          pending,
           drafts,
           noPath
         ] = await Promise.all([
@@ -121,7 +120,6 @@
               .limit(15)
           ),
           safeCount(supabase.from('push_subscriptions').select('id', { count: 'exact', head: true })),
-          safeCount(supabase.from('store_orders').select('id', { count: 'exact', head: true }).eq('status', 'pending')),
           safeSelect(supabase.from('materials').select('id, title').eq('is_published', false).limit(20)),
           safeSelect(supabase.from('materials').select('id, title, file_path').is('file_path', null).limit(20))
         ]);
@@ -165,9 +163,6 @@
           </ul>`;
 
         const issues = [];
-        if (pending > 0) {
-          issues.push(`فيه <strong>${pending}</strong> طلب متجر بانتظار الموافقة — راجع <a href="/admin/store.html">المتجر</a>.`);
-        }
         if (drafts.length) {
           issues.push(
             `فيه <strong>${drafts.length}</strong> ملف/ملفات مسودة مش منشورة:` +

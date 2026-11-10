@@ -173,8 +173,7 @@ BEGIN
   FOREACH t IN ARRAY ARRAY[
     'subjects','materials','lectures','announcements','quizzes',
     'schedule_entries','online_sections','platform_settings',
-    'notifications','push_subscriptions','favorites',
-    'store_products','store_orders'
+    'notifications','push_subscriptions','favorites'
   ] LOOP
     IF to_regclass('public.' || t) IS NOT NULL THEN
       EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
