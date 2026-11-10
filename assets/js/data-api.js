@@ -40,17 +40,25 @@ async function selectCols(table, cols, { order = 'created_at', ascending = false
   return data || [];
 }
 
+/* تذكر نتيجة الـ narrow select لكل جدول خلال الجلسة:
+   - أول مرة: جرّب الأعمدة المطلوبة (سريع).
+   - لو فشلت (الداتابيز متأخر عن الكود): استخدم * مباشرة بدون رسائل خطأ متكررة. */
+const narrowState = new Map(); // table -> 'failed'
+
 async function selectSafe(table, preferredCols, opts) {
-  try {
-    return await selectCols(table, preferredCols, opts);
-  } catch (err) {
-    console.warn('[data-api] narrow select failed for', table, err?.message || err);
+  if (narrowState.get(table) !== 'failed') {
     try {
-      return await selectCols(table, '*', opts);
-    } catch (err2) {
-      console.warn('[data-api] * select failed for', table, err2?.message || err2);
-      return [];
+      return await selectCols(table, preferredCols, opts);
+    } catch (err) {
+      console.warn('[data-api] narrow select failed for', table, err?.message || err);
+      narrowState.set(table, 'failed');
     }
+  }
+  try {
+    return await selectCols(table, '*', opts);
+  } catch (err2) {
+    console.warn('[data-api] * select failed for', table, err2?.message || err2);
+    return [];
   }
 }
 

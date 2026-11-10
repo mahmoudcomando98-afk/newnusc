@@ -1,7 +1,7 @@
 /**
  * COMANDO — تبديل الوضع الليلي/النهاري
- * - يحفظ اختيار الطالب في localStorage (مفتاح: comando-theme)
- * - إن لم يختر الطالب، يتبع تفضيل نظام التشغيل
+ * - الوضع الافتراضي نهاري دائمًا عند أول دخول للمنصة
+ * - يحفظ اختيار الطالب في localStorage (مفتاح: comando-theme) ويتبعه بعد كده
  * - الزر عائم أسفل الشاشة (فوق الـ bottom-nav على الموبايل)
  */
 
@@ -17,14 +17,6 @@ function savedTheme() {
   } catch {
     return null;
   }
-}
-
-function systemDark() {
-  return (
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-color-scheme: dark)').matches
-  );
 }
 
 function currentTheme() {
@@ -96,8 +88,8 @@ function createToggle() {
   updateToggle(currentTheme());
 }
 
-// طبّق السمة المحفوظة/تفضيل النظام قبل أي شيء (الـ inline script في <head> سبق وطبقها أيضًا لمنع الوميض)
-const initial = savedTheme() || (systemDark() ? 'dark' : 'light');
+// طبّق السمة المحفوظة أو الوضع النهاري الافتراضي عند أول دخول (الـ inline script في <head> سبق وطبقها أيضًا لمنع الوميض)
+const initial = savedTheme() || 'light';
 document.documentElement.setAttribute('data-theme', initial);
 updateThemeColorMeta(initial);
 
@@ -105,16 +97,4 @@ if (document.body) {
   createToggle();
 } else {
   document.addEventListener('DOMContentLoaded', createToggle, { once: true });
-}
-
-// اتبع تغيير تفضيل النظام فقط إن لم يختر الطالب وضعًا يدويًا
-try {
-  const mq = window.matchMedia('(prefers-color-scheme: dark)');
-  const onSystemChange = (e) => {
-    if (!savedTheme()) applyTheme(e.matches ? 'dark' : 'light', { animate: true });
-  };
-  if (typeof mq.addEventListener === 'function') mq.addEventListener('change', onSystemChange);
-  else if (typeof mq.addListener === 'function') mq.addListener(onSystemChange);
-} catch {
-  /* matchMedia غير متاح */
 }

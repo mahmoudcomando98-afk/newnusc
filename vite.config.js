@@ -6,9 +6,10 @@ const CAIRO_HEAD_SNIPPET = `
   <style id="comando-cairo-boot">html,body,button,input,select,textarea{font-family:"Cairo",Tahoma,Arial,sans-serif!important}</style>
 `;
 
-/* يُحقن في كل صفحة: سكربت تهيئة الوضع الليلي (قبل الرسم لمنع الوميض) + ملف أنماطه + سكربت الزر */
+/* يُحقن في كل صفحة: سكربت تهيئة الوضع الليلي (قبل الرسم لمنع الوميض) + ملف أنماطه + سكربت الزر
+   الافتراضي دائمًا نهاري — الطالب يقدر يبدّل بنفسه ويحفظ اختياره */
 const THEME_HEAD_SNIPPET = `
-  <script id="comando-theme-init">(function(){try{var t=localStorage.getItem('comando-theme');if(t!=='dark'&&t!=='light'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}}catch(e){t='light';}document.documentElement.setAttribute('data-theme',t);})();</script>
+  <script id="comando-theme-init">(function(){try{var t=localStorage.getItem('comando-theme');if(t!=='dark'&&t!=='light'){t='light';}}catch(e){t='light';}document.documentElement.setAttribute('data-theme',t);})();</script>
   <link rel="stylesheet" href="/assets/css/dark-theme.css?v=1" />
 `;
 const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=1"></script>`;
