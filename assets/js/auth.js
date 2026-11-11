@@ -58,13 +58,32 @@ async function checkBannedAndGo(uid) {
   window.location.replace(resolveNextPath());
 }
 
+const DEVICE_KEY = 'comando_device_id';
+
+/** معرّف جهاز ثابت لكل متصفح/جهاز — يُستخدم لقفل الحساب على جهاز واحد */
+export function getOrCreateDeviceId() {
+  try {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id) {
+      id =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : String(Date.now()) + '-' + Math.random().toString(36).slice(2);
+      localStorage.setItem(DEVICE_KEY, id);
+    }
+    return id;
+  } catch {
+    return null;
+  }
+}
+
 /** الدخول (أو التسجيل تلقائيًا) بالكود الجامعي */
 export async function loginWithCode(code) {
   const normalized = String(code || '').trim().replace(/\s+/g, ' ').toUpperCase();
   if (!normalized) throw new Error('اكتب الكود الجامعي أولًا.');
 
   const { data, error } = await supabase.functions.invoke('code-login', {
-    body: { action: 'login', code: normalized }
+    body: { action: 'login', code: normalized, device_id: getOrCreateDeviceId() || '' }
   });
   if (error) {
     // supabase-js v2: non-2xx → error.context (Response) — اقرأ الرسالة الحقيقية إن وُجدت

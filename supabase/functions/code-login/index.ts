@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
 
     const { data: row, error: codeErr } = await admin
       .from('student_codes')
-      .select('id, full_name, role, linked_user_id, is_active')
+      .select('id, full_name, role, linked_user_id, is_active, device_id')
       .eq('code_norm', code)
       .maybeSingle();
 
@@ -151,6 +151,15 @@ Deno.serve(async (req) => {
     }
     if (row.is_active === false) {
       return jsonResponse({ ok: false, error: 'هذا الكود موقوف مؤقتًا. تواصل مع الإدارة.' });
+    }
+
+    // قفل الجهاز: الحساب يُربط بالجهاز الذي دخل منه أول مرة
+    const deviceId = String(body?.device_id || '').trim();
+    if (!deviceId || deviceId.length < 8 || deviceId.length > 64) {
+      return jsonResponse({ ok: false, error: 'تعذر تحديد الجهاز. امسح بيانات المتصفح (Caches) وجرب تاني.' });
+    }
+    if (row.device_id && row.device_id !== deviceId) {
+      return jsonResponse({ ok: false, error: 'هذا الحساب مسجل بالفعل على جهاز آخر. تواصل مع الإدارة لإعادة ضبط الجهاز.' });
     }
 
     const fullName = String(row.full_name || '').trim();
@@ -187,10 +196,16 @@ Deno.serve(async (req) => {
         userId = created.user.id;
       }
 
-      // اربط الكود بالمستخدم
+      // اربط الكود بالمستخدم والجهاز
       await admin
         .from('student_codes')
-        .update({ linked_user_id: userId, updated_at: new Date().toISOString() })
+        .update({ linked_user_id: userId, device_id: deviceId, updated_at: new Date().toISOString() })
+        .eq('id', row.id);
+    } else if (!row.device_id) {
+      // حساب مرتبط من قبل بلا جهاز — اربطه بالجهاز الحالي
+      await admin
+        .from('student_codes')
+        .update({ device_id: deviceId, updated_at: new Date().toISOString() })
         .eq('id', row.id);
     }
 

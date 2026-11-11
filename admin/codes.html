@@ -121,6 +121,10 @@
               <tbody id="codes-list"><tr><td colspan="5"><div class="skeleton-card"><div class="skeleton skeleton-title"></div></div></td></tr></tbody>
             </table>
           </div>
+          <div class="flex items-center justify-between flex-wrap gap-1 mt-2">
+            <button type="button" class="btn btn-sm btn-outline" id="filter-linked-btn" aria-pressed="false">عرض المسجلين على المنصة فقط</button>
+            <p class="text-sm text-muted" id="linked-hint" style="margin:0">المسجل = دخل بالكود مرة على الأقل</p>
+          </div>
         </div>
       </div>
     </div>
@@ -135,7 +139,8 @@
       rows: [],
       parsedRows: [],
       codeCol: -1,
-      nameCol: -1
+      nameCol: -1,
+      linkedOnly: false
     };
 
     const $ = (id) => document.getElementById(id);
@@ -156,8 +161,10 @@
 
     function filteredRows() {
       const q = ($('search').value || '').trim().toLowerCase();
-      if (!q) return state.rows;
-      return state.rows.filter(
+      let rows = state.rows;
+      if (state.linkedOnly) rows = rows.filter((r) => !!r.linked_user_id);
+      if (!q) return rows;
+      return rows.filter(
         (r) =>
           String(r.full_name || '').toLowerCase().includes(q) ||
           String(r.code || '').toLowerCase().includes(q)
@@ -190,6 +197,8 @@
             '</td><td><span class="code-pill">' + escapeHtml(r.code || '') + '</span></td><td><span class="badge ' + role.cls + '">' + role.text +
             '</span></td><td>' + statusBadge(r) + '</td><td><div class="row-actions">' +
             '<button type="button" class="btn btn-sm btn-outline toggle-btn">' + (r.is_active === false ? 'تفعيل' : 'إيقاف') + '</button>' +
+            (r.device_id ? '<button type="button" class="btn btn-sm btn-outline reset-device-btn" title="مسح الربط بالجهاز — الطالب يقدر يدخل من أي جهاز">إعادة ضبط الجهاز</button>' : '') +
+            (r.linked_user_id ? '<button type="button" class="btn btn-sm btn-outline unlink-btn" title="فصل الكود عن الحساب — هيتسجل برضو عند أول دخول">فك الربط</button>' : '') +
             '<button type="button" class="btn btn-sm btn-danger delete-btn">حذف</button>' +
             '</div></td></tr>'
           );
@@ -202,7 +211,7 @@
       try {
         const { data, error } = await supabase
           .from('student_codes')
-          .select('id, code, full_name, role, is_active, linked_user_id, created_at')
+          .select('id, code, full_name, role, is_active, linked_user_id, device_id, created_at')
           .order('full_name', { ascending: true })
           .limit(10000);
         if (error) throw error;
@@ -276,6 +285,36 @@
         return;
       }
 
+      if (btn.classList.contains('reset-device-btn')) {
+        const row = state.rows.find((r) => r.id === id);
+        if (!confirm('إعادة ضبط جهاز «' + (row?.full_name || row?.code || '') + '»؟ الطالب هيقدر يدخل من أي جهاز بعد كده.')) return;
+        btn.disabled = true;
+        const { error } = await supabase
+          .from('student_codes')
+          .update({ device_id: null, updated_at: new Date().toISOString() })
+          .eq('id', id);
+        btn.disabled = false;
+        if (error) { showToast('تعذر مسح ربط الجهاز: ' + error.message, 'error'); return; }
+        showToast('تم مسح ربط الجهاز.', 'success');
+        await loadCodes();
+        return;
+      }
+
+      if (btn.classList.contains('unlink-btn')) {
+        const row = state.rows.find((r) => r.id === id);
+        if (!confirm('فك ربط «' + (row?.full_name || row?.code || '') + '»؟ هيتشال من حسابه الحالي، وهيتسجل برضو تلقائي بأول دخول.')) return;
+        btn.disabled = true;
+        const { error } = await supabase
+          .from('student_codes')
+          .update({ linked_user_id: null, device_id: null, updated_at: new Date().toISOString() })
+          .eq('id', id);
+        btn.disabled = false;
+        if (error) { showToast('تعذر فك الربط: ' + error.message, 'error'); return; }
+        showToast('تم فك الربط.', 'success');
+        await loadCodes();
+        return;
+      }
+
       if (btn.classList.contains('delete-btn')) {
         const row = state.rows.find((r) => r.id === id);
         if (!confirm('حذف كود «' + (row?.full_name || '') + '» (' + (row?.code || '') + ')؟ الطالب لن يستطيع الدخول بعد الحذف.')) return;
@@ -289,6 +328,12 @@
     });
 
     $('search').addEventListener('input', renderList);
+    $('filter-linked-btn').addEventListener('click', () => {
+      state.linkedOnly = !state.linkedOnly;
+      $('filter-linked-btn').setAttribute('aria-pressed', String(state.linkedOnly));
+      $('filter-linked-btn').textContent = state.linkedOnly ? 'عرض الكل (مسجلين + غير مسجلين)' : 'عرض المسجلين على المنصة فقط';
+      renderList();
+    });
 
     // ---------- تصدير CSV ----------
     $('export-btn').addEventListener('click', () => {

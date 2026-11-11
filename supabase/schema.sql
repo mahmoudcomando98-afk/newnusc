@@ -4,24 +4,6 @@
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- Helper: is_admin
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role = 'admin' AND is_active = true
-  );
-$$;
-
--- Kept for compatibility with legacy policies, but this project uses strict admin-only access.
-CREATE OR REPLACE FUNCTION public.is_admin_or_moderator()
-RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.profiles
-    WHERE id = auth.uid() AND role = 'admin' AND is_active = true
-  );
-$$;
-
 -- profiles
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -36,6 +18,25 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- is_admin / is_admin_or_moderator: مُعرَّفتان بعد إنشاء جدول profiles
+-- لأن سوبا بيز بتتحقق من أجسام دوال LANGUAGE sql وقت الإنشاء
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin' AND is_active = true
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_admin_or_moderator()
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin' AND is_active = true
+  );
+$$;
+
 
 -- Users cannot grant themselves admin privileges or reactivate an account.
 CREATE OR REPLACE FUNCTION public.prevent_profile_privilege_escalation()

@@ -29,8 +29,8 @@ function normalizeUrl(url) {
     .replace(/\/+$/, '');
 }
 
-const FALLBACK_URL = 'https://keaoerzmdxthrgpqnwvs.supabase.co';
-const FALLBACK_KEY = 'sb_publishable_p2OZlGraQC5gjj8ckVZjbg_ROIabqkD';
+const FALLBACK_URL = 'https://bmqqacvgtevogcuqfryq.supabase.co';
+const FALLBACK_KEY = 'sb_publishable_pg_buypRU6LXEbY1uIwNCw_ZatgDQjp';
 
 const rawUrl =
   pickEnv(

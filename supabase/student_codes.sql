@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS public.student_codes (
   full_name TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('student', 'admin', 'moderator')),
   linked_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  device_id TEXT,
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -24,6 +25,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS student_codes_norm_unique
   ON public.student_codes (code_norm);
 CREATE INDEX IF NOT EXISTS student_codes_user_idx ON public.student_codes (linked_user_id);
 CREATE INDEX IF NOT EXISTS student_codes_name_idx ON public.student_codes (full_name);
+CREATE INDEX IF NOT EXISTS student_codes_linked_idx ON public.student_codes (linked_user_id) WHERE linked_user_id IS NOT NULL;
+
+-- للترقيات من إصدارات سابقة بدون عمود الجهاز (آمن التكرار):
+ALTER TABLE public.student_codes ADD COLUMN IF NOT EXISTS device_id TEXT;
 
 ALTER TABLE public.student_codes ENABLE ROW LEVEL SECURITY;
 

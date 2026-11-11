@@ -112,7 +112,6 @@ export default defineConfig(({ mode }) => {
           'admin-index': resolve(import.meta.dirname, 'admin/index.html'),
           'admin-codes': resolve(import.meta.dirname, 'admin/codes.html'),
           'admin-statistics': resolve(import.meta.dirname, 'admin/statistics.html'),
-          'admin-students': resolve(import.meta.dirname, 'admin/students.html'),
           'admin-subjects': resolve(import.meta.dirname, 'admin/subjects.html'),
           'admin-materials': resolve(import.meta.dirname, 'admin/materials.html'),
           'admin-teacher-links': resolve(import.meta.dirname, 'admin/teacher-links.html'),
