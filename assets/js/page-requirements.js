@@ -15,26 +15,7 @@ export const PAGE_REQUIREMENTS = {
     roles: [],
     guestOnly: true,
     title: 'تسجيل الدخول',
-    needs: 'بريد وكلمة مرور صالحين'
-  },
-  '/register.html': {
-    auth: false,
-    roles: [],
-    guestOnly: true,
-    title: 'إنشاء حساب',
-    needs: 'بيانات الطالب الأساسية'
-  },
-  '/forgot-password.html': {
-    auth: false,
-    roles: [],
-    title: 'استعادة كلمة المرور',
-    needs: 'بريد مسجّل'
-  },
-  '/reset-password.html': {
-    auth: false,
-    roles: [],
-    title: 'تعيين كلمة مرور',
-    needs: 'رابط استعادة صالح'
+    needs: 'كود جامعي صالح'
   },
   '/home.html': {
     auth: true,
@@ -118,6 +99,12 @@ export const PAGE_REQUIREMENTS = {
     auth: true,
     roles: ['admin', 'moderator'],
     title: 'الطلاب',
+    needs: 'صلاحية أدمن أو مشرف'
+  },
+  '/admin/codes.html': {
+    auth: true,
+    roles: ['admin', 'moderator'],
+    title: 'كودات الطلاب',
     needs: 'صلاحية أدمن أو مشرف'
   },
   '/admin/subjects.html': {

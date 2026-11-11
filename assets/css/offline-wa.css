@@ -192,3 +192,7 @@
   color: #9a928a;
   line-height: 1.5;
 }
+
+.offline-overlay-icon svg { width: 26px; height: 26px; color: #9a4f2b; }
+:root[data-theme="dark"] .offline-overlay-icon { background: var(--surface-soft) !important; border-color: var(--border) !important; }
+:root[data-theme="dark"] .offline-overlay-icon svg { color: var(--primary); }

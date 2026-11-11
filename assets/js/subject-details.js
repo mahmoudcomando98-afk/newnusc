@@ -285,7 +285,7 @@ function materialCard(material, badgeLabel) {
       <div class="material-card-top">
         <div class="material-card-icon" data-icon="file"></div>
         <div class="material-card-body">
-          <div class="material-card-title">${material.is_pinned ? '📌 ' : ''}${escapeHtml(material.title || 'ملف')} ${freshnessBadgesHtml(material)}</div>
+          <div class="material-card-title">${material.is_pinned ? '<span data-icon="pin" class="pin-icon"></span>' : ''}${escapeHtml(material.title || 'ملف')} ${freshnessBadgesHtml(material)}</div>
           <div class="material-card-meta">
             <span class="badge">${escapeHtml(badgeLabel)}</span>
             ${material.is_pinned ? '<span class="badge badge-primary">مثبّت</span>' : ''}
@@ -457,7 +457,7 @@ async function loadAnnouncements(el) {
       <div class="list-item">
         <div class="list-item-icon" data-icon="megaphone"></div>
         <div class="list-item-body">
-          <div class="list-item-title">${a.is_pinned ? '📌 ' : ''}${escapeHtml(a.title || 'إعلان')}</div>
+          <div class="list-item-title">${a.is_pinned ? '<span data-icon="pin" class="pin-icon"></span>' : ''}${escapeHtml(a.title || 'إعلان')}</div>
           <div class="list-item-desc">${escapeHtml((a.content || a.body || '').slice(0, 160))} · ${timeAgo(a.created_at)}</div>
           ${join ? `<a class="btn btn-sm btn-outline mt-1" href="${escapeHtml(join)}" target="_blank" rel="noopener">فتح الرابط</a>` : ''}
         </div>

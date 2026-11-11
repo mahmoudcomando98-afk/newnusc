@@ -13,7 +13,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 -- Students need to update their own profile row sometimes
 GRANT UPDATE ON public.profiles TO authenticated;
 
--- Anon: only what is required for login/register pages (minimal)
+-- Anon: only what is required for the login page (minimal)
 GRANT SELECT ON public.platform_settings TO anon, authenticated;
 
 -- Ensure RLS is on for main tables

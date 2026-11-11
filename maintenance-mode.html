@@ -11,7 +11,7 @@
   <style>
     body { min-height:100vh; min-height:100dvh; display:grid; place-items:center; padding:24px; background:#f6f6f4; }
     .maintenance-card { width:min(560px,100%); padding:clamp(24px,5vw,40px); text-align:center; border:1px solid #e2e4e5; border-radius:12px; background:#fff; box-shadow:none; }
-    .maintenance-mark { display:grid; place-items:center; width:64px; height:64px; margin:0 auto 18px; border:1px solid #e2e4e5; border-radius:10px; background:#f0f1f1; color:#454d55; font-size:1.65rem; }
+    .maintenance-mark { display:grid; place-items:center; width:64px; height:64px; margin:0 auto 18px; border:1px solid #e2e4e5; border-radius:10px; background:#f0f1f1; color:#454d55; }
     .maintenance-brand { margin:0 0 8px; color:#59636e; font-size:.85rem; font-weight:800; letter-spacing:.04em; }
     .maintenance-card h1 { margin:0 0 12px; color:#292d32; font-size:clamp(1.35rem,4vw,1.75rem); line-height:1.5; }
     .maintenance-msg-box {
@@ -44,7 +44,7 @@
 </head>
 <body>
   <main class="maintenance-card">
-    <div class="maintenance-mark" aria-hidden="true">⚙</div>
+    <div class="maintenance-mark" aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
     <p id="maintenance-brand" class="maintenance-brand">NUSC</p>
     <h1>المنصة حاليًا تحت الصيانة</h1>
     <div class="maintenance-msg-box">

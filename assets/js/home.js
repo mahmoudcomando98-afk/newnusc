@@ -403,7 +403,7 @@ function renderAnnouncements(rows) {
         '<div class="list-item announcement-item ' +
         (['urgent', 'high'].includes(level) ? 'announcement-important' : '') +
         '"><div class="list-item-icon" data-icon="megaphone"></div><div class="list-item-body"><div class="list-item-title">' +
-        (a.is_pinned ? '📌 ' : '') +
+        (a.is_pinned ? '<span data-icon="pin" class="pin-icon"></span>' : '') +
         escapeHtml(a.title || 'إعلان') +
         '</div><div class="list-item-desc">' +
         escapeHtml((a.content || a.body || '').slice(0, 120)) +

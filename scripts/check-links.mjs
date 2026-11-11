@@ -63,4 +63,4 @@ if (broken.length) {
   for (const { file, url } of broken) console.error(`  ${file} -> ${url}`);
   process.exit(1);
 }
-console.log('all internal links resolve ✓');
+console.log('all internal links resolve [OK]');

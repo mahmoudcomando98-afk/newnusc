@@ -84,7 +84,7 @@ export async function remindIfAlreadyDownloaded(materialId) {
   writeLocalPrior(userId, materialId);
 
   if (prior) {
-    showToast('انت محمّل الملف مرة، كفاية ونبي 😊 تقدر تنزّله تاني عادي.', 'info', 4500);
+    showToast('انت محمّل الملف مرة، كفاية ونبي. تقدر تنزّله تاني عادي.', 'info', 4500);
   }
 
   return { prior };

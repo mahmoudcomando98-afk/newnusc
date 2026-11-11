@@ -69,7 +69,7 @@ export async function runWeeklyReportOnce() {
     }
     if (!bits.length) return;
 
-    await showLocalNotification('ملخص أسبوعك 📚', {
+    await showLocalNotification('ملخص أسبوعك', {
       body: 'ملخص مذاكرتك: ' + bits.join(' · '),
       url: '/notifications.html',
       tag: `weekly-report-${weekKey}`

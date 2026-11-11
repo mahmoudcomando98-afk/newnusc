@@ -325,3 +325,9 @@ button, input, select, textarea {
 input::placeholder, textarea::placeholder {
   font-family: "Cairo", sans-serif !important;
 }
+
+/* ??????? ????? ???? ?????? (pin/check/x/link/clock) */
+.pin-icon, .inline-icon { display: inline-flex; align-items: center; vertical-align: -2px; }
+.pin-icon svg { width: 15px; height: 15px; }
+.inline-icon svg { width: 15px; height: 15px; }
+.card-title .pin-icon svg { width: 16px; height: 16px; }

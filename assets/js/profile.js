@@ -4,7 +4,6 @@
 
 import { supabase, signOut } from './supabase.js';
 import { protectPage } from './auth.js';
-import { updatePassword } from './auth.js';
 import {
   escapeHtml,
   formatDate,
@@ -15,6 +14,19 @@ import {
 } from './utils.js';
 
 let profile = null;
+
+async function fetchMyCode() {
+  try {
+    const { data } = await supabase
+      .from('student_codes')
+      .select('code')
+      .eq('linked_user_id', profile?.id)
+      .maybeSingle();
+    return data?.code ? String(data.code).trim() : null;
+  } catch {
+    return null;
+  }
+}
 
 async function init() {
   const result = await protectPage();
@@ -33,6 +45,7 @@ async function init() {
 
   setActiveNav('profile');
   initIcons();
+  profile.code = await fetchMyCode();
   renderProfile();
   setupForms();
 
@@ -60,11 +73,10 @@ function renderProfile() {
       </div>
       <div>
         <h2 style="font-size:1.2rem">${escapeHtml(profile.full_name || '')}</h2>
-        <p class="text-sm text-muted">${escapeHtml(profile.email || '')}</p>
+        ${profile.code ? `<p class="text-sm text-muted" dir="ltr" style="text-align:right">كود: <strong>${escapeHtml(profile.code)}</strong></p>` : ''}
       </div>
     </div>
     <div class="card-meta">
-      ${profile.student_id ? `<span>الرقم: ${escapeHtml(profile.student_id)}</span>` : ''}
       <span>${escapeHtml(profile.college || '')}</span>
       <span>${escapeHtml(profile.academic_year || '')}</span>
       ${profile.created_at ? `<span>منذ ${formatDate(profile.created_at)}</span>` : ''}
@@ -72,8 +84,7 @@ function renderProfile() {
   `;
 
   document.getElementById('full_name').value = profile.full_name || '';
-  document.getElementById('student_id').value = profile.student_id || '';
-  document.getElementById('email').value = profile.email || '';
+  document.getElementById('email').value = profile.code || '—';
 }
 
 function setupForms() {
@@ -83,7 +94,6 @@ function setupForms() {
     const btn = profileForm.querySelector('[type="submit"]');
     const handler = withLoading(btn, async () => {
       const full_name = document.getElementById('full_name').value.trim();
-      const student_id = document.getElementById('student_id').value.trim() || null;
 
       if (!full_name) {
         showToast('الاسم مطلوب', 'error');
@@ -92,7 +102,7 @@ function setupForms() {
 
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name, student_id })
+        .update({ full_name })
         .eq('id', profile.id);
 
       if (error) {
@@ -101,36 +111,10 @@ function setupForms() {
       }
 
       profile.full_name = full_name;
-      profile.student_id = student_id;
       renderProfile();
       showToast('تم حفظ البيانات', 'success');
     });
     await handler();
-  });
-
-  const passwordForm = document.getElementById('password-form');
-  passwordForm?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = passwordForm.querySelector('[type="submit"]');
-    await withLoading(btn, async () => {
-      const newPass = document.getElementById('new_password').value;
-      const confirm = document.getElementById('confirm_password').value;
-      if (newPass.length < 6) {
-        showToast('كلمة المرور 6 أحرف على الأقل', 'error');
-        return;
-      }
-      if (newPass !== confirm) {
-        showToast('كلمة المرور غير متطابقة', 'error');
-        return;
-      }
-      try {
-        await updatePassword(newPass);
-        passwordForm.reset();
-        showToast('تم تحديث كلمة المرور', 'success');
-      } catch (err) {
-        showToast(err.message || 'فشل تحديث كلمة المرور', 'error');
-      }
-    });
   });
 }
 

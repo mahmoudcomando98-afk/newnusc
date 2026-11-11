@@ -333,7 +333,7 @@ async function load() {
         return `<article class="card mb-2">
           <div class="flex justify-between items-center flex-wrap gap-1">
             <div>
-              <h3 class="card-title">${item.is_pinned ? '📌 ' : ''}${escapeHtml(item.title)}</h3>
+              <h3 class="card-title">${item.is_pinned ? '<span data-icon="pin" class="pin-icon"></span>' : ''}${escapeHtml(item.title)}</h3>
               <p class="text-sm text-muted">${escapeHtml(subjectNames.get(item.subject_id) || 'مادة غير محددة')} · ${label}</p>
               <p class="text-sm text-muted">${escapeHtml(item.file_type || 'ملف')} ${item.file_size ? '· ' + escapeHtml(formatFileSize(item.file_size)) : ''} · ${escapeHtml(timeAgo(item.created_at))}</p>
               <p class="text-sm mt-1">${statusBadge}</p>

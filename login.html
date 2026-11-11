@@ -4,74 +4,72 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#f6f6f4" />
-  <meta name="description" content="تسجيل الدخول إلى منصة COMANDO التعليمية" />
+  <meta name="description" content="سجّل دخولك لمنصة COMANDO بالكود الجامعي — بدون بريد ولا كلمة مرور." />
   <title>تسجيل الدخول | COMANDO</title>
   <link rel="stylesheet" href="/assets/css/main.css?v=comando-1" />
   <link rel="stylesheet" href="/assets/css/auth.css?v=comando-1" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-1" />
   <style>
-    .auth-remember {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-      user-select: none;
-      font-size: 0.9rem;
-      color: #4a4540;
-      margin: 0;
-    }
-    .auth-remember input {
-      width: 18px;
-      height: 18px;
-      accent-color: #c45c26;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-    .auth-help-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 4px;
-    }
+    .auth-config-banner { display: none; margin-bottom: 12px; padding: 10px 12px; border-radius: 8px; background: #fdeceb; color: #9b1c1c; font-size: 0.85rem; text-align: center; }
+    .auth-config-banner.show { display: block; }
+    .code-input { letter-spacing: 0.08em; font-size: 1.1rem !important; text-align: center; font-weight: 700; }
+    .auth-error { display: none; margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: #fdeceb; color: #9b1c1c; font-size: 0.85rem; line-height: 1.6; }
+    .auth-error.show { display: block; }
+    .auth-lookup-toggle { display: block; margin-top: 12px; text-align: center; font-size: 0.88rem; color: var(--text-muted); }
+    .auth-benefit-check svg { width: 15px; height: 15px; }
+    .auth-preview-icon svg { width: 18px; height: 18px; }
+    .auth-lookup-toggle a { color: var(--primary); font-weight: 700; text-decoration: none; }
+    .auth-lookup-toggle a:hover { text-decoration: underline; }
+    .auth-forgot { margin-top: 14px; border: 1px dashed var(--border); border-radius: 10px; padding: 12px; background: var(--surface-soft); }
+    .auth-forgot-title { font-size: 0.82rem; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+    .auth-lookup-row { display: flex; gap: 8px; }
+    .auth-lookup-row .auth-input { flex: 1; min-width: 0; }
+    .auth-lookup-results { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+    .auth-lookup-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; text-align: right; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); cursor: pointer; transition: border-color .15s ease, transform .1s ease; }
+    .auth-lookup-item:hover { border-color: var(--primary); transform: translateY(-1px); }
+    .auth-lookup-name { font-weight: 700; font-size: 0.86rem; color: var(--text); }
+    .auth-lookup-code { font-size: 0.82rem; font-weight: 700; color: var(--primary-dark); background: var(--primary-light); border-radius: 6px; padding: 2px 8px; }
+    .auth-lookup-empty { font-size: 0.83rem; color: var(--text-muted); text-align: center; padding: 6px 0; margin: 0; }
+    .auth-note { text-align: center; font-size: 0.78rem; color: var(--text-muted); margin-top: 10px; }
   </style>
 </head>
 <body>
   <div class="auth-page">
     <main class="auth-layout auth-login-layout">
       <section class="auth-main" aria-labelledby="login-title">
-        <a class="auth-brand" href="/index.html" aria-label="COMANDO الصفحة الرئيسية">
+        <a class="auth-brand" href="/index.html" aria-label="COMANDO — بوابتك التعليمية">
           <span class="auth-brand-dot" aria-hidden="true"></span>
           <span>COMANDO</span>
         </a>
 
         <div class="auth-heading">
-          <span class="auth-eyebrow"><span class="auth-eyebrow-dot" aria-hidden="true"></span> منصة COMANDO التعليمية</span>
-          <h1 id="login-title">أهلًا بعودتك 👋</h1>
-          <p>سجّل دخولك واستكمل يومك الدراسي من مكان واحد.</p>
+          <span class="auth-eyebrow"><span class="auth-eyebrow-dot" aria-hidden="true"></span> بوابة COMANDO التعليمية</span>
+          <h1 id="login-title">أهلاً بيك</h1>
+          <p>اكتب الكود الجامعي بتاعك بس وهندخلك على حسابك على طول.</p>
         </div>
 
         <div id="config-banner" class="auth-config-banner" role="status" aria-live="polite"></div>
 
-        <form id="login-form" class="auth-form" novalidate>
+        <form id="code-login-form" class="auth-form" novalidate autocomplete="off">
           <div class="auth-field">
-            <label class="form-label" for="email">البريد الإلكتروني</label>
-            <input type="email" id="email" name="email" class="form-input auth-input" placeholder="name@example.com" required autocomplete="username" dir="ltr" />
+            <label class="form-label" for="student-code">الكود الجامعي</label>
+            <input
+              type="text"
+              id="student-code"
+              name="student-code"
+              class="form-input auth-input code-input"
+              placeholder="اكتب كودك هنا"
+              required
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              dir="auto"
+              aria-describedby="code-hint"
+            />
+            <p class="auth-note" id="code-hint" style="text-align: right; margin-top: 6px">الكود هو اللي استلمته من الإدارة — بياخدك للمنصة من غير باسورد.</p>
           </div>
 
-          <div class="auth-field">
-            <label class="form-label" for="password">كلمة المرور</label>
-            <input type="password" id="password" name="password" class="form-input auth-input" placeholder="أدخل كلمة المرور" required autocomplete="current-password" minlength="6" />
-          </div>
-
-          <div class="auth-help-row">
-            <label class="auth-remember" for="remember_me">
-              <input type="checkbox" id="remember_me" name="remember_me" />
-              <span>تذكرني</span>
-            </label>
-            <a href="/forgot-password.html">نسيت كلمة المرور؟</a>
-          </div>
+          <div id="login-error" class="auth-error" role="alert" aria-live="assertive"></div>
 
           <button type="submit" class="btn btn-primary btn-block auth-submit">
             <span>تسجيل الدخول</span>
@@ -79,11 +77,25 @@
           </button>
         </form>
 
-        <p class="auth-footer">
-          لسه ماعندكش حساب؟
-          <a href="/register.html">أنشئ حسابك الآن</a>
-        </p>
-        <p class="auth-note"> المطور : Mahmoud Reda</p>
+        <p class="auth-lookup-toggle">ماعندكش الكود؟ <a href="#" id="forgot-code-link">هل نسيت الكود الجامعي</a></p>
+
+        <div id="forgot-panel" class="auth-forgot" hidden>
+          <p class="auth-forgot-title">اكتب اسمك هيظهرلك كودك على طول</p>
+          <div class="auth-lookup-row">
+            <input
+              type="text"
+              id="lookup-name"
+              class="form-input auth-input"
+              placeholder="اكتب اسمك كما هو مسجل"
+              autocomplete="off"
+              aria-label="الاسم"
+            />
+            <button type="button" id="lookup-btn" class="btn btn-secondary" style="min-height: 42px">بحث</button>
+          </div>
+          <div id="lookup-results" class="auth-lookup-results" aria-live="polite"></div>
+        </div>
+
+        <p class="auth-note">المطور: Mahmoud Reda</p>
       </section>
 
       <aside class="auth-aside" aria-label="مميزات منصة COMANDO">
@@ -93,40 +105,40 @@
         </div>
 
         <div class="auth-aside-content">
-          <h2>كل يوم دراسي،<br />أبسط وأوضح.</h2>
-          <p>تابع موادك ومواعيدك وإعلاناتك من واجهة هادئة ومصممة علشان تساعدك تركز على المهم.</p>
+          <h2>يوم دراسي،<br />أبسط وأوضح.</h2>
+          <p>تابع موادك ومواعيدك وإعلاناتك بمجرد كتابة كودك الجامعي من مكان واحد.</p>
 
           <ul class="auth-benefits">
-            <li><span class="auth-benefit-check" aria-hidden="true">✓</span><span>موادك وملفاتك في مكان واحد</span></li>
-            <li><span class="auth-benefit-check" aria-hidden="true">✓</span><span>متابعة الكويزات والمواعيد بسهولة</span></li>
-            <li><span class="auth-benefit-check" aria-hidden="true">✓</span><span>إعلانات وتحديثات دراسية أولًا بأول</span></li>
+            <li><span class="auth-benefit-check" aria-hidden="true"><span data-icon="check"></span></span><span>موادك وملفاتك في مكان واحد</span></li>
+            <li><span class="auth-benefit-check" aria-hidden="true"><span data-icon="check"></span></span><span>مواعيد الكويزات ومواعيد التسليم أول بأول</span></li>
+            <li><span class="auth-benefit-check" aria-hidden="true"><span data-icon="check"></span></span><span>إعلانات وتحديثات دراسية أول بأول</span></li>
           </ul>
 
           <div class="auth-preview" aria-hidden="true">
             <div class="auth-preview-head">
-              <span class="auth-preview-title">مساحتك الدراسية</span>
-              <span class="auth-preview-tag">منظمة وبسيطة</span>
+              <span class="auth-preview-title">مساحة دراستك</span>
+              <span class="auth-preview-tag">منصة احترافية</span>
             </div>
             <div class="auth-preview-row">
-              <span class="auth-preview-icon">▤</span>
-              <span class="auth-preview-copy"><b>المواد الدراسية</b><span>محاضرات وملفاتك الأساسية</span></span>
+              <span class="auth-preview-icon"><span data-icon="book"></span></span>
+              <span class="auth-preview-copy"><b>المواد الدراسية</b><span>محاضراتك وملفاتك الأساسية</span></span>
               <span class="auth-preview-line"></span>
             </div>
             <div class="auth-preview-row">
-              <span class="auth-preview-icon">◷</span>
+              <span class="auth-preview-icon"><span data-icon="clipboard"></span></span>
               <span class="auth-preview-copy"><b>مواعيدك وكويزاتك</b><span>خليك مستعد من بدري</span></span>
               <span class="auth-preview-line"></span>
             </div>
             <div class="auth-preview-row">
-              <span class="auth-preview-icon">✳</span>
-              <span class="auth-preview-copy"><b>آخر المستجدات</b><span>كل جديد في لوحة واحدة</span></span>
+              <span class="auth-preview-icon"><span data-icon="bell"></span></span>
+              <span class="auth-preview-copy"><b>آخر المستجدات</b><span>كل جديد هتطلعه من غرفة الأخبار</span></span>
               <span class="auth-preview-line"></span>
             </div>
           </div>
         </div>
 
         <div class="auth-aside-bottom">
-          <span>منصة COMANDO التعليمية</span>
+          <span>بوابة COMANDO التعليمية</span>
         </div>
       </aside>
     </main>
@@ -138,7 +150,7 @@
 
     const banner = document.getElementById('config-banner');
     if (!isSupabaseConfigured()) {
-      banner.textContent = getConfigError() || 'إعدادات الاتصال غير مكتملة.';
+      banner.textContent = getConfigError() || 'الإعدادات ناقصة — راجع متغيرات البيئة.';
       banner.classList.add('show');
     }
     initLoginPage();

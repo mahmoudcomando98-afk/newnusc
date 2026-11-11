@@ -22,7 +22,7 @@
   <main class="page" style="padding-bottom:32px">
     <div class="container page-content">
       <h1 class="mb-2" style="font-size:1.25rem">الطلاب المسجلون</h1>
-      <p class="text-sm text-muted mb-3">ابحث بالاسم أو البريد، غيّر كلمة المرور، أو احظر طالب.</p>
+      <p class="text-sm text-muted mb-3">ابحث بالاسم أو الكود الجامعي، أو احظر طالب.</p>
 
       <div class="toolbar subjects-toolbar mb-3">
         <input
@@ -127,7 +127,6 @@
           const isSelf = meId && p.id === meId;
           const isAdminRole = p.role === 'admin' || p.role === 'moderator';
           const canBan = !isSelf && !isAdminRole;
-          const canResetPass = !isAdminRole || isSelf;
 
           return `
           <div class="list-item" data-id="${escapeHtml(p.id)}">
@@ -142,9 +141,6 @@
               </div>
             </div>
             <div class="flex gap-1 items-center" style="flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
-              ${canResetPass
-                ? `<button type="button" class="btn btn-sm btn-outline" data-pass="${escapeHtml(p.id)}" data-name="${escapeHtml(p.full_name || p.email || '')}">باسورد</button>`
-                : ''}
               ${canBan
                 ? active
                   ? `<button type="button" class="btn btn-sm btn-danger" data-ban="${escapeHtml(p.id)}">حظر</button>`
@@ -163,49 +159,7 @@
       el.querySelectorAll('[data-unban]').forEach((btn) => {
         btn.addEventListener('click', () => setBanned(btn.dataset.unban, false));
       });
-      el.querySelectorAll('[data-pass]').forEach((btn) => {
-        btn.addEventListener('click', () => resetPassword(btn.dataset.pass, btn.dataset.name || ''));
-      });
       initIcons();
-    }
-
-    async function resetPassword(userId, displayName) {
-      if (!userId) return;
-      const label = displayName || 'الطالب';
-      const pwd = prompt('كلمة مرور جديدة لـ «' + label + '» (6 حروف على الأقل):');
-      if (pwd == null) return;
-      const trimmed = String(pwd).trim();
-      if (trimmed.length < 6) {
-        showToast('كلمة المرور لازم 6 حروف على الأقل.', 'error');
-        return;
-      }
-      if (!confirm('تأكيد تغيير كلمة المرور لـ «' + label + '»؟')) return;
-
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        if (!token) {
-          showToast('سجّل دخول كأدمن من جديد.', 'error');
-          return;
-        }
-
-        const { data, error } = await supabase.functions.invoke('admin-set-password', {
-          body: { user_id: userId, password: trimmed }
-        });
-
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-
-        showToast('تم تغيير كلمة المرور.', 'success');
-      } catch (err) {
-        console.error(err);
-        const msg = String(err?.message || err || '');
-        if (/Failed to send|FunctionsFetchError|not found|404/i.test(msg)) {
-          showToast('الدالة مش منشورة. نفّذ: npx supabase functions deploy admin-set-password --no-verify-jwt', 'error');
-        } else {
-          showToast(msg || 'تعذر تغيير كلمة المرور', 'error');
-        }
-      }
     }
 
     function exportCsv() {

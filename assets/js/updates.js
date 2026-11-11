@@ -59,7 +59,7 @@ function renderFeed(feed) {
           <div class="list-item-icon" data-icon="${item.kind === 'material' ? 'file' : 'megaphone'}"></div>
           <div class="list-item-body">
             <div class="list-item-title">
-              ${item.is_pinned ? '📌 ' : ''}${escapeHtml(item.title)}
+              ${item.is_pinned ? '<span data-icon="pin" class="pin-icon"></span>' : ''}${escapeHtml(item.title)}
               ${freshnessBadgesHtml(item)}
             </div>
             <div class="list-item-desc">

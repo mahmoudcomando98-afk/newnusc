@@ -262,7 +262,7 @@
               const ok = !!q.is_correct;
               return `<div class="review-item q-stage">
                 <p><strong>س ${i + 1}.</strong> ${escapeHtml(q.prompt || '')}</p>
-                <p class="text-sm ${ok ? 'ok-line' : 'bad-line'}">إجابتك: ${chosen == null ? '—' : escapeHtml(String(opts[chosen] ?? chosen))} ${ok ? '✓' : '✗'}</p>
+                <p class="text-sm ${ok ? 'ok-line' : 'bad-line'}">إجابتك: ${chosen == null ? '—' : escapeHtml(String(opts[chosen] ?? chosen))} ${ok ? '<span data-icon="check" class="inline-icon"></span>' : '<span data-icon="x" class="inline-icon"></span>'}</p>
                 ${!ok ? `<p class="text-sm ok-line">الصح: ${escapeHtml(String(opts[correct] ?? correct))}</p>` : ''}
               </div>`;
             })

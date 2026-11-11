@@ -121,10 +121,10 @@
           return `<article class="card mb-2">
             <div class="flex justify-between items-center flex-wrap gap-1">
               <div>
-                <h3 class="card-title">${item.is_pinned ? '📌 ' : ''}${escapeHtml(item.title || 'إعلان')}</h3>
+                <h3 class="card-title">${item.is_pinned ? '<span data-icon="pin" class="pin-icon"></span>' : ''}${escapeHtml(item.title || 'إعلان')}</h3>
                 <p class="text-sm text-muted">${escapeHtml(subjectName)} · ${levelLabel} · ${timeAgo(item.created_at)}</p>
                 <p class="text-sm mt-1">${escapeHtml((item.content || item.body || '').slice(0, 160))}</p>
-                ${item.link_url ? '<p class="text-sm text-muted mt-1">🔗 رابط مضاف</p>' : item.link_status === 'coming_soon' ? '<p class="text-sm text-muted mt-1">⏳ الرابط قريبًا</p>' : ''}
+                ${item.link_url ? '<p class="text-sm text-muted mt-1"><span data-icon="link" class="inline-icon"></span> رابط مضاف</p>' : item.link_status === 'coming_soon' ? '<p class="text-sm text-muted mt-1"><span data-icon="clock" class="inline-icon"></span> الرابط قريبًا</p>' : ''}
               </div>
               <div class="flex gap-1 items-center">
                 <span class="badge ${item.is_published === false ? 'badge-warning' : 'badge-success'}">${item.is_published === false ? 'مسودة' : 'منشور'}</span>

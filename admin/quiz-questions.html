@@ -331,7 +331,7 @@
             ${opts
               .map(
                 (o, idx) =>
-                  `<li>${idx === correct ? '✓ ' : ''}${escapeHtml(String(o))}${idx === correct ? ' <span class="badge badge-success">صح</span>' : ''}</li>`
+                  `<li>${idx === correct ? '<span data-icon="check" class="inline-icon"></span> ' : ''}${escapeHtml(String(o))}${idx === correct ? ' <span class="badge badge-success">صح</span>' : ''}</li>`
               )
               .join('')}
           </ul>

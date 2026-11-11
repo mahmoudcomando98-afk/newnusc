@@ -113,7 +113,7 @@ async function loadAnnouncements() {
         return `
         <article class="card announcement-card ${['urgent', 'high'].includes(priority) ? 'announcement-important' : ''}">
           <div class="card-header-row">
-            <h3 class="card-title">${announcement.is_pinned ? '📌 ' : ''}${escapeHtml(announcement.title || 'إعلان')}</h3>
+            <h3 class="card-title">${announcement.is_pinned ? '<span data-icon="pin" class="pin-icon"></span>' : ''}${escapeHtml(announcement.title || 'إعلان')}</h3>
             <span class="badge ${getPriorityClass(priority)}">${escapeHtml(priorityLabel(priority))}</span>
           </div>
           ${subjectName ? `<p class="text-sm text-muted">${escapeHtml(subjectName)}</p>` : ''}

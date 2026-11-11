@@ -273,7 +273,13 @@ const ICONS = {
   alert: `<svg ${SVG_ATTR}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
   chevronLeft: `<svg ${SVG_ATTR} width="24" height="24"><polyline points="15 18 9 12 15 6"/></svg>`,
   refresh: `<svg ${SVG_ATTR}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`,
-  video: `<svg ${SVG_ATTR}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`
+  video: `<svg ${SVG_ATTR}><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`,
+  pin: `<svg ${SVG_ATTR}><path d="M9 4h6"/><path d="M10 4v6.52a2 2 0 0 1-.92 1.65L5.7 15h12.6l-3.38-2.83A2 2 0 0 1 14 10.52V4"/><path d="M12 15v6"/></svg>`,
+  check: `<svg ${SVG_ATTR}><polyline points="20 6 9 17 4 10"/></svg>`,
+  x: `<svg ${SVG_ATTR}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  link: `<svg ${SVG_ATTR}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
+  clock: `<svg ${SVG_ATTR}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  'wifi-off': `<svg ${SVG_ATTR}><line x1="2" y1="2" x2="22" y2="22"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.82"/><path d="M16.85 11.25a8 8 0 0 1 2.22 1.68"/><path d="M5 13a10 10 0 0 1 5.24-2.85"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>`
 };
 
 export function initIcons() {

@@ -1,81 +1,31 @@
-
 /**
- * NUSC Student Hub - Authentication (Supabase Auth — not Firebase)
+ * NUSC Student Hub — الدخول/التسجيل بالكود الجامعي (Supabase Auth)
+ * لا توجد كلمات مرور: الكود يكافئ الهوية. الجلسة حقيقية من Supabase.
  */
 
 import { supabase, getSession, getProfile } from './supabase.js';
 
 import {
   showToast,
-  withLoading,
-  redirectIfAuthenticated
+  withLoading
 } from './utils.js';
 
-const REMEMBER_KEY = 'nusc_remember_login';
-
 function getErrorMessage(error, fallback = 'حدث خطأ، حاول مرة أخرى') {
-  const message = String(error?.message || '').toLowerCase();
+  const message = String(error?.message || error || '').toLowerCase();
   if (
     error?.status === 429 ||
     message.includes('rate limit') ||
-    message.includes('too many requests') ||
-    message.includes('email rate limit')
+    message.includes('too many requests')
   ) {
-    return 'تم تجاوز حد المحاولات أو رسائل البريد مؤقتًا. انتظر قليلًا قبل المحاولة مجددًا.';
+    return 'محاولات كتير خلال دقيقة. استنى شوية وحاول تاني.';
   }
-  if (message.includes('already registered') || message.includes('already been registered')) {
-    return 'هذا البريد مسجل بالفعل. جرّب تسجيل الدخول أو استعادة كلمة المرور.';
-  }
-  if (message.includes('invalid login credentials') || message.includes('invalid login')) {
-    return 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
-  }
-  if (message.includes('email not confirmed')) {
-    return 'يرجى تأكيد البريد الإلكتروني قبل تسجيل الدخول.';
+  if (message.includes('non-2xx') || message.includes('edge function')) {
+    return 'الخدمة مش متاحة دلوقتي. تأكد من نشر دالة code-login على Supabase.';
   }
   if (message.includes('failed to fetch') || message.includes('network') || message.includes('fetch')) {
     return 'مفيش اتصال بالسيرفر. تأكد من الإنترنت وحاول تاني.';
   }
   return error?.message || fallback;
-}
-
-function loadRememberedLogin(form) {
-  if (!form) return;
-  try {
-    const raw = localStorage.getItem(REMEMBER_KEY);
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    if (!data || typeof data !== 'object') return;
-    const emailEl = form.elements.email || document.getElementById('email');
-    const passEl = form.elements.password || document.getElementById('password');
-    const cb = document.getElementById('remember_me');
-    if (emailEl && data.email) emailEl.value = String(data.email);
-    if (passEl && data.password) passEl.value = String(data.password);
-    if (cb) cb.checked = true;
-  } catch {
-    try {
-      localStorage.removeItem(REMEMBER_KEY);
-    } catch {
-      /* ignore */
-    }
-  }
-}
-
-function saveRememberedLogin(email, password, remember) {
-  try {
-    if (remember && email && password) {
-      localStorage.setItem(
-        REMEMBER_KEY,
-        JSON.stringify({
-          email: String(email).trim().toLowerCase(),
-          password: String(password)
-        })
-      );
-    } else {
-      localStorage.removeItem(REMEMBER_KEY);
-    }
-  } catch {
-    /* private mode / quota */
-  }
 }
 
 function resolveNextPath() {
@@ -92,67 +42,63 @@ function resolveNextPath() {
   return next;
 }
 
-export async function register({ fullName, email, password, studentId = null }) {
-  if (!fullName?.trim() || !email?.trim() || !password) throw new Error('يرجى تعبئة جميع الحقول المطلوبة.');
-  if (password.length < 6) throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
-  const normalizedEmail = email.trim().toLowerCase();
-  const normalizedName = fullName.trim();
-  const normalizedStudentId = studentId?.trim() || null;
-  const { data, error } = await supabase.auth.signUp({
-    email: normalizedEmail,
-    password,
-    options: {
-      emailRedirectTo: `${window.location.origin}/login.html`,
-      data: { full_name: normalizedName, student_id: normalizedStudentId }
+async function checkBannedAndGo(uid) {
+  try {
+    const profile = await Promise.race([
+      getProfile(uid),
+      new Promise((resolve) => setTimeout(() => resolve(null), 3500))
+    ]);
+    if (profile && profile.is_active === false) {
+      window.location.replace('/banned.html');
+      return;
     }
-  });
-  if (error) throw new Error(getErrorMessage(error, 'فشل إنشاء الحساب.'));
-  const user = data?.user;
-  const session = data?.session;
-  if (!user) throw new Error('لم يتم إنشاء الحساب. حاول مرة أخرى.');
-  if (session) {
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({
-        full_name: normalizedName,
-        student_id: normalizedStudentId,
-        email: normalizedEmail
-      })
-      .eq('id', user.id);
-    if (profileError) console.warn('Profile update after signup:', profileError.message);
+  } catch {
+    /* تابع للرئيسية */
   }
-  return { user, session, needsEmailConfirmation: !session };
+  window.location.replace(resolveNextPath());
 }
 
-export async function login({ email, password }) {
-  if (!email?.trim() || !password) throw new Error('يرجى إدخال البريد الإلكتروني وكلمة المرور.');
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim().toLowerCase(),
-    password
+/** الدخول (أو التسجيل تلقائيًا) بالكود الجامعي */
+export async function loginWithCode(code) {
+  const normalized = String(code || '').trim().replace(/\s+/g, ' ').toUpperCase();
+  if (!normalized) throw new Error('اكتب الكود الجامعي أولًا.');
+
+  const { data, error } = await supabase.functions.invoke('code-login', {
+    body: { action: 'login', code: normalized }
   });
-  if (error) throw new Error(getErrorMessage(error, 'فشل تسجيل الدخول.'));
-  if (!data?.session) throw new Error('تم الدخول لكن الجلسة مش محفوظة. جرّب تاني.');
-  return data;
+  if (error) throw new Error(getErrorMessage(error, 'تعذر تسجيل الدخول. حاول مرة أخرى.'));
+  if (data?.error) {
+    const err = new Error(data.error);
+    err.status = data.status || 400;
+    throw err;
+  }
+  if (!data?.token_hash) throw new Error('رد غير متوقع من الخدمة. حاول مرة أخرى.');
+
+  const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+    token_hash: data.token_hash,
+    type: 'magiclink'
+  });
+  if (verifyError) throw new Error(getErrorMessage(verifyError, 'تعذر إنشاء الجلسة. حاول مرة أخرى.'));
+  return { ...verifyData, fullName: data.full_name, role: data.role };
+}
+
+/** البحث عن كود جامعي بالاسم — للذين نسوا كودهم */
+export async function lookupStudentCode(query) {
+  const q = String(query || '').trim();
+  if (q.length < 3) throw new Error('اكتب 3 أحرف على الأقل من اسمك.');
+
+  const { data, error } = await supabase.functions.invoke('code-login', {
+    body: { action: 'lookup', query: q }
+  });
+  if (error) throw new Error(getErrorMessage(error, 'تعذر البحث الآن. حاول مرة أخرى.'));
+  if (data?.error) throw new Error(data.error);
+  return Array.isArray(data?.results) ? data.results : [];
 }
 
 export async function logout() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
   window.location.href = '/login.html';
-}
-
-export async function requestPasswordReset(email) {
-  if (!email?.trim()) throw new Error('يرجى إدخال البريد الإلكتروني.');
-  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-    redirectTo: `${window.location.origin}/reset-password.html`
-  });
-  if (error) throw new Error(getErrorMessage(error, 'تعذر إرسال رابط الاستعادة.'));
-}
-
-export async function updatePassword(password) {
-  if (!password || password.length < 6) throw new Error('كلمة المرور يجب أن تكون 6 أحرف على الأقل.');
-  const { error } = await supabase.auth.updateUser({ password });
-  if (error) throw new Error(getErrorMessage(error, 'تعذر تحديث كلمة المرور.'));
 }
 
 export async function protectPage({ adminOnly = false } = {}) {
@@ -212,147 +158,119 @@ export async function protectAdminPage() {
   return await protectPage({ adminOnly: true });
 }
 
+function renderLookupResults(container, results, onPick) {
+  if (!results.length) {
+    container.innerHTML = '<p class="auth-lookup-empty">مفيش نتائج مطابقة. حاول تكتب الاسم بطريقة تانية.</p>';
+    return;
+  }
+  container.innerHTML = '';
+  for (const item of results) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'auth-lookup-item';
+    row.innerHTML =
+      '<span class="auth-lookup-name">' + escapeHtmlSafe(item.full_name) + '</span>' +
+      '<span class="auth-lookup-code" dir="ltr">' + escapeHtmlSafe(item.code) + '</span>';
+    row.setAttribute('aria-label', 'تسجيل الدخول باسم ' + item.full_name);
+    row.addEventListener('click', () => onPick(item));
+    container.appendChild(row);
+  }
+}
+
+function escapeHtmlSafe(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 export function initLoginPage() {
-  const form = document.getElementById('login-form');
+  const form = document.getElementById('code-login-form');
   if (!form) return;
 
-  loadRememberedLogin(form);
-  redirectIfAuthenticated('/home.html');
+  const codeInput = document.getElementById('student-code');
+  const forgotLink = document.getElementById('forgot-code-link');
+  const forgotPanel = document.getElementById('forgot-panel');
+  const lookupInput = document.getElementById('lookup-name');
+  const lookupBtn = document.getElementById('lookup-btn');
+  const lookupResults = document.getElementById('lookup-results');
+  const errorBox = document.getElementById('login-error');
+
+  const showError = (msg) => {
+    if (!errorBox) return;
+    errorBox.textContent = msg || '';
+    errorBox.classList.toggle('show', !!msg);
+  };
+
+  const submitCode = async (rawCode) => {
+    const btn = form.querySelector('button[type="submit"]');
+    await withLoading(btn, async () => {
+      showError('');
+      const data = await loginWithCode(rawCode);
+      showToast('أهلاً ' + (data?.fullName || '').split(' ')[0], 'success');
+      const uid = data?.user?.id || data?.session?.user?.id;
+      await checkBannedAndGo(uid);
+    });
+  };
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = form.elements.email?.value || document.getElementById('email')?.value || '';
-    const password = form.elements.password?.value || document.getElementById('password')?.value || '';
-    const remember = !!document.getElementById('remember_me')?.checked;
-    const btn = form.querySelector('button[type="submit"]');
-
     try {
-      await withLoading(btn, async () => {
-        const data = await login({ email, password });
-        saveRememberedLogin(email, password, remember);
-
-        let banned = false;
-        try {
-          const uid = data?.user?.id || data?.session?.user?.id;
-          const profile = await Promise.race([
-            getProfile(uid),
-            new Promise((resolve) => setTimeout(() => resolve(null), 3500))
-          ]);
-          if (profile && profile.is_active === false) banned = true;
-        } catch {
-          /* continue to home */
-        }
-
-        if (banned) {
-          window.location.replace('/banned.html');
-          return;
-        }
-
-        window.location.replace(resolveNextPath());
-      });
+      await submitCode(codeInput?.value || '');
     } catch (err) {
-      console.error('[NUSC] login failed:', err);
-      showToast(getErrorMessage(err, 'تعذر تسجيل الدخول.'), 'error');
+      console.error('[NUSC] code login failed:', err);
+      showError(getErrorMessage(err, 'تعذر تسجيل الدخول. تأكد من الكود وحاول تاني.'));
     }
   });
-}
 
-export function initRegisterPage() {
-  const form = document.getElementById('register-form');
-  if (!form) return;
-  redirectIfAuthenticated('/home.html');
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fullName = form.elements.full_name?.value || form.elements.fullName?.value || '';
-    const email = form.elements.email?.value || '';
-    const password = form.elements.password?.value || '';
-    const studentId = form.elements.student_id?.value || form.elements.studentId?.value || '';
-    const confirmPassword =
-      form.elements.password_confirm?.value ||
-      form.elements.confirm?.value ||
-      form.elements.confirm_password?.value ||
-      '';
-    if (confirmPassword && password !== confirmPassword) {
-      showToast('كلمتا المرور غير متطابقتين.', 'error');
-      return;
-    }
-    if (form.elements.terms && !form.elements.terms.checked) {
-      showToast('يجب الموافقة على الشروط والأحكام.', 'error');
-      return;
-    }
-    const btn = form.querySelector('button[type="submit"]');
-    try {
-      await withLoading(btn, async () => {
-        const result = await register({ fullName, email, password, studentId });
-        if (result.needsEmailConfirmation) {
-          showToast('تم إنشاء الحساب. تحقق من بريدك الإلكتروني لتأكيده قبل تسجيل الدخول.', 'success', 6000);
-        } else {
-          showToast('تم إنشاء الحساب بنجاح.', 'success');
-          window.location.replace('/home.html');
-        }
-      });
-    } catch (err) {
-      showToast(getErrorMessage(err, 'تعذر إنشاء الحساب.'), 'error');
-    }
-  });
-}
+  // "هل نسيت الكود الجامعي؟" — إظهار لوحة البحث بالاسم
+  if (forgotLink && forgotPanel) {
+    forgotLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      forgotPanel.hidden = !forgotPanel.hidden;
+      if (!forgotPanel.hidden && lookupInput) lookupInput.focus();
+    });
+  }
 
-export function initForgotPasswordPage() {
-  const form = document.getElementById('forgot-form');
-  if (!form) return;
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = form.elements.email?.value || '';
-    const btn = form.querySelector('button[type="submit"]');
-    try {
-      await withLoading(btn, async () => {
-        await requestPasswordReset(email);
-        showToast('إذا كان البريد مسجلًا، فستصلك رسالة لاستعادة كلمة المرور.', 'success');
-      });
-    } catch (err) {
-      showToast(getErrorMessage(err, 'تعذر إرسال رابط الاستعادة.'), 'error');
-    }
-  });
-}
-
-export function initResetPasswordPage() {
-  const form = document.getElementById('reset-form');
-  if (!form) return;
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const password = form.elements.password?.value || '';
-    const confirmPassword =
-      form.elements.password_confirm?.value ||
-      form.elements.confirm?.value ||
-      form.elements.confirm_password?.value ||
-      '';
-    if (confirmPassword && password !== confirmPassword) {
-      showToast('كلمتا المرور غير متطابقتين.', 'error');
-      return;
-    }
-    const btn = form.querySelector('button[type="submit"]');
-    try {
-      await withLoading(btn, async () => {
-        await updatePassword(password);
-        showToast('تم تحديث كلمة المرور بنجاح.', 'success');
-        window.location.replace('/login.html');
-      });
-    } catch (err) {
-      showToast(getErrorMessage(err, 'تعذر تحديث كلمة المرور.'), 'error');
-    }
-  });
+  if (lookupBtn && lookupInput && lookupResults) {
+    const runLookup = async () => {
+      lookupBtn.disabled = true;
+      lookupBtn.textContent = '...';
+      lookupResults.innerHTML = '';
+      try {
+        const results = await lookupStudentCode(lookupInput.value);
+        renderLookupResults(lookupResults, results, async (item) => {
+          // الطالب اختار نفسه: سجّل بالكود فورًا
+          try {
+            await submitCode(item.code);
+          } catch (err) {
+            showError(getErrorMessage(err, 'تعذر تسجيل الدخول. حاول تاني.'));
+          }
+        });
+      } catch (err) {
+        lookupResults.innerHTML =
+          '<p class="auth-lookup-empty">' + escapeHtmlSafe(getErrorMessage(err, 'تعذر البحث.')) + '</p>';
+      } finally {
+        lookupBtn.disabled = false;
+        lookupBtn.textContent = 'بحث';
+      }
+    };
+    lookupBtn.addEventListener('click', runLookup);
+    lookupInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        runLookup();
+      }
+    });
+  }
 }
 
 export default {
-  register,
-  login,
+  loginWithCode,
+  lookupStudentCode,
   logout,
-  requestPasswordReset,
-  updatePassword,
   protectPage,
   protectAdminPage,
-  initLoginPage,
-  initRegisterPage,
-  initForgotPasswordPage,
-  initResetPasswordPage
+  initLoginPage
 };
