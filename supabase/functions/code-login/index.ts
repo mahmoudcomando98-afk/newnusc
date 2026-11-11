@@ -85,10 +85,10 @@ Deno.serve(async (req) => {
     if (action === 'lookup') {
       const raw = String(body?.query || '').trim();
       if (raw.length < MIN_QUERY_LEN) {
-        return jsonResponse({ error: 'اكتب 3 أحرف على الأقل من اسمك' }, 400);
+        return jsonResponse({ ok: false, error: 'اكتب 3 أحرف على الأقل من اسمك' });
       }
       if (raw.length > MAX_NAME_LEN) {
-        return jsonResponse({ error: 'الاسم طويل جدًا' }, 400);
+        return jsonResponse({ ok: false, error: 'الاسم طويل جدًا' });
       }
 
       // حد معدّل شامل (أفضل جهد — الجدول كبير لكن الطلبات محدودة بمعدّل منخفض)
@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
           p_max_per_minute: LOOKUP_MAX_PER_MINUTE
         });
         if (allowed === false) {
-          return jsonResponse({ error: 'محاولات كتير خلال دقيقة. استنى شوية وحاول تاني.' }, 429);
+          return jsonResponse({ ok: false, error: 'محاولات كتير خلال دقيقة. استنى شوية وحاول تاني.' });
         }
       } catch {
         /* الدالة غير موجودة — نتابع بدون حد */
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
         .limit(50);
 
       if (error) {
-        return jsonResponse({ error: 'تعذر البحث الآن. حاول مرة أخرى.' }, 500);
+        return jsonResponse({ ok: false, error: 'تعذر البحث الآن. حاول مرة أخرى.' });
       }
 
       const q = normArabic(raw);
@@ -131,10 +131,10 @@ Deno.serve(async (req) => {
     // ---------------------------------------------------------------
     const code = normCode(String(body?.code || ''));
     if (!code) {
-      return jsonResponse({ error: 'اكتب الكود الجامعي أولًا' }, 400);
+      return jsonResponse({ ok: false, error: 'اكتب الكود الجامعي أولًا' });
     }
     if (code.length > 40) {
-      return jsonResponse({ error: 'الكود غير صحيح' }, 400);
+      return jsonResponse({ ok: false, error: 'الكود غير صحيح' });
     }
 
     const { data: row, error: codeErr } = await admin
@@ -144,13 +144,13 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (codeErr) {
-      return jsonResponse({ error: 'تعذر التحقق من الكود الآن. حاول مرة أخرى.' }, 500);
+      return jsonResponse({ ok: false, error: 'تعذر التحقق من الكود الآن. حاول مرة أخرى.' });
     }
     if (!row) {
-      return jsonResponse({ error: 'الكود الجامعي غير مسجل. تأكد من الكود أو تواصل مع الإدارة.' }, 404);
+      return jsonResponse({ ok: false, error: 'الكود غير صحيح. تأكد من الكود أو تواصل مع الإدارة.' });
     }
     if (row.is_active === false) {
-      return jsonResponse({ error: 'هذا الكود موقوف مؤقتًا. تواصل مع الإدارة.' }, 403);
+      return jsonResponse({ ok: false, error: 'هذا الكود موقوف مؤقتًا. تواصل مع الإدارة.' });
     }
 
     const fullName = String(row.full_name || '').trim();

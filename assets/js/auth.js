@@ -66,7 +66,13 @@ export async function loginWithCode(code) {
   const { data, error } = await supabase.functions.invoke('code-login', {
     body: { action: 'login', code: normalized }
   });
-  if (error) throw new Error(getErrorMessage(error, 'تعذر تسجيل الدخول. حاول مرة أخرى.'));
+  if (error) {
+    // supabase-js v2: non-2xx → error.context (Response) — اقرأ الرسالة الحقيقية إن وُجدت
+    let detail = null;
+    try { detail = await error.context?.json?.(); } catch { /* غير JSON أو غير متاح */ }
+    if (detail?.error) throw new Error(detail.error);
+    throw new Error(getErrorMessage(error, 'تعذر تسجيل الدخول. حاول مرة أخرى.'));
+  }
   if (data?.error) {
     const err = new Error(data.error);
     err.status = data.status || 400;
@@ -90,7 +96,12 @@ export async function lookupStudentCode(query) {
   const { data, error } = await supabase.functions.invoke('code-login', {
     body: { action: 'lookup', query: q }
   });
-  if (error) throw new Error(getErrorMessage(error, 'تعذر البحث الآن. حاول مرة أخرى.'));
+  if (error) {
+    let detail = null;
+    try { detail = await error.context?.json?.(); } catch { /* غير JSON */ }
+    if (detail?.error) throw new Error(detail.error);
+    throw new Error(getErrorMessage(error, 'تعذر البحث الآن. حاول مرة أخرى.'));
+  }
   if (data?.error) throw new Error(data.error);
   return Array.isArray(data?.results) ? data.results : [];
 }
