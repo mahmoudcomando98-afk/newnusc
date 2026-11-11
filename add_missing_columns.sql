@@ -1,0 +1,2 @@
+ALTER TABLE public.profiles ALTER COLUMN name DROP NOT NULL;
+ALTER TABLE public.profiles ALTER COLUMN name SET DEFAULT '';
