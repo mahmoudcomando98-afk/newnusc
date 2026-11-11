@@ -27,3 +27,7 @@ npm-debug.log*
 # Temporary
 tmp/
 temp/
+
+# Supabase CLI local state
+supabase/.temp/
+
