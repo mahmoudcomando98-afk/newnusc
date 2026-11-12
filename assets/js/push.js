@@ -1,5 +1,5 @@
 /**
- * NUSC Web Push — enable, confirm, save subscription, admin fan-out.
+ * COMANDO Web Push — enable, confirm, save subscription, admin fan-out.
  * Important: never call Notification.requestPermission() except from a user click.
  */
 
@@ -14,7 +14,6 @@ const VAPID_PUBLIC =
 const WELCOME_TITLE = 'تم تفعيل الإشعارات';
 const WELCOME_BODY = 'سيتم ارسال الاشعارات المهمه اليك';
 
-/** Same logo as site favicon / PWA icon */
 function siteIconUrl() {
   try {
     return new URL('/nusc.png.jpeg', window.location.origin).href;
@@ -48,7 +47,7 @@ export function notificationPermission() {
 }
 
 async function ensureServiceWorker() {
-  const reg = await navigator.serviceWorker.register('/sw.js?v=4', { scope: '/' });
+  const reg = await navigator.serviceWorker.register('/sw.js?v=5', { scope: '/' });
   await navigator.serviceWorker.ready;
   return reg;
 }
@@ -85,7 +84,7 @@ async function saveSubscription(subscription, userId) {
   }
 
   if (error) {
-    console.warn('[NUSC push] save subscription:', error.message);
+    console.warn('[push] save subscription:', error.message);
     return { ok: false, reason: error.message };
   }
   return { ok: true };
@@ -114,13 +113,13 @@ export async function showLocalNotification(title, options = {}) {
       data: { url: options.url || '/notifications.html' },
       dir: 'rtl',
       lang: 'ar',
-      tag: options.tag || 'nusc-local',
+      tag: options.tag || 'comando-local',
       renotify: true,
       vibrate: [160, 80, 160]
     });
     return true;
   } catch (err) {
-    console.warn('[NUSC push] local notification:', err);
+    console.warn('[push] local notification:', err);
     try {
       // eslint-disable-next-line no-new
       new Notification(title, {
@@ -128,7 +127,7 @@ export async function showLocalNotification(title, options = {}) {
         icon,
         dir: 'rtl',
         lang: 'ar',
-        tag: options.tag || 'nusc-local'
+        tag: options.tag || 'comando-local'
       });
       return true;
     } catch {
@@ -182,13 +181,13 @@ export async function initPushNotifications(userId, opts = {}) {
       await showLocalNotification(WELCOME_TITLE, {
         body: WELCOME_BODY,
         url: '/notifications.html',
-        tag: 'nusc-welcome'
+        tag: 'comando-welcome'
       });
     }
 
     return { ok: true, subscription: sub };
   } catch (err) {
-    console.warn('[NUSC push] init failed:', err);
+    console.warn('[push] init failed:', err);
     return { ok: false, reason: String(err?.message || err) };
   }
 }
@@ -209,6 +208,42 @@ export async function countPushDevices() {
   }
 }
 
+async function readFunctionsError(error, data) {
+  if (data?.error) return String(data.error);
+  if (!error) return 'تعذر إرسال إشعار التليفون';
+
+  // supabase-js v2: body often on error.context
+  try {
+    const ctx = error.context;
+    if (ctx && typeof ctx.json === 'function') {
+      const body = await ctx.json();
+      if (body?.error) return String(body.error);
+      if (body?.message) return String(body.message);
+    }
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    if (error.context && typeof error.context.text === 'function') {
+      const t = await error.context.text();
+      const body = JSON.parse(t);
+      if (body?.error) return String(body.error);
+    }
+  } catch {
+    /* ignore */
+  }
+
+  const msg = String(error.message || error);
+  if (/Failed to send|FunctionsHttpError|non-2xx/i.test(msg)) {
+    return 'فشل استدعاء send-push. تأكد إن الدالة منشورة على نفس مشروع Supabase ومفاتيح VAPID متضبوطة.';
+  }
+  if (/Failed to fetch|NetworkError/i.test(msg)) {
+    return 'مفيش اتصال بدالة send-push. راجع النشر على Supabase.';
+  }
+  return msg;
+}
+
 export async function sendPushToAll({ title, body, url = '/notifications.html' }) {
   try {
     const {
@@ -220,24 +255,20 @@ export async function sendPushToAll({ title, body, url = '/notifications.html' }
 
     const { data, error } = await supabase.functions.invoke('send-push', {
       body: {
-        title: String(title || 'NUSC').slice(0, 120),
+        title: String(title || 'COMANDO').slice(0, 120),
         body: String(body || '').slice(0, 500),
         url: url || '/notifications.html'
       }
     });
 
     if (error) {
-      console.warn('[NUSC push] send-push:', error.message || error);
-      return {
-        ok: false,
-        error:
-          error.message ||
-          'تعذر إرسال إشعار التليفون. تأكد من نشر دالة send-push ومفاتيح VAPID على Supabase.'
-      };
+      const msg = await readFunctionsError(error, data);
+      console.warn('[push] send-push:', msg, error);
+      return { ok: false, error: msg, data };
     }
 
     if (data?.error) {
-      return { ok: false, error: data.error, data };
+      return { ok: false, error: String(data.error), data };
     }
 
     const sent = data?.sent ?? 0;
@@ -251,7 +282,7 @@ export async function sendPushToAll({ title, body, url = '/notifications.html' }
       noDevices: total === 0
     };
   } catch (err) {
-    console.warn('[NUSC push] send-push invoke failed:', err);
+    console.warn('[push] send-push invoke failed:', err);
     return { ok: false, error: String(err?.message || err) };
   }
 }
