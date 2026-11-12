@@ -1,31 +1,28 @@
 /* COMANDO — المساعد الذكي (زر عائم + لوحة محادثة) */
 
+/* الروبوت فقط — بدون أيقونة أو دائرة خلفية، عائم بظل احترافي */
 .ai-fab {
   position: fixed;
-  left: 16px;
-  bottom: calc(var(--bottom-nav-h, 60px) + env(safe-area-inset-bottom, 0px) + 16px);
+  left: 14px;
+  bottom: calc(var(--bottom-nav-h, 60px) + env(safe-area-inset-bottom, 0px) + 12px);
   z-index: 155;
-  width: 54px;
-  height: 54px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: linear-gradient(145deg, #d97b4a 0%, #c56a3a 55%, #9a4f2b 100%);
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  width: 66px;
+  height: 66px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(197, 106, 58, 0.4), 0 2px 6px rgba(0, 0, 0, 0.18);
-  transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.2s ease;
   -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(0 10px 16px rgba(70, 44, 18, 0.45)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
+  transition: filter 0.2s ease;
 }
-.ai-fab:hover { transform: translateY(-2px) scale(1.05); filter: brightness(1.05); }
-.ai-fab:active { transform: scale(0.93); }
-.ai-fab:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
-/* الروبوت في نص الايقونة — حجم متوازن ووسطاني */
-.ai-fab svg { width: 34px; height: 34px; display: block; }
+.ai-fab:hover { filter: drop-shadow(0 14px 20px rgba(70, 44, 18, 0.5)) drop-shadow(0 3px 8px rgba(0, 0, 0, 0.25)); }
+.ai-fab:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 14px; }
+.ai-fab svg { width: 100%; height: 100%; display: block; }
+/* fallback احترافي بـ CSS لو GSAP مش متاحة: طفو بسيط */
+.ai-robot.css-bob { animation: ai-bot-bob 2.6s ease-in-out infinite; transform-box: view-box; }
 /* حركة الروبوت: طفو + عينين بتومض + لمبة + قلب ينبض */
-.ai-bot { animation: ai-bot-bob 2.6s ease-in-out infinite; transform-box: view-box; }
 @keyframes ai-bot-bob {
   0%, 100% { transform: translateY(0); }
   25% { transform: translateY(-0.6px); }
@@ -49,22 +46,9 @@
   50% { opacity: 1; }
 }
 .ai-header-icon svg { width: 30px; height: 30px; display: block; }
-.ai-header-icon svg .ai-bot { animation: none; }
-.ai-fab .ai-fab-badge {
-  position: absolute;
-  top: -2px;
-  inset-inline-end: -2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 999px;
-  background: #2f6b4f;
-  border: 2px solid var(--bg);
-}
-:root[data-theme="dark"] .ai-fab {
-  background: linear-gradient(145deg, #e79a5c 0%, #cf8150 55%, #a4562f 100%);
-  box-shadow: 0 6px 18px rgba(224, 150, 95, 0.35), 0 2px 8px rgba(0, 0, 0, 0.5);
-  border-color: rgba(255, 255, 255, 0.15);
-}
+.ai-header-icon .ai-robot,
+.ai-header-icon .ai-pupils-move,
+.ai-header-icon .ai-head { animation: none !important; }
 
 .ai-panel {
   position: fixed;
@@ -223,7 +207,7 @@
     animation: none !important;
     transition: none !important;
   }
-  .ai-bot, .ai-bot-eyes, .ai-bot-bulb, .ai-bot-core {
+  .ai-robot, .ai-robot.css-bob, .ai-bot-eyes, .ai-bot-bulb, .ai-bot-core {
     animation: none !important;
   }
 }

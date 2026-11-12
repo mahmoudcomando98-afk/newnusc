@@ -14,7 +14,7 @@ var SUPABASE_ANON_KEY = 'sb_publishable_pg_buypRU6LXEbY1uIwNCw_ZatgDQjp';
 var SESSION_KEY = 'nusc-auth-token';
 var GSAP_SRC = 'https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js';
 
-// روبوت مفصّل — عينان بتومض + لمبة رأس مضيئة + قلب "كور" بينبض (الأنيميشن في ai-assistant.css)
+// روبوت مفصّل على طبقات للتحريك الاحترافي: طفو (GSAP) + عينان بتتحرك وبتغمض (GSAP + CSS) + لمبة وقلب نابضين (CSS)
 var ROBOT_SVG =
   '<svg viewBox="0 0 48 48" fill="none" aria-hidden="true" role="img">' +
     '<defs>' +
@@ -34,38 +34,32 @@ var ROBOT_SVG =
         '<stop offset="0" stop-color="#fff3b8"/><stop offset="0.55" stop-color="#f0b545"/><stop offset="1" stop-color="#b06f1d"/>' +
       '</radialGradient>' +
     '</defs>' +
-    '<g class="ai-bot">' +
-      // الأرجل
+    '<g class="ai-robot">' +
       '<rect x="16.5" y="36.5" width="6" height="5" rx="1.6" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
       '<rect x="25.5" y="36.5" width="6" height="5" rx="1.6" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
-      // الأذرع
-      '<rect x="6.2" y="22.5" width="5" height="9.5" rx="2.5" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
-      '<rect x="36.8" y="22.5" width="5" height="9.5" rx="2.5" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
-      // الجسم
+      '<g class="ai-arm-l"><rect x="6.2" y="22.5" width="5" height="9.5" rx="2.5" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/></g>' +
+      '<g class="ai-arm-r"><rect x="36.8" y="22.5" width="5" height="9.5" rx="2.5" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/></g>' +
       '<rect x="12.5" y="20.5" width="23" height="17" rx="4.5" fill="url(#aig-body)" stroke="#4d3a22" stroke-width="1.2"/>' +
-      // قلب الجسم "الكور"
       '<circle cx="24" cy="29" r="4.6" fill="#2b211a" stroke="#4d3a22" stroke-width="1"/>' +
       '<circle class="ai-bot-core" cx="24" cy="29" r="2.6" fill="url(#aig-core)"/>' +
-      // Antenna
       '<line x1="24" y1="8" x2="24" y2="4.5" stroke="#6d5230" stroke-width="1.6" stroke-linecap="round"/>' +
       '<circle class="ai-bot-bulb" cx="24" cy="3.3" r="3.2" fill="url(#aig-glow)"/>' +
       '<circle class="ai-bot-bulb" cx="24" cy="3.3" r="1.9" fill="#fff0b8"/>' +
-      // الرأس
-      '<rect x="11" y="8.5" width="26" height="13.5" rx="4.5" fill="url(#aig-head)" stroke="#4d3a22" stroke-width="1.2"/>' +
-      // ودانتين جانبتين
-      '<circle cx="10" cy="15" r="2.4" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
-      '<circle cx="38" cy="15" r="2.4" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
-      // الشاشة / الفيسر
-      '<rect x="14.5" y="11.3" width="19" height="7.8" rx="3.9" fill="#241c17" stroke="#4d3a22" stroke-width="1"/>' +
-      // العينين (بتتومض)
-      '<g class="ai-bot-eyes">' +
-        '<circle cx="20" cy="15.2" r="1.75" fill="#ffd56b"/>' +
-        '<circle cx="28" cy="15.2" r="1.75" fill="#ffd56b"/>' +
-        '<circle cx="20.6" cy="14.6" r="0.55" fill="#fffbe3"/>' +
-        '<circle cx="28.6" cy="14.6" r="0.55" fill="#fffbe3"/>' +
+      '<g class="ai-head">' +
+        '<rect x="11" y="8.5" width="26" height="13.5" rx="4.5" fill="url(#aig-head)" stroke="#4d3a22" stroke-width="1.2"/>' +
+        '<circle cx="10" cy="15" r="2.4" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
+        '<circle cx="38" cy="15" r="2.4" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
+        '<rect x="14.5" y="11.3" width="19" height="7.8" rx="3.9" fill="#241c17" stroke="#4d3a22" stroke-width="1"/>' +
+        '<g class="ai-pupils-move">' +
+          '<g class="ai-bot-eyes">' +
+            '<circle cx="20" cy="15.2" r="1.75" fill="#ffd56b"/>' +
+            '<circle cx="28" cy="15.2" r="1.75" fill="#ffd56b"/>' +
+            '<circle cx="20.6" cy="14.6" r="0.55" fill="#fffbe3"/>' +
+            '<circle cx="28.6" cy="14.6" r="0.55" fill="#fffbe3"/>' +
+          '</g>' +
+        '</g>' +
+        '<line x1="20.5" y1="17.9" x2="27.5" y2="17.9" stroke="#ffd56b" stroke-width="0.7" stroke-linecap="round" opacity="0.75"/>' +
       '</g>' +
-      // خطوط الفم تحت العينين
-      '<line x1="20.5" y1="17.9" x2="27.5" y2="17.9" stroke="#ffd56b" stroke-width="0.7" stroke-linecap="round" opacity="0.75"/>' +
     '</g>' +
   '</svg>';
 var SEND_SVG =
@@ -298,7 +292,7 @@ function buildPanel() {
   fab.className = 'ai-fab';
   fab.setAttribute('aria-label', 'المساعد الذكي');
   fab.setAttribute('aria-expanded', 'false');
-  fab.innerHTML = ROBOT_SVG + '<span class="ai-fab-badge" aria-hidden="true"></span>';
+  fab.innerHTML = ROBOT_SVG;
   fab.addEventListener('click', function () { togglePanel(); });
   document.body.appendChild(fab);
 
@@ -355,6 +349,48 @@ function buildPanel() {
   renderMessages();
 }
 
+var robotRigStarted = false;
+
+// ريج الروبوت الاحترافي عبر GSAP — طفو + رأس يميل + أيدين بتتمايلان بالتناوب + عينين بتلقط
+function rigRobot() {
+  if (robotRigStarted) return;
+  var fab = document.getElementById('ai-fab');
+  if (!fab) return;
+  robotRigStarted = true;
+  var root = fab.querySelector('.ai-robot');
+  var head = fab.querySelector('.ai-head');
+  var pupils = fab.querySelector('.ai-pupils-move');
+  var armL = fab.querySelector('.ai-arm-l');
+  var armR = fab.querySelector('.ai-arm-r');
+
+  if (!window.gsap || !root) {
+    if (root) root.classList.add('css-bob');
+    return;
+  }
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return;
+
+  // طفو مستمر ناعم
+  gsap.to(root, { y: -3.6, duration: 1.5, yoyo: true, repeat: -1, ease: 'sine.inOut' });
+  // إمالة رأس هادئة حول الرقبة
+  if (head) gsap.to(head, { rotation: 2.4, duration: 2.3, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: '24 16' });
+  // أيدين بتتمايلان بالتناوب من الكتف
+  if (armL) gsap.to(armL, { rotation: -8, duration: 1.7, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: '8.7 22.5' });
+  if (armR) gsap.to(armR, { rotation: 8, duration: 1.7, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: '39.3 22.5' });
+  // العينين بتلقط يمين/شمال بتوقيت واعي
+  if (pupils) {
+    gsap.timeline({ repeat: -1, repeatDelay: 1.15, defaults: { ease: 'sine.inOut' } })
+      .to(pupils, { x: 1.7, duration: 0.4 })
+      .to(pupils, { x: 0, duration: 0.3 }, '+=0.75')
+      .to(pupils, { x: -1.7, duration: 0.4 })
+      .to(pupils, { x: 0, duration: 0.3 }, '+=0.75');
+  }
+  // تلميح عند الـ hover (نبضة تكبير خفيفة)
+  fab.addEventListener('mouseenter', function () {
+    gsap.fromTo(fab, { scale: 1 }, { scale: 1.14, duration: 0.17, yoyo: true, repeat: 1, ease: 'power2.out' });
+  });
+}
+
 function init() {
   var path = (window.location.pathname || '').toLowerCase();
   if (/admin/i.test(path)) return;
@@ -366,7 +402,8 @@ function init() {
 
   state.messages = []; // دائمًا شات نظيف في كل صفحة
   buildPanel();
-  loadGsapAsync(function () { /* الـ GSAP بيتحمل في الخلفية — مش بنستنى */ });
+  // لو GSAP محمّلة بالفعل (من صفحة سابقة) — شغّل الريج فورًا، وإلا لما توصل
+  if (window.gsap) { rigRobot(); } else { loadGsapAsync(function () { rigRobot(); }); }
 }
 
 if (document.readyState === 'loading') {
