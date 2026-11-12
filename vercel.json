@@ -9,8 +9,6 @@
     { "source": "/schedule", "destination": "/schedule.html" },
     { "source": "/online-sections", "destination": "/online-sections.html" },
     { "source": "/online-schedule", "destination": "/online-schedule.html" },
-    { "source": "/midterm-schedule", "destination": "/midterm-schedule.html" },
-    { "source": "/admin/midterm-schedule", "destination": "/admin/midterm-schedule.html" },
     { "source": "/admin/statistics", "destination": "/admin/statistics.html" },
     { "source": "/admin/quiz-questions", "destination": "/admin/quiz-questions.html" },
     { "source": "/announcements", "destination": "/announcements.html" },
