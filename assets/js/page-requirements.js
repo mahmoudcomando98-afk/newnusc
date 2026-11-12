@@ -95,6 +95,12 @@ export const PAGE_REQUIREMENTS = {
     title: 'لوحة التحكم',
     needs: 'صلاحية أدمن أو مشرف'
   },
+  '/admin/ai.html': {
+    auth: true,
+    roles: ['admin', 'moderator'],
+    title: 'مساعد الطلاب',
+    needs: 'صلاحية أدمن أو مشرف'
+  },
   '/admin/codes.html': {
     auth: true,
     roles: ['admin', 'moderator'],

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <style>html.admin-auth-pending body{visibility:hidden!important}</style>
+  <script>document.documentElement.classList.add('admin-auth-pending')</script>
+  <title>مساعد الطلاب | لوحة الإدارة</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=2026-ai" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=2026-ai" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo"><span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span><span>لوحة الإدارة</span></a>
+    </div>
+  </header>
+
+  <main class="page" style="padding-bottom:32px">
+    <div class="container page-content">
+      <h1 class="mb-2" style="font-size:1.25rem">مساعد الطلاب الذكي</h1>
+      <p class="text-sm text-muted mb-3">هنا تقدر تضيف شرح المواد أو تعليمات ثابتة للبوت — وهو هيضيفها أو يلخصها في الردود تلقائيًا.</p>
+
+      <!-- إحصائيات ما يعرفه البوت -->
+      <section class="card mb-3" aria-labelledby="ai-stats-title">
+        <h2 id="ai-stats-title" class="card-title mb-2">إيه اللي البوت عارفه دلوقتي</h2>
+        <div class="ai-stats-grid" id="ai-stats-grid">
+          <div class="ai-stat"><strong id="stat-materials">—</strong><small>ملفات منشورة</small></div>
+          <div class="ai-stat"><strong id="stat-subjects">—</strong><small>مواد</small></div>
+          <div class="ai-stat"><strong id="stat-quizzes">—</strong><small>كويزات</small></div>
+          <div class="ai-stat"><strong id="stat-faq">—</strong><small>أسئلة شائعة</small></div>
+          <div class="ai-stat"><strong id="stat-announcements">—</strong><small>إعلانات</small></div>
+          <div class="ai-stat"><strong id="stat-knowledge">—</strong><small>معرفة الأدمن</small></div>
+        </div>
+      </section>
+
+      <!-- إضافة معرفة جديدة -->
+      <section class="card mb-3" aria-labelledby="ai-add-title">
+        <h2 id="ai-add-title" class="card-title mb-2">أضف معرفة للبوت</h2>
+        <p class="text-sm text-muted mb-2">مثال: «مادة الرياضيات — كل ملفات المحاضرة رقم 7 مرفوعة ويجب على الطالب أن يجمع فرضية البحث على الأصالة، ولا تستلم الواجب بعد الموعد»</p>
+        <form id="add-knowledge-form">
+          <div class="form-group">
+            <label class="form-label" for="k-title">العنوان *</label>
+            <input type="text" id="k-title" class="form-input" required maxlength="180" placeholder="مثال: قوانين تسليم الواجب النهائي" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="k-content">التفاصيل *</label>
+            <textarea id="k-content" class="form-textarea" rows="3" required maxlength="1500" placeholder="اكتب المعلومة كاملة — البوت هيستخدمها حرفيًا في ردوده"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" id="add-k-btn">أضف للمعرفة</button>
+        </form>
+      </section>
+
+      <!-- قائمة المعرفة -->
+      <section class="card" aria-labelledby="ai-list-title">
+        <div class="flex justify-between items-center mb-2">
+          <h2 id="ai-list-title" class="card-title" style="margin:0">المعرفة المضافة</h2>
+          <button type="button" class="btn btn-sm btn-outline" id="refresh-btn">تحديث</button>
+        </div>
+        <div id="knowledge-list" aria-live="polite">
+          <div class="skeleton-card"><div class="skeleton skeleton-title"></div></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module">
+    import { supabase } from '../assets/js/supabase.js';
+    import { protectAdminPage } from '../assets/js/auth.js';
+    import { escapeHtml, showToast, withLoading, showError, showEmpty, initIcons } from '../assets/js/utils.js';
+
+    const state = { knowledge: [] };
+    const $ = (id) => document.getElementById(id);
+
+    async function loadStats() {
+      const [s, m, q, f, a, k] = await Promise.all([
+        supabase.from('subjects').select('id', { count: 'exact', head: true }).eq('is_published', true),
+        supabase.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true),
+        supabase.from('quizzes').select('id', { count: 'exact', head: true }).eq('is_published', true),
+        supabase.from('faq').select('id', { count: 'exact', head: true }).eq('is_published', true),
+        supabase.from('announcements').select('id', { count: 'exact', head: true }).eq('is_published', true),
+        supabase.from('ai_knowledge').select('id', { count: 'exact', head: true }).eq('is_active', true)
+      ]);
+      $('stat-subjects').textContent = String(s.count ?? 0);
+      $('stat-materials').textContent = String(m.count ?? 0);
+      $('stat-quizzes').textContent = String(q.count ?? 0);
+      $('stat-faq').textContent = String(f.count ?? 0);
+      $('stat-announcements').textContent = String(a.count ?? 0);
+      $('stat-knowledge').textContent = String(k.count ?? 0);
+    }
+
+    function renderList() {
+      const el = $('knowledge-list');
+      if (!state.knowledge.length) {
+        showEmpty(el, 'لسه مفيش معرفة — أضف أول معلومة من فوق.');
+        return;
+      }
+      el.innerHTML = state.knowledge
+        .map((k) => {
+          const off = k.is_active === false;
+          return (
+            '<article class="list-item ai-k-row" data-id="' + escapeHtml(k.id) + '">' +
+              '<div class="list-item-body">' +
+                '<div class="list-item-title">' +
+                  (off ? '<span class="badge badge-warning">موقوف</span> ' : '') +
+                  escapeHtml(k.title || '') +
+                '</div>' +
+                '<p class="list-item-desc" style="white-space:pre-wrap">' + escapeHtml(k.content || '') + '</p>' +
+              '</div>' +
+              '<div class="flex gap-1 items-center" style="flex-shrink:0;align-items:center">' +
+                '<button type="button" class="btn btn-sm btn-outline toggle-k">' + (off ? 'تفعيل' : 'إيقاف') + '</button>' +
+                '<button type="button" class="btn btn-sm btn-danger delete-k">حذف</button>' +
+              '</div>' +
+            '</article>'
+          );
+        })
+        .join('');
+    }
+
+    async function loadKnowledge() {
+      const { data, error } = await supabase
+        .from('ai_knowledge')
+        .select('id, title, content, is_active, created_at')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error) {
+        $('knowledge-list').innerHTML = '<div class="empty-state"><p>تعذر تحميل المعرفة — تأكد إن الملف ai_knowledge.sql اتنفذ.</p></div>';
+        return;
+      }
+      state.knowledge = data || [];
+      renderList();
+    }
+
+    $('refresh-btn').addEventListener('click', async () => {
+      await Promise.all([loadStats(), loadKnowledge()]);
+      showToast('تم التحديث', 'success');
+    });
+
+    $('add-knowledge-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = $('k-title').value.trim();
+      const content = $('k-content').value.trim();
+      if (!title || !content) {
+        showToast('اكتب العنوان والتفاصيل أولًا.', 'error');
+        return;
+      }
+      const btn = $('add-k-btn');
+      await withLoading(btn, async () => {
+        const { error } = await supabase.from('ai_knowledge').insert({
+          title,
+          content,
+          is_active: true
+        });
+        if (error) {
+          showToast('تعذر الحفظ: ' + error.message, 'error');
+          return;
+        }
+        $('k-title').value = '';
+        $('k-content').value = '';
+        showToast('تمت إضافتها للمعرفة', 'success');
+        await Promise.all([loadStats(), loadKnowledge()]);
+      });
+    });
+
+    $('knowledge-list').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const row = btn.closest('.ai-k-row');
+      const id = row?.dataset?.id;
+      if (!id) return;
+      if (btn.classList.contains('delete-k')) {
+        if (!confirm('حذف هذه المعلومة نهائيًا؟')) return;
+        const { error } = await supabase.from('ai_knowledge').delete().eq('id', id);
+        if (error) { showToast('تعذر الحذف', 'error'); return; }
+        showToast('حُذفت', 'success');
+        await Promise.all([loadStats(), loadKnowledge()]);
+        return;
+      }
+      if (btn.classList.contains('toggle-k')) {
+        const k = state.knowledge.find((x) => x.id === id);
+        const next = !(k && k.is_active === false);
+        const { error } = await supabase
+          .from('ai_knowledge')
+          .update({ is_active: next, updated_at: new Date().toISOString() })
+          .eq('id', id);
+        if (error) { showToast('تعذر التحديث', 'error'); return; }
+        showToast(next ? 'مفعلة' : 'تم إيقافها', 'success');
+        await Promise.all([loadStats(), loadKnowledge()]);
+      }
+    });
+
+    (async function init() {
+      const ok = await protectAdminPage();
+      if (!ok) return;
+      document.documentElement.classList.remove('admin-auth-pending');
+      initIcons();
+      await Promise.all([loadStats(), loadKnowledge()]);
+    })();
+  </script>
+  <style>
+    .ai-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    @media (min-width: 560px) { .ai-stats-grid { grid-template-columns: repeat(6, 1fr); gap: 8px; } }
+    .ai-stat { background: var(--surface-soft); border: 1px solid var(--border); border-radius: 10px; padding: 10px 6px; text-align: center; display: flex; flex-direction: column; gap: 4px; }
+    .ai-stat strong { font-size: 1.35rem; color: var(--primary-dark); line-height: 1; }
+    :root[data-theme="dark"] .ai-stat strong { color: var(--primary); }
+    .ai-stat small { font-size: 0.68rem; color: var(--text-muted); }
+    .ai-k-row .list-item-desc { font-size: 0.82rem; color: var(--text-muted); margin: 6px 0 0; }
+    .list-item-title .badge { margin-inline-end: 6px; }
+    @media (max-width: 480px) {
+      .ai-stats-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+      .ai-stat strong { font-size: 1.1rem; }
+      .ai-stat small { font-size: 0.62rem; }
+    }
+  </style>
+</body>
+</html>

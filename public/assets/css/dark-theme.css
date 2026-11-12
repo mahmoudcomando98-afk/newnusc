@@ -437,3 +437,29 @@ html.theme-anim * {
 :root[data-theme="dark"] .push-enable-inner p,
 :root[data-theme="dark"] .push-enable-inner span,
 :root[data-theme="dark"] .push-enable-inner small { color: var(--text) !important; }
+
+/* ?? ????? ?????? ?? ????? ?????? (??? ?????????) */
+.theme-toggle-header {
+  position: relative;
+  overflow: hidden;
+  padding: 0 !important;
+}
+.theme-toggle-header .theme-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  transition: transform 0.45s cubic-bezier(0.34, 1.4, 0.44, 1), opacity 0.3s ease;
+}
+.theme-toggle-header .icon-sun { transform: translate(-50%, -50%) rotate(0) scale(1); opacity: 1; }
+.theme-toggle-header .icon-moon { transform: translate(-50%, -50%) rotate(90deg) scale(0.4); opacity: 0; }
+:root[data-theme="dark"] .theme-toggle-header .icon-sun { transform: translate(-50%, -50%) rotate(-90deg) scale(0.4); opacity: 0; }
+:root[data-theme="dark"] .theme-toggle-header .icon-moon { transform: translate(-50%, -50%) rotate(0) scale(1); opacity: 1; color: #e0965f; }
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle-header { transition: none !important; }
+  .theme-toggle-header .theme-icon { transition: none !important; }
+}
+
+.theme-toggle-header.pulse { animation: theme-pulse 0.5s cubic-bezier(0.34, 1.4, 0.44, 1); }

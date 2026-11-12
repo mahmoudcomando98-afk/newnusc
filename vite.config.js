@@ -13,6 +13,28 @@ const THEME_HEAD_SNIPPET = `
   <link rel="stylesheet" href="/assets/css/dark-theme.css?v=1" />
 `;
 const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=1"></script>`;
+const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=1" />`;
+const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=1"></script>`;
+
+function injectAiAssistantPlugin() {
+  return {
+    name: 'inject-ai-assistant',
+    transformIndexHtml(html) {
+      let out = html;
+      if (!out.includes('ai-assistant.css')) {
+        if (out.includes('</head>')) {
+          out = out.replace('</head>', `${AI_ASSISTANT_HEAD_SNIPPET}\n</head>`);
+        } else if (out.includes('<head>')) {
+          out = out.replace('<head>', `<head>${AI_ASSISTANT_HEAD_SNIPPET}`);
+        }
+      }
+      if (!out.includes('/assets/js/ai-assistant.js') && out.includes('</body>')) {
+        out = out.replace('</body>', `${AI_ASSISTANT_BODY_SNIPPET}\n</body>`);
+      }
+      return out;
+    }
+  };
+}
 
 function injectThemePlugin() {
   return {
@@ -57,7 +79,7 @@ export default defineConfig(({ mode }) => {
     root: '.',
     publicDir: 'public',
     envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
-    plugins: [injectCairoPlugin(), injectThemePlugin()],
+    plugins: [injectCairoPlugin(), injectThemePlugin(), injectAiAssistantPlugin()],
     define: {
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(
         env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -122,6 +144,7 @@ export default defineConfig(({ mode }) => {
           'admin-online-schedule': resolve(import.meta.dirname, 'admin/online-schedule.html'),
           'admin-announcements': resolve(import.meta.dirname, 'admin/announcements.html'),
           'admin-notifications': resolve(import.meta.dirname, 'admin/notifications.html'),
+          'admin-ai': resolve(import.meta.dirname, 'admin/ai.html'),
           'admin-faq': resolve(import.meta.dirname, 'admin/faq.html'),
           'admin-settings': resolve(import.meta.dirname, 'admin/settings.html'),
           'admin-hackers': resolve(import.meta.dirname, 'admin/hackers.html')
