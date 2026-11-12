@@ -14,8 +14,57 @@ var SUPABASE_ANON_KEY = 'sb_publishable_pg_buypRU6LXEbY1uIwNCw_ZatgDQjp';
 var SESSION_KEY = 'nusc-auth-token';
 var GSAP_SRC = 'https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js';
 
-// روبوت "براندي Kawaii" — بينك لطيف، عيون كبيرة لامعة بـ sparkle، فيونكة، خدود محمرة، فم "ω" قطي
-var ROBOT_SVG =
+// روبوت "الشباب" — الكريمي/الدهبي (الروبوت الأول) — مقسّم لمجموعات (أرجل/أذرع/رأس) للتحريك الاحترافي
+var BOY_ROBOT_SVG =
+  '<svg viewBox="0 0 48 48" fill="none" aria-hidden="true" role="img">' +
+    '<defs>' +
+      '<linearGradient id="aig-body" x1="0" y1="14" x2="0" y2="40" gradientUnits="userSpaceOnUse">' +
+        '<stop offset="0" stop-color="#fff7e8"/><stop offset="0.5" stop-color="#f1dcb8"/><stop offset="1" stop-color="#d8bd8b"/>' +
+      '</linearGradient>' +
+      '<linearGradient id="aig-head" x1="0" y1="6" x2="0" y2="22" gradientUnits="userSpaceOnUse">' +
+        '<stop offset="0" stop-color="#fffdf4"/><stop offset="0.6" stop-color="#efdcb4"/><stop offset="1" stop-color="#cbb284"/>' +
+      '</linearGradient>' +
+      '<linearGradient id="aig-metal" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#8a6a3a"/><stop offset="0.5" stop-color="#6d5230"/><stop offset="1" stop-color="#4d3a22"/>' +
+      '</linearGradient>' +
+      '<radialGradient id="aig-glow" cx="0.5" cy="0.5" r="0.5">' +
+        '<stop offset="0" stop-color="#ffe9a6"/><stop offset="0.45" stop-color="#ffc966"/><stop offset="1" stop-color="#ffc966" stop-opacity="0"/>' +
+      '</radialGradient>' +
+      '<radialGradient id="aig-core" cx="0.5" cy="0.5" r="0.5">' +
+        '<stop offset="0" stop-color="#fff3b8"/><stop offset="0.55" stop-color="#f0b545"/><stop offset="1" stop-color="#b06f1d"/>' +
+      '</radialGradient>' +
+    '</defs>' +
+    '<g class="ai-robot">' +
+      '<rect x="16.5" y="36.5" width="6" height="5" rx="1.6" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
+      '<rect x="25.5" y="36.5" width="6" height="5" rx="1.6" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
+      '<g class="ai-arm-l"><rect x="6.2" y="22.5" width="5" height="9.5" rx="2.5" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/></g>' +
+      '<g class="ai-arm-r"><rect x="36.8" y="22.5" width="5" height="9.5" rx="2.5" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/></g>' +
+      '<rect x="12.5" y="20.5" width="23" height="17" rx="4.5" fill="url(#aig-body)" stroke="#4d3a22" stroke-width="1.2"/>' +
+      '<circle cx="24" cy="29" r="4.6" fill="#2b211a" stroke="#4d3a22" stroke-width="1"/>' +
+      '<circle class="ai-bot-core" cx="24" cy="29" r="2.6" fill="url(#aig-core)"/>' +
+      '<line x1="24" y1="8" x2="24" y2="4.5" stroke="#6d5230" stroke-width="1.6" stroke-linecap="round"/>' +
+      '<circle class="ai-bot-bulb" cx="24" cy="3.3" r="3.2" fill="url(#aig-glow)"/>' +
+      '<circle class="ai-bot-bulb" cx="24" cy="3.3" r="1.9" fill="#fff0b8"/>' +
+      '<g class="ai-head">' +
+        '<rect x="11" y="8.5" width="26" height="13.5" rx="4.5" fill="url(#aig-head)" stroke="#4d3a22" stroke-width="1.2"/>' +
+        '<circle cx="10" cy="15" r="2.4" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
+        '<circle cx="38" cy="15" r="2.4" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
+        '<rect x="14.5" y="11.3" width="19" height="7.8" rx="3.9" fill="#241c17" stroke="#4d3a22" stroke-width="1"/>' +
+        '<g class="ai-pupils-move">' +
+          '<g class="ai-bot-eyes">' +
+            '<circle cx="20" cy="15.2" r="1.75" fill="#ffd56b"/>' +
+            '<circle cx="28" cy="15.2" r="1.75" fill="#ffd56b"/>' +
+            '<circle cx="20.6" cy="14.6" r="0.55" fill="#fffbe3"/>' +
+            '<circle cx="28.6" cy="14.6" r="0.55" fill="#fffbe3"/>' +
+          '</g>' +
+        '</g>' +
+        '<line x1="20.5" y1="17.9" x2="27.5" y2="17.9" stroke="#ffd56b" stroke-width="0.7" stroke-linecap="round" opacity="0.75"/>' +
+      '</g>' +
+    '</g>' +
+  '</svg>';
+
+// روبوت "البنات" — Kawaii بينك، عيون sparkle، فيونكة، خدود محمرة، فم قطي ω
+var GIRL_ROBOT_SVG =
   '<svg viewBox="0 0 64 64" fill="none" aria-hidden="true" role="img">' +
     '<defs>' +
       '<linearGradient id="aig-body" x1="32" y1="11" x2="32" y2="57" gradientUnits="userSpaceOnUse">' +
@@ -101,7 +150,7 @@ var SEND_SVG =
 var CLOSE_SVG =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 
-var state = { open: false, sending: false, messages: [] };
+var state = { open: false, sending: false, messages: [], gender: null };
 
 function $(id) { return document.getElementById(id); }
 function getToken() {
@@ -317,29 +366,69 @@ function togglePanel() {
   else openPanel({ welcome: true });
 }
 
+// معرفة الجنس تلقائيًا من بروفايل الطالب (الاسم الأول — مفيش أي خانة للاختيار)
+function fetchGender() {
+  return new Promise(function (resolve) {
+    var timer = setTimeout(function () { resolve(null); }, 1500);
+    function done(value) {
+      clearTimeout(timer);
+      resolve(value === 'male' || value === 'female' ? value : null);
+    }
+    try {
+      var token = getToken();
+      if (!token) { done(null); return; }
+      var parts = String(token).split('.');
+      if (parts.length !== 3) { done(null); return; }
+      var payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+      var uid = payload && payload.sub;
+      if (!uid) { done(null); return; }
+      fetch(SUPABASE_URL + '/rest/v1/profiles?select=gender&id=eq.' + encodeURIComponent(uid), {
+        headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + token }
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (rows) {
+          var g = rows && rows[0] && rows[0].gender;
+          done(g);
+        })
+        .catch(function () { done(null); });
+    } catch (e) {
+      done(null);
+    }
+  });
+}
+
+function assistantTheme() {
+  return state.gender === 'female' ? 'female' : 'male';
+}
+function robotFor() {
+  return assistantTheme() === 'female' ? GIRL_ROBOT_SVG : BOY_ROBOT_SVG;
+}
+
 function buildPanel() {
   if ($('ai-panel')) return;
+  var robot = robotFor();
+  var theme = assistantTheme();
 
   var fab = document.createElement('button');
   fab.id = 'ai-fab';
   fab.type = 'button';
-  fab.className = 'ai-fab';
+  fab.className = 'ai-fab ai-gender-' + theme;
   fab.setAttribute('aria-label', 'المساعد الذكي');
   fab.setAttribute('aria-expanded', 'false');
-  fab.innerHTML = ROBOT_SVG;
+  fab.innerHTML = robot;
   fab.addEventListener('click', function () { togglePanel(); });
   document.body.appendChild(fab);
 
   var panel = document.createElement('section');
   panel.id = 'ai-panel';
-  panel.className = 'ai-panel';
+  panel.className = 'ai-panel ai-gender-' + theme;
   panel.hidden = true; // تبدأ مخفية — لا تظهر إلا بالزر
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-label', 'المساعد الذكي — COMANDO');
   panel.innerHTML =
     '<div class="ai-panel-inner">' +
       '<div class="ai-header">' +
-        '<div class="ai-header-icon">' + ROBOT_SVG + '</div>' +
+        '<div class="ai-header-icon">' + robot + '</div>' +
         '<div class="ai-header-text">' +
           '<p class="ai-header-title">مساعد COMANDO الذكي</p>' +
           '<p class="ai-header-sub">يعرف مجال الدراسة والجدول والامتحانات</p>' +
@@ -406,13 +495,18 @@ function rigRobot() {
   var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduce) return;
 
+  var isFemale = assistantTheme() === 'female';
+  var headOrigin = isFemale ? '32 30' : '24 16';
+  var armLOrigin = isFemale ? '13.75 34.5' : '8.7 22.5';
+  var armROrigin = isFemale ? '50.25 34.5' : '39.3 22.5';
+
   // طفو مستمر ناعم
   gsap.to(root, { y: -3.6, duration: 1.5, yoyo: true, repeat: -1, ease: 'sine.inOut' });
   // إمالة رأس هادئة حول الرقبة
-  if (head) gsap.to(head, { rotation: 2.4, duration: 2.3, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: '32 30' });
+  if (head) gsap.to(head, { rotation: isFemale ? 2.4 : 2.6, duration: 2.3, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: headOrigin });
   // أيدين بتتمايلان بالتناوب من الكتف
-  if (armL) gsap.to(armL, { rotation: -8, duration: 1.7, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: '13.75 34.5' });
-  if (armR) gsap.to(armR, { rotation: 8, duration: 1.7, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: '50.25 34.5' });
+  if (armL) gsap.to(armL, { rotation: -8, duration: 1.7, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: armLOrigin });
+  if (armR) gsap.to(armR, { rotation: 8, duration: 1.7, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: armROrigin });
   // العينين بتلقط يمين/شمال بتوقيت واعي
   if (pupils) {
     gsap.timeline({ repeat: -1, repeatDelay: 1.15, defaults: { ease: 'sine.inOut' } })
@@ -437,9 +531,13 @@ function init() {
   try { sessionStorage.removeItem('ai_auto_open_done'); } catch { /* ignore */ }
 
   state.messages = []; // دائمًا شات نظيف في كل صفحة
-  buildPanel();
-  // لو GSAP محمّلة بالفعل (من صفحة سابقة) — شغّل الريج فورًا، وإلا لما توصل
-  if (window.gsap) { rigRobot(); } else { loadGsapAsync(function () { rigRobot(); }); }
+  // تعرف على الجنس تلقائيًا من البروفايل (مفيش خانة اختيار — كل حاجة ذكية)
+  fetchGender().then(function (gender) {
+    state.gender = gender;
+    buildPanel();
+    // لو GSAP محمّلة بالفعل (من صفحة سابقة) — شغّل الريج فورًا، وإلا لما توصل
+    if (window.gsap) { rigRobot(); } else { loadGsapAsync(function () { rigRobot(); }); }
+  });
 }
 
 if (document.readyState === 'loading') {

@@ -241,3 +241,19 @@
 }
 
 .ai-panel[hidden] { display: none !important; }
+
+/* ========== ثيم البنات (بينك) — بيتفعل تلقائيًا مع الروبوت البينك ========== */
+.ai-panel.ai-gender-female .ai-header { background: linear-gradient(145deg, #d6336c 0%, #a9245a 100%); }
+.ai-panel.ai-gender-female .ai-header-icon { background: rgba(255, 255, 255, 0.25); }
+.ai-panel.ai-gender-female .ai-close { background: rgba(255, 255, 255, 0.2); }
+.ai-panel.ai-gender-female .ai-close:hover { background: rgba(255, 255, 255, 0.35); }
+.ai-panel.ai-gender-female .ai-send { background: #d6336c; }
+.ai-panel.ai-gender-female .ai-send:hover:not(:disabled) { background: #b02358; }
+.ai-panel.ai-gender-female .ai-input:focus { border-color: #d6336c; box-shadow: 0 0 0 2px rgba(214, 51, 108, 0.22); }
+.ai-panel.ai-gender-female .ai-chip:hover { border-color: #d6336c; color: #a9245a; }
+.ai-panel.ai-gender-female .ai-msg-assistant { background: #fde3ec; border-color: #f3c3d4; color: #8f1d4e; }
+.ai-panel.ai-gender-female .ai-typing { background: #fde3ec; border-color: #f3c3d4; }
+.ai-panel.ai-gender-female .ai-typing span { background: #d6336c; }
+:root[data-theme="dark"] .ai-panel.ai-gender-female .ai-msg-assistant { background: #3a1e29; border-color: #5c2b3c; color: #ff9fbd; }
+:root[data-theme="dark"] .ai-panel.ai-gender-female .ai-typing { background: #3a1e29; border-color: #5c2b3c; }
+:root[data-theme="dark"] .ai-panel.ai-gender-female .ai-typing span { background: #ff7ba8; }
