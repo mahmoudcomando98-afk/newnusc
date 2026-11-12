@@ -118,6 +118,14 @@
       return Number(v) || 0;
     }
 
+    function detectTextDir(text) {
+      const s = String(text || '');
+      const ar = (s.match(/[\u0600-\u06FF]/g) || []).length;
+      const la = (s.match(/[A-Za-z]/g) || []).length;
+      if (la === 0 && ar === 0) return 'rtl';
+      return la > ar ? 'ltr' : 'rtl';
+    }
+
     function parseCorrect(val, optsLen) {
       if (typeof val === 'number' && !Number.isNaN(val)) {
         return Math.max(0, Math.min(optsLen - 1, Math.floor(val)));
@@ -177,7 +185,6 @@
       return out;
     }
 
-    /** يملأ كل أسماء الأعمدة المحتملة عشان أي سكيمة قديمة تشتغل */
     function buildInsertRow(payload, position) {
       const t = payload.prompt;
       return {
@@ -201,7 +208,6 @@
       const full = buildInsertRow(payload, position);
       let { error } = await supabase.from('quiz_questions').insert(full);
 
-      // لو فيه أعمدة مش موجودة في الجدول، PostgREST بيرفض — جرّب صف أصغر بالتدريج
       if (error && /column|PGRST204|42703|schema cache/i.test(String(error.message || '') + String(error.code || ''))) {
         const attempts = [
           {
@@ -239,7 +245,6 @@
           const res = await supabase.from('quiz_questions').insert(row);
           if (!res.error) return null;
           error = res.error;
-          // لو لسه null في text أو قيد تاني مختلف، كمل المحاولات
           if (!/column|PGRST204|42703|schema cache/i.test(String(error.message || ''))) break;
         }
       }
@@ -300,8 +305,7 @@
       if (error) {
         showError(
           el,
-          'تعذر تحميل الأسئلة. نفّذ في Supabase SQL Editor: supabase/fix_quiz_questions_columns.sql — ' +
-            (error.message || '')
+          'تعذر تحميل الأسئلة. نفّذ supabase/SETUP_NEW_DB.sql — ' + (error.message || '')
         );
         if (countEl) countEl.textContent = '';
         return;
@@ -326,12 +330,12 @@
             <strong>س ${i + 1}</strong>
             <button type="button" class="btn btn-sm btn-danger" data-del="${q.id}">حذف</button>
           </div>
-          <p class="mt-1">${escapeHtml(text)}</p>
+          <p class="mt-1" dir="${detectTextDir(text)}" style="unicode-bidi:isolate;direction:${detectTextDir(text)};text-align:${detectTextDir(text) === 'ltr' ? 'left' : 'right'}">${escapeHtml(text)}</p>
           <ul class="text-sm" style="margin:8px 0 0;padding-right:18px">
             ${opts
               .map(
                 (o, idx) =>
-                  `<li>${idx === correct ? '<span data-icon="check" class="inline-icon"></span> ' : ''}${escapeHtml(String(o))}${idx === correct ? ' <span class="badge badge-success">صح</span>' : ''}</li>`
+                  `<li><span dir="${detectTextDir(o)}" style="unicode-bidi:isolate;display:inline-block">${idx === correct ? '<span data-icon="check" class="inline-icon"></span> ' : ''}${escapeHtml(String(o))}</span>${idx === correct ? ' <span class="badge badge-success">صح</span>' : ''}</li>`
               )
               .join('')}
           </ul>
