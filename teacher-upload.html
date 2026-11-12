@@ -15,6 +15,10 @@
     .tu-meta { margin: 0 0 16px; color: #6b645c; font-size: 0.88rem; line-height: 1.5; }
     .tu-note { margin: 12px 0 0; font-size: 0.8rem; color: #8a8278; }
     .tu-error { background: #faf2f2; border: 1px solid #e8d5d5; color: #8a3a3a; border-radius: 10px; padding: 14px; }
+    .upload-progress { margin: 12px 0 4px; }
+    .upload-progress-track { height: 10px; border-radius: 999px; background: rgba(0,0,0,.08); overflow: hidden; }
+    .upload-progress-fill { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, #c45c26, #e08a4f); transition: width .15s ease-out; }
+    .upload-progress-text { margin: 8px 0 0; font-size: 0.8rem; color: #8a8278; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -42,6 +46,10 @@
         <div class="form-group">
           <label class="form-label" for="file">الملف *</label>
           <input type="file" id="file" class="form-input" required accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,.jpg,.jpeg,.png,.webp,.xls,.xlsx" />
+        </div>
+        <div id="upload-progress" class="upload-progress hidden" role="status" aria-live="polite">
+          <div class="upload-progress-track"><div class="upload-progress-fill" id="upload-progress-fill"></div></div>
+          <p class="upload-progress-text" id="upload-progress-text">0%</p>
         </div>
         <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%">رفع الملف</button>
         <p class="tu-note">الرابط مخصص لرفع ملفات المادة دي فقط. مفيش وصول لأي جزء تاني من المنصة.</p>

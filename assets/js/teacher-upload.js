@@ -1,7 +1,7 @@
 /**
  * Teacher upload portal — token only, no login, single subject.
  */
-import { supabase } from './supabase.js';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
 import { showToast } from './utils.js';
 
 const TYPE_LABELS = {
@@ -82,6 +82,59 @@ function escapeAttr(s) {
     .replace(/</g, '&lt;');
 }
 
+/** رفع لـ Supabase Storage بـ XHR عشان يظهر تقدم حقيقي (anon INSERT مسموح لمجلد teacher-uploads) */
+function uploadWithProgress(path, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const target = `${SUPABASE_URL}/storage/v1/object/materials/${path.split('/').map(encodeURIComponent).join('/')}`;
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', target, true);
+    xhr.responseType = 'text';
+    xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
+    xhr.setRequestHeader('x-upsert', 'false');
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.onprogress = (e) => {
+      if (!e.lengthComputable) return;
+      onProgress((e.loaded / e.total) * 100, e.loaded, e.total);
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+        return;
+      }
+      let msg = 'تعذر رفع الملف';
+      try {
+        const body = JSON.parse(xhr.responseText || '{}');
+        msg = body.error || body.message || msg;
+      } catch { /* raw */ }
+      reject(new Error(msg));
+    };
+    xhr.onerror = () => reject(new Error('انقطع الاتصال أثناء الرفع'));
+    xhr.onabort = () => reject(new Error('اتلغى الرفع'));
+    xhr.send(file);
+  });
+}
+
+function setUploadProgress(pct, loaded, total) {
+  const wrap = document.getElementById('upload-progress');
+  const fill = document.getElementById('upload-progress-fill');
+  const text = document.getElementById('upload-progress-text');
+  if (!wrap || !fill || !text) return;
+  wrap.classList.remove('hidden');
+  const safe = Math.max(0, Math.min(100, Math.round(pct)));
+  fill.style.width = safe + '%';
+  const mb = (n) => (Number(n) || 0) / (1024 * 1024);
+  text.textContent = `${safe}% · ${mb(loaded).toFixed(1)} / ${mb(total).toFixed(1)} MB`;
+}
+
+function hideUploadProgress() {
+  const wrap = document.getElementById('upload-progress');
+  if (wrap) wrap.classList.add('hidden');
+  const fill = document.getElementById('upload-progress-fill');
+  if (fill) fill.style.width = '0%';
+  const text = document.getElementById('upload-progress-text');
+  if (text) text.textContent = '0%';
+}
+
 async function onSubmit(event) {
   event.preventDefault();
   if (!context) return;
@@ -109,17 +162,16 @@ async function onSubmit(event) {
 
   btn.disabled = true;
   const prev = btn.textContent;
-  btn.textContent = 'جاري الرفع...';
+  btn.textContent = 'جاري الرفع…';
+  hideUploadProgress();
 
   try {
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const path = `teacher-uploads/${token.slice(0, 12)}/${Date.now()}_${safeName}`;
 
-    const { error: upErr } = await supabase.storage.from('materials').upload(path, file, {
-      contentType: file.type || undefined,
-      upsert: false
+    await uploadWithProgress(path, file, (pct, loaded, total) => {
+      setUploadProgress(pct, loaded, total);
     });
-    if (upErr) throw upErr;
 
     const { data, error } = await supabase.rpc('submit_teacher_material', {
       p_token: token,
@@ -142,6 +194,7 @@ async function onSubmit(event) {
     }
 
     showToast('تم رفع الملف.', 'success');
+    hideUploadProgress();
     show('state-done');
   } catch (err) {
     console.error(err);
@@ -154,6 +207,7 @@ async function onSubmit(event) {
       showToast('فشل الرفع. حاول مرة أخرى أو تأكد إن الرابط لسه شغال.', 'error');
     }
   } finally {
+    hideUploadProgress();
     btn.disabled = false;
     btn.textContent = prev;
   }
