@@ -41,3 +41,17 @@ td,
 th {
   font-family: "Cairo", Tahoma, Arial, sans-serif !important;
 }
+
+/* ===== ??????? ????? ??????: ??????? ?? ?? ???? ??????? ???? ===== */
+.header-btn [data-icon] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 0 !important;
+  height: 100% !important;
+  width: 100% !important;
+}
+.header-btn svg {
+  width: 18px !important;
+  height: 18px !important;
+}
