@@ -53,7 +53,7 @@
 .ai-panel {
   position: fixed;
   left: 16px;
-  bottom: calc(var(--bottom-nav-h, 60px) + env(safe-area-inset-bottom, 0px) + 76px);
+  bottom: calc(var(--bottom-nav-h, 60px) + env(safe-area-inset-bottom, 0px) + 87px);
   z-index: 156;
   width: min(360px, calc(100vw - 32px));
   height: min(460px, calc(100dvh - 190px));
@@ -225,7 +225,7 @@
 
 @media (min-width: 900px) {
   .ai-fab { left: 22px; bottom: 22px; }
-  .ai-panel { left: 22px; bottom: 82px; }
+  .ai-panel { left: 22px; bottom: 97px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .ai-fab, .ai-panel, .ai-typing span, .ai-chip, .ai-send {
