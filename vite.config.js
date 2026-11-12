@@ -9,13 +9,13 @@ const CAIRO_HEAD_SNIPPET = `
 /* يُحقن في كل صفحة: سكربت تهيئة الوضع الليلي (قبل الرسم لمنع الوميض) + ملف أنماطه + سكربت الزر
    الافتراضي دائمًا نهاري — الطالب يقدر يبدّل بنفسه ويحفظ اختياره */
 const THEME_HEAD_SNIPPET = `
-  <script id="comando-theme-init">(function(){try{var t=localStorage.getItem('comando-theme');if(t!=='dark'&&t!=='light'){t='light';}}catch(e){t='light';}document.documentElement.setAttribute('data-theme',t);try{var p=localStorage.getItem('comando-palette');if(p==='girl'){document.documentElement.setAttribute('data-palette','girl');}}catch(e){}})();</script>
+  <script id="comando-theme-init">(function(){try{var t=localStorage.getItem('comando-theme');if(t!=='dark'&&t!=='light'){t='light';}}catch(e){t='light';}document.documentElement.setAttribute('data-theme',t);try{var p=localStorage.getItem('comando-palette');var path=(window.location.pathname||'').toLowerCase();var skip=/login|register|signup|sign-up/.test(path);if(p==='girl'&&!skip){document.documentElement.setAttribute('data-palette','girl');}}catch(e){}})();</script>
   <link rel="stylesheet" href="/assets/css/dark-theme.css?v=2" />
   <link rel="stylesheet" href="/assets/css/girl-theme.css?v=1" />
 `;
 const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=2"></script>`;
 const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=11" />`;
-const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=13"></script>`;
+const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=14"></script>`;
 
 /* رابط الموقع النهائي — من متغيرات Vercel وقت النشر؛ محليًا (Vite preview) يفضل نسبي */
 const SITE_URL = (

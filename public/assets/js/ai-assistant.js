@@ -534,10 +534,15 @@ function init() {
   // تعرف على الجنس تلقائيًا من البروفايل (مفيش خانة اختيار — كل حاجة ذكية)
   fetchGender().then(function (gender) {
     state.gender = gender;
+    var skipPage = /login|register|signup|sign-up/.test((window.location.pathname || '').toLowerCase());
     try {
       if (gender === 'female') {
         localStorage.setItem('comando-palette', 'girl');
-        document.documentElement.setAttribute('data-palette', 'girl');
+        if (skipPage) {
+          document.documentElement.removeAttribute('data-palette');
+        } else {
+          document.documentElement.setAttribute('data-palette', 'girl');
+        }
       } else {
         localStorage.removeItem('comando-palette');
         document.documentElement.removeAttribute('data-palette');
