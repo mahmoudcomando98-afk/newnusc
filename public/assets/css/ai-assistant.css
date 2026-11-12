@@ -3,7 +3,7 @@
 .ai-fab {
   position: fixed;
   left: 16px;
-  bottom: calc(var(--bottom-nav-h, 60px) + env(safe-area-inset-bottom, 0px) + 68px);
+  bottom: calc(var(--bottom-nav-h, 60px) + env(safe-area-inset-bottom, 0px) + 16px);
   z-index: 155;
   width: 52px;
   height: 52px;
@@ -42,7 +42,7 @@
 .ai-panel {
   position: fixed;
   left: 16px;
-  bottom: calc(var(--bottom-nav-h, 60px) + env(safe-area-inset-bottom, 0px) + 128px);
+  bottom: calc(var(--bottom-nav-h, 60px) + env(safe-area-inset-bottom, 0px) + 76px);
   z-index: 156;
   width: min(360px, calc(100vw - 32px));
   height: min(460px, calc(100dvh - 190px));
