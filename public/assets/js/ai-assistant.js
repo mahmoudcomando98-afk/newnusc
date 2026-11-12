@@ -14,51 +14,77 @@ var SUPABASE_ANON_KEY = 'sb_publishable_pg_buypRU6LXEbY1uIwNCw_ZatgDQjp';
 var SESSION_KEY = 'nusc-auth-token';
 var GSAP_SRC = 'https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js';
 
-// روبوت مفصّل على طبقات للتحريك الاحترافي: طفو (GSAP) + عينان بتتحرك وبتغمض (GSAP + CSS) + لمبة وقلب نابضين (CSS)
+// روبوت "Obsidian" المعاد تصميمه بالكامل — جسم معدني داكن + visor زجاجي + عينين سماويين + لمبة متوهجة
 var ROBOT_SVG =
-  '<svg viewBox="0 0 48 48" fill="none" aria-hidden="true" role="img">' +
+  '<svg viewBox="0 0 64 64" fill="none" aria-hidden="true" role="img">' +
     '<defs>' +
-      '<linearGradient id="aig-body" x1="0" y1="14" x2="0" y2="40" gradientUnits="userSpaceOnUse">' +
-        '<stop offset="0" stop-color="#fff7e8"/><stop offset="0.5" stop-color="#f1dcb8"/><stop offset="1" stop-color="#d8bd8b"/>' +
+      '<linearGradient id="aig-body" x1="32" y1="30" x2="32" y2="51" gradientUnits="userSpaceOnUse">' +
+        '<stop offset="0" stop-color="#55688a"/><stop offset="0.45" stop-color="#3c4a63"/><stop offset="1" stop-color="#232c3d"/>' +
       '</linearGradient>' +
-      '<linearGradient id="aig-head" x1="0" y1="6" x2="0" y2="22" gradientUnits="userSpaceOnUse">' +
-        '<stop offset="0" stop-color="#fffdf4"/><stop offset="0.6" stop-color="#efdcb4"/><stop offset="1" stop-color="#cbb284"/>' +
+      '<linearGradient id="aig-head" x1="32" y1="9" x2="32" y2="28" gradientUnits="userSpaceOnUse">' +
+        '<stop offset="0" stop-color="#62749a"/><stop offset="0.55" stop-color="#45536f"/><stop offset="1" stop-color="#2b3449"/>' +
       '</linearGradient>' +
-      '<linearGradient id="aig-metal" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0" stop-color="#8a6a3a"/><stop offset="0.5" stop-color="#6d5230"/><stop offset="1" stop-color="#4d3a22"/>' +
+      '<linearGradient id="aig-limb" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#4d5b78"/><stop offset="1" stop-color="#29344a"/>' +
       '</linearGradient>' +
-      '<radialGradient id="aig-glow" cx="0.5" cy="0.5" r="0.5">' +
-        '<stop offset="0" stop-color="#ffe9a6"/><stop offset="0.45" stop-color="#ffc966"/><stop offset="1" stop-color="#ffc966" stop-opacity="0"/>' +
+      '<linearGradient id="aig-visor" x1="32" y1="13" x2="32" y2="24.5" gradientUnits="userSpaceOnUse">' +
+        '<stop offset="0" stop-color="#114f5f"/><stop offset="0.35" stop-color="#0b3542"/><stop offset="1" stop-color="#061d26"/>' +
+      '</linearGradient>' +
+      '<radialGradient id="aig-amber" cx="0.5" cy="0.45" r="0.55">' +
+        '<stop offset="0" stop-color="#fff3b0"/><stop offset="0.5" stop-color="#ffc850"/><stop offset="1" stop-color="#d97f13"/>' +
       '</radialGradient>' +
-      '<radialGradient id="aig-core" cx="0.5" cy="0.5" r="0.5">' +
-        '<stop offset="0" stop-color="#fff3b8"/><stop offset="0.55" stop-color="#f0b545"/><stop offset="1" stop-color="#b06f1d"/>' +
+      '<radialGradient id="aig-cyan" cx="0.5" cy="0.5" r="0.5">' +
+        '<stop offset="0" stop-color="#eaffff"/><stop offset="0.35" stop-color="#5fecff"/><stop offset="1" stop-color="#5fecff" stop-opacity="0"/>' +
+      '</radialGradient>' +
+      '<radialGradient id="aig-eye" cx="0.5" cy="0.5" r="0.5">' +
+        '<stop offset="0" stop-color="#dfffff"/><stop offset="0.55" stop-color="#4be0ff"/><stop offset="1" stop-color="#1496bd"/>' +
       '</radialGradient>' +
     '</defs>' +
     '<g class="ai-robot">' +
-      '<rect x="16.5" y="36.5" width="6" height="5" rx="1.6" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
-      '<rect x="25.5" y="36.5" width="6" height="5" rx="1.6" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
-      '<g class="ai-arm-l"><rect x="6.2" y="22.5" width="5" height="9.5" rx="2.5" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/></g>' +
-      '<g class="ai-arm-r"><rect x="36.8" y="22.5" width="5" height="9.5" rx="2.5" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/></g>' +
-      '<rect x="12.5" y="20.5" width="23" height="17" rx="4.5" fill="url(#aig-body)" stroke="#4d3a22" stroke-width="1.2"/>' +
-      '<circle cx="24" cy="29" r="4.6" fill="#2b211a" stroke="#4d3a22" stroke-width="1"/>' +
-      '<circle class="ai-bot-core" cx="24" cy="29" r="2.6" fill="url(#aig-core)"/>' +
-      '<line x1="24" y1="8" x2="24" y2="4.5" stroke="#6d5230" stroke-width="1.6" stroke-linecap="round"/>' +
-      '<circle class="ai-bot-bulb" cx="24" cy="3.3" r="3.2" fill="url(#aig-glow)"/>' +
-      '<circle class="ai-bot-bulb" cx="24" cy="3.3" r="1.9" fill="#fff0b8"/>' +
+      // القدمين (سول سماوي)
+      '<rect x="20.5" y="51.5" width="9.5" height="7" rx="3" fill="#1d2531" stroke="#101620" stroke-width="1.2"/>' +
+      '<rect x="34" y="51.5" width="9.5" height="7" rx="3" fill="#1d2531" stroke="#101620" stroke-width="1.2"/>' +
+      '<rect x="23" y="55.5" width="4.5" height="1.3" rx="0.65" fill="#5fecff" opacity="0.85"/>' +
+      '<rect x="36.5" y="55.5" width="4.5" height="1.3" rx="0.65" fill="#5fecff" opacity="0.85"/>' +
+      // الرقبة
+      '<rect x="27" y="25" width="10" height="5" fill="#1d2531"/>' +
+      // الأذرع + الكتفين
+      '<g class="ai-arm-l"><circle cx="15.5" cy="33" r="3.6" fill="#29344a" stroke="#101620" stroke-width="1.2"/><rect x="11.5" y="32" width="6" height="12.5" rx="3" fill="url(#aig-limb)" stroke="#101620" stroke-width="1.2"/></g>' +
+      '<g class="ai-arm-r"><circle cx="48.5" cy="33" r="3.6" fill="#29344a" stroke="#101620" stroke-width="1.2"/><rect x="46.5" y="32" width="6" height="12.5" rx="3" fill="url(#aig-limb)" stroke="#101620" stroke-width="1.2"/></g>' +
+      // الجذع
+      '<path d="M19 33.5 Q32 27.5 45 33.5 L45 46.5 Q45 51 39.5 51 L24.5 51 Q19 51 19 46.5 Z" fill="url(#aig-body)" stroke="#101620" stroke-width="1.4" stroke-linejoin="round"/>' +
+      // لمعة على الصدر
+      '<path d="M22.5 35.5 Q32 31.5 41.5 35.5" fill="none" stroke="#8ba3c6" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>' +
+      // كور الجذع العنبري
+      '<circle cx="32" cy="42.5" r="5.6" fill="#131a24" stroke="#101620" stroke-width="1.2"/>' +
+      '<circle class="ai-bot-core" cx="32" cy="42.5" r="3.6" fill="url(#aig-amber)"/>' +
+      // الانتنا + اللمبة السماوية
+      '<line x1="32" y1="9" x2="32" y2="5.6" stroke="#101620" stroke-width="2" stroke-linecap="round"/>' +
+      '<circle class="ai-bot-bulb" cx="32" cy="3.6" r="3.6" fill="url(#aig-cyan)"/>' +
+      '<circle class="ai-bot-bulb" cx="32" cy="3.6" r="2" fill="#dfffff"/>' +
+      // الرأس
       '<g class="ai-head">' +
-        '<rect x="11" y="8.5" width="26" height="13.5" rx="4.5" fill="url(#aig-head)" stroke="#4d3a22" stroke-width="1.2"/>' +
-        '<circle cx="10" cy="15" r="2.4" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
-        '<circle cx="38" cy="15" r="2.4" fill="url(#aig-metal)" stroke="#3f2f1c" stroke-width="1"/>' +
-        '<rect x="14.5" y="11.3" width="19" height="7.8" rx="3.9" fill="#241c17" stroke="#4d3a22" stroke-width="1"/>' +
+        '<rect x="12" y="8.5" width="40" height="18.5" rx="8.5" fill="url(#aig-head)" stroke="#101620" stroke-width="1.4"/>' +
+        // ودانتين جانبيتين مع نقطة سماوية
+        '<circle cx="11.5" cy="17.5" r="2.6" fill="#1d2531" stroke="#101620" stroke-width="1.2"/>' +
+        '<circle cx="52.5" cy="17.5" r="2.6" fill="#1d2531" stroke="#101620" stroke-width="1.2"/>' +
+        '<circle cx="11.5" cy="17.5" r="0.9" fill="#5fecff" opacity="0.9"/>' +
+        '<circle cx="52.5" cy="17.5" r="0.9" fill="#5fecff" opacity="0.9"/>' +
+        // الـ visor الزجاجي
+        '<rect x="16.5" y="12.8" width="31" height="11.5" rx="5.75" fill="url(#aig-visor)" stroke="#101620" stroke-width="1.4"/>' +
+        // انعكاس زجاجي مائل
+        '<path d="M19.5 14.6 L30.5 14.6 L23.5 22 L19.5 22 Z" fill="#ffffff" opacity="0.13"/>' +
+        // العينين السماويين (بتتحرك)
         '<g class="ai-pupils-move">' +
           '<g class="ai-bot-eyes">' +
-            '<circle cx="20" cy="15.2" r="1.75" fill="#ffd56b"/>' +
-            '<circle cx="28" cy="15.2" r="1.75" fill="#ffd56b"/>' +
-            '<circle cx="20.6" cy="14.6" r="0.55" fill="#fffbe3"/>' +
-            '<circle cx="28.6" cy="14.6" r="0.55" fill="#fffbe3"/>' +
+            '<circle cx="25" cy="18.6" r="3" fill="url(#aig-eye)" opacity="0.32"/>' +
+            '<circle cx="39" cy="18.6" r="3" fill="url(#aig-eye)" opacity="0.32"/>' +
+            '<circle cx="25" cy="18.6" r="1.6" fill="url(#aig-eye)"/>' +
+            '<circle cx="39" cy="18.6" r="1.6" fill="url(#aig-eye)"/>' +
           '</g>' +
         '</g>' +
-        '<line x1="20.5" y1="17.9" x2="27.5" y2="17.9" stroke="#ffd56b" stroke-width="0.7" stroke-linecap="round" opacity="0.75"/>' +
+        // خط نحوي سماوي تحت الـ visor
+        '<line x1="27.5" y1="23.6" x2="36.5" y2="23.6" stroke="#5fecff" stroke-width="0.9" stroke-dasharray="1.6 2.2" stroke-linecap="round" opacity="0.55"/>' +
       '</g>' +
     '</g>' +
   '</svg>';
@@ -375,10 +401,10 @@ function rigRobot() {
   // طفو مستمر ناعم
   gsap.to(root, { y: -3.6, duration: 1.5, yoyo: true, repeat: -1, ease: 'sine.inOut' });
   // إمالة رأس هادئة حول الرقبة
-  if (head) gsap.to(head, { rotation: 2.4, duration: 2.3, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: '24 16' });
+  if (head) gsap.to(head, { rotation: 2.2, duration: 2.3, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: '32 26.5' });
   // أيدين بتتمايلان بالتناوب من الكتف
-  if (armL) gsap.to(armL, { rotation: -8, duration: 1.7, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: '8.7 22.5' });
-  if (armR) gsap.to(armR, { rotation: 8, duration: 1.7, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: '39.3 22.5' });
+  if (armL) gsap.to(armL, { rotation: -8, duration: 1.7, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: '15.5 33' });
+  if (armR) gsap.to(armR, { rotation: 8, duration: 1.7, yoyo: true, repeat: -1, ease: 'sine.inOut', svgOrigin: '48.5 33' });
   // العينين بتلقط يمين/شمال بتوقيت واعي
   if (pupils) {
     gsap.timeline({ repeat: -1, repeatDelay: 1.15, defaults: { ease: 'sine.inOut' } })

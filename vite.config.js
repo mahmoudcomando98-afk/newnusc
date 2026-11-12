@@ -13,8 +13,8 @@ const THEME_HEAD_SNIPPET = `
   <link rel="stylesheet" href="/assets/css/dark-theme.css?v=2" />
 `;
 const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=2"></script>`;
-const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=9" />`;
-const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=9"></script>`;
+const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=10" />`;
+const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=10"></script>`;
 
 function injectAiAssistantPlugin() {
   return {
