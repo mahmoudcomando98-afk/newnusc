@@ -10,11 +10,11 @@ const CAIRO_HEAD_SNIPPET = `
    الافتراضي دائمًا نهاري — الطالب يقدر يبدّل بنفسه ويحفظ اختياره */
 const THEME_HEAD_SNIPPET = `
   <script id="comando-theme-init">(function(){try{var t=localStorage.getItem('comando-theme');if(t!=='dark'&&t!=='light'){t='light';}}catch(e){t='light';}document.documentElement.setAttribute('data-theme',t);})();</script>
-  <link rel="stylesheet" href="/assets/css/dark-theme.css?v=1" />
+  <link rel="stylesheet" href="/assets/css/dark-theme.css?v=2" />
 `;
-const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=1"></script>`;
-const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=1" />`;
-const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=1"></script>`;
+const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=2"></script>`;
+const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=2" />`;
+const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=2"></script>`;
 
 function injectAiAssistantPlugin() {
   return {
