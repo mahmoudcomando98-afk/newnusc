@@ -1,1 +1,121 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <style>html.admin-auth-pending body{visibility:hidden!important}</style>
+  <script>document.documentElement.classList.add('admin-auth-pending')</script>
+  <title>كودات الطلاب | لوحة الإدارة</title>
+  <link rel="stylesheet" href="/comando-cairo.css?v=3" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=codes-mobile-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=codes-mobile-1" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    .codes-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 900px) { .codes-grid { grid-template-columns: minmax(280px, 360px) 1fr; align-items: start; gap: 16px; } }
+    .codes-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+    .codes-card h2 { font-size: 0.95rem; font-weight: 700; margin: 0 0 10px; }
+    .codes-title { font-size: 1.15rem; font-weight: 700; margin: 0 0 6px; }
+    .hint { font-size: 0.76rem; color: var(--text-muted); background: var(--surface-soft); border: 1px dashed var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; line-height: 1.7; }
+    .codes-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table.codes-table { font-size: 0.82rem; width: 100%; border-collapse: collapse; }
+    table.codes-table th, table.codes-table td { padding: 8px 6px; vertical-align: middle; }
+    table.codes-table th { white-space: nowrap; text-align: right; }
+    .code-pill { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.78rem; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; direction: ltr; unicode-bidi: isolate; display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+    .badge-admin { background: #fdf0e4 !important; color: #9a4f2b !important; }
+    .badge-mod { background: #eef4ff !important; color: #1e4fa8 !important; }
+    .badge-off { background: #fdeceb !important; color: #9b1c1c !important; }
+    .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .row-actions .btn-sm { min-height: 32px !important; padding: 4px 10px !important; font-size: 0.74rem !important; white-space: nowrap; }
+    #import-preview-wrap { display: none; margin-top: 10px; }
+    .import-summary { display: none; margin-top: 10px; padding: 10px; border-radius: 8px; background: #e8f6ee; color: #1b6b3a; font-size: 0.85rem; border: 1px solid #bfe6d2; line-height: 1.7; }
+    .import-summary.error { background: #fdeceb; color: #9b1c1c; border-color: #f3c1bb; }
+    .counts-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 12px; }
+    .count-chip { font-size: 0.76rem; color: var(--text-muted); background: var(--surface-soft); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
+    .codes-mobile-list { display: none; flex-direction: column; gap: 10px; }
+    .code-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px; background: var(--surface-soft, #faf9f7); }
+    .code-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+    .code-card-name { font-weight: 700; font-size: 0.92rem; line-height: 1.4; overflow-wrap: anywhere; }
+    .code-card-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+    .codes-desktop-only { display: block; }
+    @media (max-width: 899px) {
+      .codes-desktop-only { display: none !important; }
+      .codes-mobile-list { display: flex; }
+      .container { padding-left: 12px !important; padding-right: 12px !important; }
+      .codes-card { padding: 12px; }
+      h1.codes-title { font-size: 1.05rem !important; }
+      .form-input, .form-select, .btn-block { min-height: 42px; }
+      .row-actions .btn-sm { flex: 1 1 calc(50% - 6px); text-align: center; justify-content: center; }
+    }
+    @media (min-width: 900px) { .codes-mobile-list { display: none !important; } }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>كودات الطلاب</span>
+      </a>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:32px">
+    <div class="container page-content">
+      <h1 class="codes-title mb-2">إدارة كودات الطلاب</h1>
+      <p class="text-sm text-muted mb-3">الدخول للمنصة بالكود الجامعي فقط. أضف الكود يدويًا أو ارفع ملف Excel/CSV.</p>
+      <div class="counts-row" aria-live="polite">
+        <span class="count-chip">إجمالي: <strong id="count-total">—</strong></span>
+        <span class="count-chip">النشطة: <strong id="count-active">—</strong></span>
+        <span class="count-chip">الموقوفة: <strong id="count-inactive">—</strong></span>
+        <span class="count-chip">المسجّلون: <strong id="count-linked">—</strong></span>
+      </div>
+      <div class="codes-grid">
+        <div>
+          <form id="add-form" class="codes-card mb-3">
+            <h2>إضافة كود يدوي</h2>
+            <div class="form-group"><label class="form-label" for="code">الكود الجامعي *</label><input class="form-input" type="text" id="code" required autocomplete="off" spellcheck="false" dir="auto" placeholder="مثال: 20230045" /></div>
+            <div class="form-group"><label class="form-label" for="full_name">اسم الطالب *</label><input class="form-input" type="text" id="full_name" required autocomplete="off" placeholder="الاسم كامل" /></div>
+            <div class="form-group"><label class="form-label" for="role">الصلاحية</label><select class="form-select" id="role"><option value="student" selected>طالب</option><option value="moderator">مشرف</option><option value="admin">أدمن</option></select></div>
+            <button type="submit" class="btn btn-primary btn-block" id="add-btn">حفظ الكود</button>
+          </form>
+          <div class="codes-card">
+            <h2>استيراد من Excel / CSV</h2>
+            <div class="hint">عمودين: <strong>الكود</strong> و <strong>الاسم</strong>. السجلات المكررة هتتخطى.</div>
+            <div class="form-group"><label class="form-label" for="xlsx-file">ملف Excel / CSV</label><input class="form-input" type="file" id="xlsx-file" accept=".xlsx,.xls,.csv" /></div>
+            <div id="import-pickers" style="display:none;margin-bottom:10px">
+              <div class="form-group"><label class="form-label" for="code-col">عمود الكود</label><select class="form-select" id="code-col"></select></div>
+              <div class="form-group"><label class="form-label" for="name-col">عمود الاسم</label><select class="form-select" id="name-col"></select></div>
+              <button type="button" class="btn btn-secondary btn-sm" id="apply-cols-btn">تطبيق الأعمدة</button>
+            </div>
+            <div id="import-preview-wrap" class="codes-table-wrap">
+              <p class="text-sm text-muted mb-1">معاينة (أول 8 من <strong id="import-total">0</strong>):</p>
+              <table class="codes-table"><thead><tr><th>#</th><th>الكود</th><th>الاسم</th></tr></thead><tbody id="import-preview"></tbody></table>
+              <button type="button" class="btn btn-primary btn-block mt-2" id="import-btn">استيراد الكل</button>
+            </div>
+            <div id="import-summary" class="import-summary" role="status"></div>
+          </div>
+        </div>
+        <div class="codes-card">
+          <div class="flex justify-between items-center flex-wrap gap-1 mb-2">
+            <h2 style="margin:0">القائمة</h2>
+            <button type="button" class="btn btn-sm btn-outline" id="export-btn">تصدير CSV</button>
+          </div>
+          <input type="search" id="search" class="form-input mb-2" placeholder="ابحث باسم أو كود..." autocomplete="off" />
+          <div class="codes-table-wrap codes-desktop-only">
+            <table class="codes-table">
+              <thead><tr><th>الاسم</th><th>الكود</th><th>الصلاحية</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+              <tbody id="codes-list"><tr><td colspan="5"><div class="skeleton-card"><div class="skeleton skeleton-title"></div></div></td></tr></tbody>
+            </table>
+          </div>
+          <div class="codes-mobile-list" id="codes-mobile" aria-live="polite"><div class="skeleton-card"><div class="skeleton skeleton-title"></div></div></div>
+          <div class="flex items-center justify-between flex-wrap gap-1 mt-2">
+            <button type="button" class="btn btn-sm btn-outline" id="filter-linked-btn" aria-pressed="false">عرض المسجلين فقط</button>
+            <p class="text-sm text-muted" id="linked-hint" style="margin:0">المسجل = دخل مرة على الأقل</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="/assets/js/admin-codes.js?v=1"></script>
+</body>
+</html>
