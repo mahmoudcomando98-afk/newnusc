@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar-EG" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
-  <script>document.documentElement.classList.add('admin-auth-pending')</script>
-  <title>الملفات | لوحة الإدارة</title>
+  <script>document.documentElement.classList.add('admin-auth-pending');setTimeout(function(){document.documentElement.classList.remove('admin-auth-pending');},6000);</script>
+  <title>محتوى المواد | COMANDO</title>
   <link rel="stylesheet" href="/assets/css/main.css?v=upload-progress-1" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=upload-progress-1" />
   <style>
@@ -16,12 +16,95 @@
   </style>
 </head>
 <body>
-  <div id="materials-root"></div>
-  <script type="module">
-    // صفحة الملفات بتعتمد على نفس الهيكل السابق عبر إعادة جلب القالب من النسخة المبنية
-    // لو القالب الكامل مش موجود، نحمّل المنطق فقط ونبني الهيكل الأدنى
-    import '/assets/js/admin-materials.js?v=upload-progress-1';
-  </script>
-  <noscript>فعّل JavaScript عشان تستخدم لوحة الملفات.</noscript>
+  <header class="app-header">
+    <div class="container">
+      <a href="/admin/index.html" class="logo"><span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span><span>محتوى المواد</span></a>
+      <button type="button" class="btn btn-sm btn-primary" id="add-btn">+ رفع ملف</button>
+    </div>
+  </header>
+  <main class="page" style="padding-bottom:24px">
+    <div class="container page-content">
+      <p class="text-sm text-muted mb-2">ارفع ملف جديد أو عدّل أي ملف. تقدر تحفظه كمسودة أو تحدد وقت ظهوره للطلاب.</p>
+      <div id="form-panel" class="card mb-3 hidden">
+        <h3 class="card-title mb-2" id="form-heading">رفع ملف جديد</h3>
+        <form id="mat-form">
+          <input type="hidden" id="edit_id" value="" />
+          <div class="form-group">
+            <label class="form-label" for="title">اسم الملف *</label>
+            <input type="text" id="title" class="form-input" required maxlength="180" placeholder="مثال: ملخص الباب الأول" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="subject_id">المادة *</label>
+            <select id="subject_id" class="form-select" required><option value="">— اختار المادة —</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="material_type">القسم *</label>
+            <select id="material_type" class="form-select" required>
+              <option value="lecture">المحاضرات</option>
+              <option value="section">السكاشن</option>
+              <option value="assignment">الواجبات</option>
+              <option value="summary">ملخصات المادة</option>
+              <option value="past_exam">امتحانات سابقة</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="description">وصف مختصر (اختياري)</label>
+            <textarea id="description" class="form-textarea" rows="2" maxlength="1000" placeholder="تفاصيل تساعد الطالب يعرف الملف"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="admin_note">ملاحظة للأدمن (تظهر للطالب)</label>
+            <input type="text" id="admin_note" class="form-input" maxlength="120" placeholder="مثال: مهم للامتحان — أو: اتلغى" />
+            <p class="form-hint">اختياري. جملة قصيرة واضحة تحت اسم الملف.</p>
+          </div>
+          <div class="form-group hidden" id="due-date-group">
+            <label class="form-label" for="due_at">آخر موعد للتسليم (اختياري)</label>
+            <div class="flex gap-1 items-center flex-wrap">
+              <input type="datetime-local" id="due_at" class="form-input" style="flex:1;min-width:180px" />
+              <button type="button" class="btn btn-sm btn-outline" id="clear-due-at">مسح الموعد</button>
+              <button type="button" class="btn btn-sm btn-primary" id="mark-delivered">تم التسليم</button>
+            </div>
+            <input type="hidden" id="is_delivered" value="0" />
+            <p class="form-hint" id="due-hint">هيظهر للطالب عدّاد تنازلي. الإشعارات بتتبعت قبل الموعد بـ 24 ساعة و 3 ساعات.</p>
+            <p class="form-hint hidden" id="delivered-hint" style="color:#2f6b3a;font-weight:600">الحالة: تم التسليم</p>
+            <div class="form-group" style="margin-top:10px;margin-bottom:0">
+              <label class="form-label" for="submission_url">رابط التسليم (اختياري)</label>
+              <input type="url" id="submission_url" class="form-input" dir="ltr" maxlength="500" placeholder="https://forms.google.com/... أو أي رابط تسليم" />
+              <p class="form-hint">هيظهر للطالب زر «تسليم الواجب» يفتح الرابط ده.</p>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-check"><input type="checkbox" id="is_published" checked /><span>نشر للطلاب</span></label>
+            <p class="form-hint">لو شلت العلامة = مسودة (مش ظاهرة للطلاب لحد ما تنشرها).</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="publish_at">جدولة الظهور (اختياري)</label>
+            <input type="datetime-local" id="publish_at" class="form-input" />
+            <p class="form-hint">لو حطيت وقت في المستقبل والملف منشور، هيظهر للطلاب بعد الوقت ده بس.</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="file" id="file-label">الملف *</label>
+            <input type="file" id="file" class="form-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,.jpg,.jpeg,.png,.webp,.xls,.xlsx" />
+            <p class="form-hint" id="file-hint">الحد الأقصى 200 ميجا. عند التعديل: اتركه فاضي لو مش عايز تغيّر الملف.</p>
+            <div id="upload-progress" class="upload-progress hidden" aria-live="polite">
+              <div class="upload-progress-track"><div id="upload-progress-fill" class="upload-progress-fill"></div></div>
+              <p id="upload-progress-text" class="upload-progress-text">0%</p>
+            </div>
+          </div>
+          <div class="form-group" id="solution-group">
+            <label class="form-label" for="solution_image">صورة الحل (للواجبات — اختياري)</label>
+            <input type="file" id="solution_image" class="form-input" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
+            <p class="form-hint">تظهر للطالب من زر عرض الحل.</p>
+          </div>
+          <div class="flex gap-1 flex-wrap">
+            <button type="submit" class="btn btn-primary" id="submit-btn">ارفع الملف</button>
+            <button type="button" class="btn btn-outline" id="cancel-btn">إلغاء</button>
+          </div>
+        </form>
+      </div>
+      <div id="list"><div class="skeleton-card"><div class="skeleton skeleton-title"></div></div></div>
+      <input type="file" id="solution-attach-input" class="hidden" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
+    </div>
+  </main>
+  <script type="module" src="../assets/js/admin-materials.js?v=upload-progress-1"></script>
 </body>
 </html>
