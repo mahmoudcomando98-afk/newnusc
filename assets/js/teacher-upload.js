@@ -1,8 +1,9 @@
 /**
  * Teacher upload portal — token only, no login, single subject.
  */
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
+import { supabase, SUPABASE_ANON_KEY } from './supabase.js';
 import { showToast } from './utils.js';
+import { tusUpload } from './tus-upload.js';
 
 const TYPE_LABELS = {
   lecture: 'المحاضرات',
@@ -82,35 +83,18 @@ function escapeAttr(s) {
     .replace(/</g, '&lt;');
 }
 
-/** رفع لـ Supabase Storage بـ XHR عشان يظهر تقدم حقيقي (anon INSERT مسموح لمجلد teacher-uploads) */
+/** رفع لـ Supabase Storage عبر TUS (resumable) عشان يظهر تقدم حقيقي مهما كان حجم الملف */
 function uploadWithProgress(path, file, onProgress) {
-  return new Promise((resolve, reject) => {
-    const target = `${SUPABASE_URL}/storage/v1/object/materials/${path.split('/').map(encodeURIComponent).join('/')}`;
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', target, true);
-    xhr.responseType = 'text';
-    xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
-    xhr.setRequestHeader('x-upsert', 'false');
-    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-    xhr.upload.onprogress = (e) => {
-      if (!e.lengthComputable) return;
-      onProgress((e.loaded / e.total) * 100, e.loaded, e.total);
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve();
-        return;
-      }
-      let msg = 'تعذر رفع الملف';
-      try {
-        const body = JSON.parse(xhr.responseText || '{}');
-        msg = body.error || body.message || msg;
-      } catch { /* raw */ }
-      reject(new Error(msg));
-    };
-    xhr.onerror = () => reject(new Error('انقطع الاتصال أثناء الرفع'));
-    xhr.onabort = () => reject(new Error('اتلغى الرفع'));
-    xhr.send(file);
+  if (file.size > 200 * 1024 * 1024) {
+    return Promise.reject(new Error('الملف أكبر من الحد المسموح على التخزين (200 ميجا). قلّل الحجم أو قسّمه.'));
+  }
+  return tusUpload({
+    path,
+    file,
+    token: null,
+    apiKey: SUPABASE_ANON_KEY || '',
+    bucket: 'materials',
+    onProgress: (pct, loaded, total) => onProgress(pct, loaded, total)
   });
 }
 
