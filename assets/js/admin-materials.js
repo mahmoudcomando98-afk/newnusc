@@ -1,6 +1,7 @@
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
+import { supabase } from './supabase.js';
 import { protectAdminPage } from './auth.js';
 import { escapeHtml, formatFileSize, showEmpty, showError, showToast, withLoading, initIcons, timeAgo } from './utils.js';
+import { MAX_UPLOAD_BYTES, formatBytes, uploadWithProgress, hideUploadProgress } from './upload-with-progress.js';
 
 let profile = null;
 let subjectNames = new Map();
@@ -148,15 +149,18 @@ function openEditForm(item) {
   else document.getElementById('title').focus();
 }
 
+async function uploadSolutionImage(file) {
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const path = `solutions/${profile.id}/${Date.now()}_${safeName}`;
+  await uploadWithProgress(path, file, 'رفع صورة الحل');
+  return path;
+}
+
 async function init() {
-  try {
-    document.documentElement.classList.remove('admin-auth-pending');
-  } catch {}
+  try { document.documentElement.classList.remove('admin-auth-pending'); } catch {}
   const result = await protectAdminPage();
   if (!result) return;
-  try {
-    document.documentElement.classList.remove('admin-auth-pending');
-  } catch {}
+  try { document.documentElement.classList.remove('admin-auth-pending'); } catch {}
   profile = result.profile;
   initIcons();
 
@@ -166,6 +170,17 @@ async function init() {
     resetFormMode();
   });
   document.getElementById('mat-form').addEventListener('submit', save);
+  document.getElementById('file')?.addEventListener('change', () => {
+    const f = document.getElementById('file')?.files?.[0];
+    const hint = document.getElementById('file-hint');
+    if (!hint) return;
+    if (!f) {
+      hint.textContent = 'الحد الأقصى 200 ميجا. عند التعديل: اتركه فاضي لو مش عايز تغيّر الملف.';
+      return;
+    }
+    const tooBig = f.size > MAX_UPLOAD_BYTES;
+    hint.textContent = f.name + ' · ' + formatBytes(f.size) + (tooBig ? ' — أكبر من الحد!' : '');
+  });
   document.getElementById('material_type').addEventListener('change', updateDueDateVisibility);
   document.getElementById('clear-due-at')?.addEventListener('click', () => {
     document.getElementById('due_at').value = '';
@@ -174,26 +189,11 @@ async function init() {
   document.getElementById('mark-delivered')?.addEventListener('click', () => {
     const next = !isDeliveredFlag();
     setDeliveredUI(next);
-    showToast(
-      next
-        ? 'اتعلّم الحالة «تم التسليم». احفظ التعديلات عشان تظهر للطالب.'
-        : 'اتشالت حالة «تم التسليم». احفظ التعديلات.',
-      'info'
-    );
+    showToast(next ? 'اتعلّم الحالة «تم التسليم». احفظ التعديلات عشان تظهر للطالب.' : 'اتشالت حالة «تم التسليم». احفظ التعديلات.', 'info');
   });
   document.getElementById('solution-attach-input')?.addEventListener('change', onAttachSolution);
-  try {
-    await loadSubjects();
-  } catch (err) {
-    console.error(err);
-    showToast('تعذر تحميل قائمة المواد.', 'error');
-  }
-  try {
-    await load();
-  } catch (err) {
-    console.error(err);
-    showError(document.getElementById('list'), 'مش قادرين نحمّل الملفات.');
-  }
+  try { await loadSubjects(); } catch (err) { console.error(err); showToast('تعذر تحميل قائمة المواد.', 'error'); }
+  try { await load(); } catch (err) { console.error(err); showError(document.getElementById('list'), 'مش قادرين نحمّل الملفات.'); }
 }
 
 async function loadSubjects() {
@@ -272,78 +272,6 @@ async function updateMaterial(id, payload) {
     return result;
   }
   return { data: null, error: { message: 'تعذر تحديث سجل الملف.' } };
-}
-
-function uploadProgressEls() {
-  return {
-    wrap: document.getElementById('upload-progress'),
-    bar: document.getElementById('upload-progress-bar'),
-    text: document.getElementById('upload-progress-text')
-  };
-}
-
-function setUploadProgress(pct, bytesText) {
-  const { wrap, bar, text } = uploadProgressEls();
-  if (!wrap || !bar) return;
-  wrap.classList.remove('hidden');
-  const clamped = Math.max(0, Math.min(100, pct));
-  bar.style.width = clamped + '%';
-  if (text) text.textContent = bytesText ? `${clamped}% · ${bytesText}` : `${clamped}%`;
-}
-
-function hideUploadProgress() {
-  const { wrap, bar, text } = uploadProgressEls();
-  if (!wrap) return;
-  wrap.classList.add('hidden');
-  if (bar) bar.style.width = '0%';
-  if (text) text.textContent = '0%';
-}
-
-/**
- * رفع ملف على Storage بـ XHR عشان يظهر تقدم حقيقي.
- * (supabase-js storage ما بيدعمش progress علني)
- */
-async function storageUploadWithProgress(path, file, label) {
-  setUploadProgress(0);
-  const session = (await supabase.auth.getSession())?.data?.session;
-  const token = session?.access_token;
-  const url = `${SUPABASE_URL}/storage/v1/object/materials/${path
-    .split('/')
-    .map((seg) => encodeURIComponent(seg))
-    .join('/')}`;
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
-    if (token) xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
-    xhr.setRequestHeader('x-upsert', 'false');
-    xhr.upload.onprogress = (ev) => {
-      if (ev.lengthComputable) {
-        const pct = Math.round((ev.loaded / ev.total) * 100);
-        setUploadProgress(pct, formatFileSize(ev.loaded) + ' / ' + formatFileSize(ev.total));
-      }
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        setUploadProgress(100);
-        resolve();
-        return;
-      }
-      let msg = xhr.responseText || '';
-      try { const j = JSON.parse(msg); msg = j?.message || j?.error || msg; } catch { /* نص خام */ }
-      reject(new Error('فشل رفع ' + (label || 'الملف') + ' (' + xhr.status + ')' + (msg ? ': ' + msg : '')));
-    };
-    xhr.onerror = () => reject(new Error('خطأ شبكة أثناء رفع ' + (label || 'الملف')));
-    xhr.send(file);
-  });
-}
-
-async function uploadSolutionImage(file) {
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const path = `solutions/${profile.id}/${Date.now()}_${safeName}`;
-  await storageUploadWithProgress(path, file, 'صورة الحل');
-  return path;
 }
 
 async function load() {
@@ -487,76 +415,69 @@ async function load() {
         if (item) openEditForm(item);
       });
     });
+
     el.querySelectorAll('[data-attach-solution]').forEach((button) => {
       button.addEventListener('click', () => {
         attachTargetId = button.dataset.attachSolution;
+        document.getElementById('solution-attach-input').value = '';
         document.getElementById('solution-attach-input').click();
       });
     });
+
     el.querySelectorAll('[data-delete]').forEach((button) => {
       button.addEventListener('click', async () => {
-        if (!confirm('متأكد تحذف الملف ده؟')) return;
         const id = button.dataset.delete;
-        const item = materialsCache.find((entry) => String(entry.id) === String(id));
-        const { error: deleteError } = await supabase.from('materials').delete().eq('id', id);
-        if (deleteError) {
-          showToast(deleteError.message, 'error');
-          return;
+        if (!confirm('حذف الملف؟')) return;
+        button.disabled = true;
+        try {
+          const item = materialsCache.find((entry) => String(entry.id) === String(id));
+          const { error } = await supabase.from('materials').delete().eq('id', id);
+          if (error) {
+            showToast(error.message || 'تعذر الحذف.', 'error');
+            return;
+          }
+          const paths = [];
+          if (item?.file_path) paths.push(item.file_path);
+          if (item?.solution_image_path) paths.push(item.solution_image_path);
+          if (paths.length) await supabase.storage.from('materials').remove(paths).catch(() => {});
+          showToast('تم حذف الملف.', 'success');
+          await load();
+        } catch (err) {
+          console.error(err);
+          showToast('تعذر الحذف.', 'error');
+        } finally {
+          button.disabled = false;
         }
-        const paths = [];
-        if (item?.file_path) paths.push(item.file_path);
-        if (item?.solution_image_path) paths.push(item.solution_image_path);
-        if (paths.length) {
-          const { error: storageError } = await supabase.storage.from('materials').remove(paths);
-          if (storageError) console.warn('Storage cleanup failed:', storageError.message);
-        }
-        showToast('الملف اتحذف.', 'success');
-        await load();
       });
     });
-  } catch (error) {
-    console.error('Material list load failed:', error);
-    showError(el, 'مش قادرين نحمّل الملفات. راجع اتصال قاعدة البيانات والصلاحيات.');
+  } catch (err) {
+    console.error(err);
+    showError(el, 'مش قادرين نحمّل الملفات.');
   }
 }
 
-async function onAttachSolution(event) {
-  const file = event.target.files?.[0];
-  const materialId = attachTargetId;
-  attachTargetId = null;
-  event.target.value = '';
-  if (!file || !materialId) return;
+async function onAttachSolution(e) {
+  const file = e.target.files?.[0];
+  if (!file || !attachTargetId) return;
   if (!/^image\/(jpeg|png|webp)$/i.test(file.type) && !/\.(jpe?g|png|webp)$/i.test(file.name)) {
-    showToast('اختار صورة JPG أو PNG أو WebP.', 'error');
+    showToast('صورة الحل لازم تكون JPG أو PNG أو WebP.', 'error');
     return;
   }
   try {
     const path = await uploadSolutionImage(file);
-    const { data: existing } = await supabase.from('materials').select('solution_image_path').eq('id', materialId).maybeSingle();
-    const { error } = await supabase.from('materials').update({ solution_image_path: path }).eq('id', materialId);
+    const { error } = await supabase.from('materials').update({ solution_image_path: path }).eq('id', attachTargetId);
     if (error) {
-      await supabase.storage.from('materials').remove([path]);
-      showToast(error.message || 'تعذر حفظ صورة الحل.', 'error');
+      await supabase.storage.from('materials').remove([path]).catch(() => {});
+      showToast(error.message || 'تعذر ربط صورة الحل.', 'error');
       return;
     }
-    if (existing?.solution_image_path && existing.solution_image_path !== path) {
-      await supabase.storage.from('materials').remove([existing.solution_image_path]).catch(() => {});
-    }
-    showToast('تم حفظ صورة الحل.', 'success');
-    const mat = materialsCache.find((entry) => String(entry.id) === String(materialId));
-    if (mat && mat.material_type === 'assignment') {
-      await notifyAssignmentSafe({
-        subjectId: mat.subject_id,
-        subjectName: subjectNames.get(mat.subject_id) || '',
-        hasSolution: true,
-        dueAt: mat.due_at || null,
-        isNew: false
-      });
-    }
+    showToast('تم رفع صورة الحل.', 'success');
     await load();
   } catch (err) {
-    console.error(err);
-    showToast(err.message || 'فشل رفع صورة الحل.', 'error');
+    showToast(err.message || 'تعذر رفع صورة الحل.', 'error');
+  } finally {
+    attachTargetId = null;
+    hideUploadProgress();
   }
 }
 
@@ -601,174 +522,169 @@ async function save(event) {
     showToast('صورة الحل لازم تكون JPG أو PNG أو WebP.', 'error');
     return;
   }
+  if (file && file.size > MAX_UPLOAD_BYTES) {
+    showToast('الملف كبير أوي (' + formatBytes(file.size) + '). الحد الأقصى ' + formatBytes(MAX_UPLOAD_BYTES) + '.', 'error');
+    return;
+  }
+  if (solutionFile && solutionFile.size > MAX_UPLOAD_BYTES) {
+    showToast('صورة الحل كبيرة أوي. الحد الأقصى ' + formatBytes(MAX_UPLOAD_BYTES) + '.', 'error');
+    return;
+  }
 
   await withLoading(event.target.querySelector('[type=submit]'), async () => {
-    if (editingId) {
+    try {
+      if (editingId) {
+        const payload = {
+          title,
+          description,
+          admin_note: adminNote,
+          subject_id: subjectId,
+          material_type: materialType,
+          due_at: dueAt,
+          is_delivered: isDelivered,
+          submission_url: submissionUrl,
+          is_published: pub.is_published,
+          publish_at: pub.publish_at
+        };
+
+        let newPath = null;
+        let newSolutionPath = null;
+        const oldPath = editingOriginal?.file_path || null;
+        const oldSolution = editingOriginal?.solution_image_path || null;
+
+        if (file) {
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          newPath = `${profile.id}/${Date.now()}_${safeName}`;
+          try {
+            await uploadWithProgress(newPath, file, 'رفع الملف');
+          } catch (uploadError) {
+            showToast(uploadError?.message || 'تعذر رفع الملف.', 'error');
+            return;
+          }
+          payload.file_path = newPath;
+          payload.file_name = file.name;
+          payload.file_type = file.type || file.name.split('.').pop().toLowerCase();
+          payload.file_size = file.size;
+        }
+
+        if (solutionFile) {
+          try {
+            newSolutionPath = await uploadSolutionImage(solutionFile);
+            payload.solution_image_path = newSolutionPath;
+          } catch (err) {
+            if (newPath) await supabase.storage.from('materials').remove([newPath]).catch(() => {});
+            showToast(err.message || 'تعذر رفع صورة الحل.', 'error');
+            return;
+          }
+        }
+
+        const { error } = await updateMaterial(editingId, payload);
+        if (error) {
+          const cleanup = [];
+          if (newPath) cleanup.push(newPath);
+          if (newSolutionPath) cleanup.push(newSolutionPath);
+          if (cleanup.length) await supabase.storage.from('materials').remove(cleanup).catch(() => {});
+          showToast(error.message || 'تعذر حفظ التعديلات.', 'error');
+          return;
+        }
+
+        const toRemove = [];
+        if (newPath && oldPath && oldPath !== newPath) toRemove.push(oldPath);
+        if (newSolutionPath && oldSolution && oldSolution !== newSolutionPath) toRemove.push(oldSolution);
+        if (toRemove.length) await supabase.storage.from('materials').remove(toRemove).catch(() => {});
+
+        showToast('تم حفظ التعديلات.', 'success');
+        if (materialType === 'assignment' && pub.is_published) {
+          await notifyAssignmentSafe({
+            subjectId,
+            subjectName: subjectNames.get(subjectId) || '',
+            hasSolution: !!(newSolutionPath || editingOriginal?.solution_image_path),
+            dueAt,
+            isNew: false
+          });
+        }
+        document.getElementById('form-panel').classList.add('hidden');
+        resetFormMode();
+        await load();
+        return;
+      }
+
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `${profile.id}/${Date.now()}_${safeName}`;
+      try {
+        await uploadWithProgress(path, file, 'رفع الملف');
+      } catch (uploadError) {
+        showToast(uploadError?.message || 'تعذر رفع الملف.', 'error');
+        return;
+      }
+
+      let solutionPath = null;
+      if (solutionFile) {
+        try {
+          solutionPath = await uploadSolutionImage(solutionFile);
+        } catch (solErr) {
+          await supabase.storage.from('materials').remove([path]);
+          showToast(solErr.message || 'فشل رفع صورة الحل.', 'error');
+          return;
+        }
+      }
+
       const payload = {
         title,
         description,
         admin_note: adminNote,
         subject_id: subjectId,
         material_type: materialType,
+        file_path: path,
+        file_name: file.name,
+        file_type: file.type || file.name.split('.').pop().toLowerCase(),
+        file_size: file.size,
+        solution_image_path: solutionPath,
         due_at: dueAt,
         is_delivered: isDelivered,
         submission_url: submissionUrl,
         is_published: pub.is_published,
-        publish_at: pub.publish_at
+        publish_at: pub.publish_at,
+        created_by: profile?.id
       };
 
-      let newPath = null;
-      let newSolutionPath = null;
-      const oldPath = editingOriginal?.file_path || null;
-      const oldSolution = editingOriginal?.solution_image_path || null;
-
-      if (file) {
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        newPath = `${profile.id}/${Date.now()}_${safeName}`;
-        try {
-          await storageUploadWithProgress(newPath, file, 'المادة');
-        } catch (uploadError) {
-          hideUploadProgress();
-          showToast(uploadError.message, 'error');
-          return;
-        }
-        payload.file_path = newPath;
-        payload.file_name = file.name;
-        payload.file_type = file.type || file.name.split('.').pop().toLowerCase();
-        payload.file_size = file.size;
-      }
-
-      if (solutionFile) {
-        try {
-          newSolutionPath = await uploadSolutionImage(solutionFile);
-          payload.solution_image_path = newSolutionPath;
-        } catch (solErr) {
-          hideUploadProgress();
-          if (newPath) await supabase.storage.from('materials').remove([newPath]).catch(() => {});
-          showToast(solErr.message || 'فشل رفع صورة الحل.', 'error');
-          return;
-        }
-      }
-
-      const { error } = await updateMaterial(editingId, payload);
+      const { error } = await insertMaterial(payload);
       if (error) {
-        const cleanup = [];
-        if (newPath) cleanup.push(newPath);
-        if (newSolutionPath) cleanup.push(newSolutionPath);
-        if (cleanup.length) await supabase.storage.from('materials').remove(cleanup).catch(() => {});
-        showToast(error.message || 'تعذر حفظ التعديلات.', 'error');
+        const cleanup = [path];
+        if (solutionPath) cleanup.push(solutionPath);
+        await supabase.storage.from('materials').remove(cleanup).catch(() => {});
+        showToast(error.message || 'تعذر حفظ الملف.', 'error');
         return;
       }
-
-      const toRemove = [];
-      if (newPath && oldPath && oldPath !== newPath) toRemove.push(oldPath);
-      if (newSolutionPath && oldSolution && oldSolution !== newSolutionPath) toRemove.push(oldSolution);
-      if (toRemove.length) await supabase.storage.from('materials').remove(toRemove).catch(() => {});
 
       showToast(
         !pub.is_published
-          ? 'اتحفظ كمسودة — مش ظاهر للطلاب.'
+          ? 'الملف اترفَع كمسودة.'
           : pub.publish_at && new Date(pub.publish_at).getTime() > Date.now()
-            ? 'اتحفظ وهيظهر في الوقت المحدد.'
-            : materialType === 'assignment' && isDelivered
-              ? 'تم الحفظ — تم التسليم.'
-              : 'تم حفظ التعديلات.',
+            ? 'الملف اترفَع وهيظهر في الوقت المحدد.'
+            : 'تم رفع الملف بنجاح.',
         'success'
       );
-      if (materialType === 'assignment' && pub.is_published && (file || solutionFile)) {
+      if (materialType === 'assignment' && pub.is_published) {
         await notifyAssignmentSafe({
           subjectId,
           subjectName: subjectNames.get(subjectId) || '',
-          hasSolution: !!(solutionFile || editingOriginal?.solution_image_path),
+          hasSolution: !!solutionPath,
           dueAt,
-          isNew: !!file
+          isNew: true
         });
       }
-      hideUploadProgress();
       document.getElementById('form-panel').classList.add('hidden');
       resetFormMode();
       await load();
-      return;
-    }
-
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const path = `${profile.id}/${Date.now()}_${safeName}`;
-    try {
-      await storageUploadWithProgress(path, file, 'المادة');
-    } catch (uploadError) {
+    } finally {
       hideUploadProgress();
-      showToast(uploadError.message, 'error');
-      return;
     }
-
-    let solutionPath = null;
-    if (solutionFile) {
-      try {
-        solutionPath = await uploadSolutionImage(solutionFile);
-      } catch (solErr) {
-        hideUploadProgress();
-        await supabase.storage.from('materials').remove([path]);
-        showToast(solErr.message || 'فشل رفع صورة الحل.', 'error');
-        return;
-      }
-    }
-
-    const payload = {
-      title,
-      description,
-      admin_note: adminNote,
-      subject_id: subjectId,
-      material_type: materialType,
-      due_at: dueAt,
-      is_delivered: isDelivered,
-      submission_url: submissionUrl,
-      file_path: path,
-      file_name: file.name,
-      file_type: file.type || file.name.split('.').pop().toLowerCase(),
-      file_size: file.size,
-      is_published: pub.is_published,
-      publish_at: pub.publish_at,
-      created_by: profile.id
-    };
-    if (solutionPath) payload.solution_image_path = solutionPath;
-
-    const { error } = await insertMaterial(payload);
-    if (error) {
-      const cleanup = [path];
-      if (solutionPath) cleanup.push(solutionPath);
-      await supabase.storage.from('materials').remove(cleanup).catch(() => {});
-      showToast(error.message || 'تعذر حفظ الملف.', 'error');
-      return;
-    }
-
-    showToast(
-      !pub.is_published
-        ? 'الملف اترفَع كمسودة.'
-        : pub.publish_at && new Date(pub.publish_at).getTime() > Date.now()
-          ? 'الملف اترفَع وهيظهر في الوقت المحدد.'
-          : 'تم رفع الملف بنجاح.',
-      'success'
-    );
-    if (materialType === 'assignment' && pub.is_published) {
-      await notifyAssignmentSafe({
-        subjectId,
-        subjectName: subjectNames.get(subjectId) || '',
-        hasSolution: !!solutionPath,
-        dueAt,
-        isNew: true
-      });
-    }
-    hideUploadProgress();
-    document.getElementById('form-panel').classList.add('hidden');
-    resetFormMode();
-    await load();
   });
 }
 
 init().catch((error) => {
   console.error(error);
-  try {
-    document.documentElement.classList.remove('admin-auth-pending');
-  } catch {}
+  try { document.documentElement.classList.remove('admin-auth-pending'); } catch {}
   showError(document.getElementById('list'), 'مش قادرين نجهّز صفحة رفع الملفات.');
 });

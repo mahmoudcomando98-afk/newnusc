@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending');setTimeout(function(){document.documentElement.classList.remove('admin-auth-pending');},6000);</script>
-  <title>محتوى المواد | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=mat-pub-1" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=mat-pub-1" />
+  <title>محتوى المواد | COMANDO</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=upload-progress-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=upload-progress-1" />
   <style>
-    .upload-progress { margin: 10px 0 2px; }
-    .upload-progress-track { height: 10px; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
-    .upload-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--primary-dark)); border-radius: 999px; transition: width .15s linear; }
-    .upload-progress-text { margin: 6px 0 0; font-size: 0.8rem; color: var(--text-muted); text-align: center; font-variant-numeric: tabular-nums; }
+    .upload-progress { margin-top: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft, #f7f6f3); }
+    .upload-progress-track { height: 10px; border-radius: 999px; background: rgba(0,0,0,.08); overflow: hidden; }
+    .upload-progress-fill { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, #c45c26, #e08a4f); transition: width .15s ease-out; }
+    .upload-progress-text { margin: 8px 0 0; font-size: 0.82rem; color: var(--text-muted); font-weight: 600; }
   </style>
 </head>
 <body>
@@ -84,26 +84,27 @@
           <div class="form-group">
             <label class="form-label" for="file" id="file-label">الملف *</label>
             <input type="file" id="file" class="form-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.rar,.jpg,.jpeg,.png,.webp,.xls,.xlsx" />
-            <p class="form-hint" id="file-hint">عند التعديل: اتركه فاضي لو مش عايز تغيّر الملف.</p>
+            <p class="form-hint" id="file-hint">الحد الأقصى 200 ميجا. عند التعديل: اتركه فاضي لو مش عايز تغيّر الملف.</p>
+            <div id="upload-progress" class="upload-progress hidden" aria-live="polite">
+              <div class="upload-progress-track"><div id="upload-progress-fill" class="upload-progress-fill"></div></div>
+              <p id="upload-progress-text" class="upload-progress-text">0%</p>
+            </div>
           </div>
           <div class="form-group" id="solution-group">
-            <label class="form-label" for="solution_image">صورة الحل (اختياري — للواجبات)</label>
-            <input type="file" id="solution_image" class="form-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+            <label class="form-label" for="solution_image">صورة الحل (للواجبات — اختياري)</label>
+            <input type="file" id="solution_image" class="form-input" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
+            <p class="form-hint">تظهر للطالب من زر عرض الحل.</p>
           </div>
-          <div id="upload-progress" class="upload-progress hidden" role="status" aria-live="polite">
-            <div class="upload-progress-track"><div class="upload-progress-bar" id="upload-progress-bar"></div></div>
-            <p class="upload-progress-text" id="upload-progress-text">0%</p>
-          </div>
-          <div class="flex gap-1">
+          <div class="flex gap-1 flex-wrap">
             <button type="submit" class="btn btn-primary" id="submit-btn">ارفع الملف</button>
-            <button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button>
+            <button type="button" class="btn btn-outline" id="cancel-btn">إلغاء</button>
           </div>
         </form>
       </div>
-      <div id="list"></div>
+      <div id="list"><div class="skeleton-card"><div class="skeleton skeleton-title"></div></div></div>
+      <input type="file" id="solution-attach-input" class="hidden" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
     </div>
   </main>
-  <input type="file" id="solution-attach-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" style="display:none" />
-  <script type="module" src="/assets/js/admin-materials.js?v=mat-pub-1"></script>
+  <script type="module" src="../assets/js/admin-materials.js?v=upload-progress-1"></script>
 </body>
 </html>

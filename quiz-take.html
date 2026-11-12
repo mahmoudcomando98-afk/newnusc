@@ -31,12 +31,34 @@
     }
     .q-opt:hover { border-color: #d4b5a0; }
     .q-opt:has(input:checked) { border-color: #c56a3a; background: #f8efe8; }
-    .q-opt input { margin-top: 3px; }
+    .q-opt input { margin-top: 3px; flex-shrink: 0; }
+    .q-opt .opt-label {
+      flex: 1;
+      min-width: 0;
+      line-height: 1.55;
+      unicode-bidi: isolate;
+    }
+    .q-prompt {
+      font-weight: 700;
+      line-height: 1.65;
+      margin: 0 0 4px;
+      unicode-bidi: isolate;
+      overflow-wrap: anywhere;
+    }
+    .q-prompt[dir="ltr"], .opt-label[dir="ltr"] {
+      direction: ltr;
+      text-align: left;
+    }
+    .q-prompt[dir="rtl"], .opt-label[dir="rtl"] {
+      direction: rtl;
+      text-align: right;
+    }
     .nav-row { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
     .nav-row .btn { flex: 1; min-width: 120px; }
     .result-box { text-align: center; padding: 28px 16px; animation: qIn .35s ease; }
     .result-score { font-size: 2.1rem; font-weight: 800; color: var(--primary, #c56a3a); margin: 8px 0; }
     .review-item { border: 1px solid var(--border,#ebe6e1); border-radius: 10px; padding: 12px; margin-bottom: 10px; background:#fff; }
+    .review-item .q-prompt { margin-bottom: 6px; }
     .ok-line { color: #2f6b4f; }
     .bad-line { color: #a55a5a; }
     .dots { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin: 8px 0 14px; }
@@ -73,8 +95,21 @@
     let answers = {};
     let idx = 0;
     let title = '';
-    let phase = 'take'; // take | review | done | reveal
+    let phase = 'take';
     let lastResult = null;
+
+    /** اتجاه النص: إنجليزي/لاتيني → LTR، عربي → RTL (نصوص مختلطة حسب الأغلبية) */
+    function detectTextDir(text) {
+      const s = String(text || '');
+      const ar = (s.match(/[\u0600-\u06FF]/g) || []).length;
+      const la = (s.match(/[A-Za-z]/g) || []).length;
+      if (la === 0 && ar === 0) return 'rtl';
+      return la > ar ? 'ltr' : 'rtl';
+    }
+
+    function dirAttr(text) {
+      return detectTextDir(text);
+    }
 
     function fmtLeft(ms) {
       const left = Math.max(0, ms);
@@ -117,21 +152,23 @@
       if (!q) return;
       const opts = Array.isArray(q.options) ? q.options : [];
       const selected = answers[q.id];
+      const pDir = dirAttr(q.prompt);
       root.innerHTML = `
         <h1 style="font-size:1.1rem;margin:0 0 8px">${escapeHtml(title || 'الكويز')}</h1>
         <div class="quiz-timer" id="quiz-timer">جاري الحساب...</div>
         ${progressHtml()}
         <div class="card q-stage">
-          <p style="font-weight:700;line-height:1.6;margin:0 0 4px">${escapeHtml(q.prompt || '')}</p>
+          <p class="q-prompt" dir="${pDir}">${escapeHtml(q.prompt || '')}</p>
           <p class="text-sm text-muted">درجة السؤال: ${q.points ?? 1}</p>
           ${opts
-            .map(
-              (opt, oi) => `
+            .map((opt, oi) => {
+              const oDir = dirAttr(opt);
+              return `
             <label class="q-opt">
               <input type="radio" name="cur" value="${oi}" ${selected === oi ? 'checked' : ''} />
-              <span>${escapeHtml(String(opt))}</span>
-            </label>`
-            )
+              <span class="opt-label" dir="${oDir}">${escapeHtml(String(opt))}</span>
+            </label>`;
+            })
             .join('')}
         </div>
         <div class="nav-row">
@@ -180,10 +217,15 @@
           .map((q, i) => {
             const opts = Array.isArray(q.options) ? q.options : [];
             const ch = answers[q.id];
-            const label = ch === undefined ? 'لم تُجب' : escapeHtml(String(opts[ch] ?? ch));
+            const chosenText = ch === undefined ? null : String(opts[ch] ?? ch);
+            const pDir = dirAttr(q.prompt);
+            const aDir = chosenText ? dirAttr(chosenText) : 'rtl';
             return `<div class="review-item">
-              <strong>س ${i + 1}.</strong> ${escapeHtml(q.prompt || '')}
-              <p class="text-sm mt-1"><strong>إجابتك:</strong> ${label}</p>
+              <strong>س ${i + 1}.</strong>
+              <p class="q-prompt" dir="${pDir}">${escapeHtml(q.prompt || '')}</p>
+              <p class="text-sm mt-1"><strong>إجابتك:</strong>
+                ${chosenText == null ? 'لم تُجب' : `<span dir="${aDir}" style="unicode-bidi:isolate;display:inline-block">${escapeHtml(chosenText)}</span>`}
+              </p>
               <button type="button" class="btn btn-sm btn-secondary mt-1" data-jump="${i}">تعديل</button>
             </div>`;
           })
@@ -260,14 +302,22 @@
               const chosen = q.chosen;
               const correct = q.correct_option;
               const ok = !!q.is_correct;
+              const chosenText = chosen == null ? null : String(opts[chosen] ?? chosen);
+              const correctText = String(opts[correct] ?? correct);
+              const pDir = dirAttr(q.prompt);
               return `<div class="review-item q-stage">
-                <p><strong>س ${i + 1}.</strong> ${escapeHtml(q.prompt || '')}</p>
-                <p class="text-sm ${ok ? 'ok-line' : 'bad-line'}">إجابتك: ${chosen == null ? '—' : escapeHtml(String(opts[chosen] ?? chosen))} ${ok ? '<span data-icon="check" class="inline-icon"></span>' : '<span data-icon="x" class="inline-icon"></span>'}</p>
-                ${!ok ? `<p class="text-sm ok-line">الصح: ${escapeHtml(String(opts[correct] ?? correct))}</p>` : ''}
+                <p><strong>س ${i + 1}.</strong></p>
+                <p class="q-prompt" dir="${pDir}">${escapeHtml(q.prompt || '')}</p>
+                <p class="text-sm ${ok ? 'ok-line' : 'bad-line'}">إجابتك:
+                  ${chosenText == null ? '—' : `<span dir="${dirAttr(chosenText)}" style="unicode-bidi:isolate;display:inline-block">${escapeHtml(chosenText)}</span>`}
+                  ${ok ? '<span data-icon="check" class="inline-icon"></span>' : '<span data-icon="x" class="inline-icon"></span>'}
+                </p>
+                ${!ok ? `<p class="text-sm ok-line">الصح: <span dir="${dirAttr(correctText)}" style="unicode-bidi:isolate;display:inline-block">${escapeHtml(correctText)}</span></p>` : ''}
               </div>`;
             })
             .join('')}
           <a href="/quizzes.html" class="btn btn-primary btn-block mt-2">رجوع</a>`;
+        initIcons();
       } catch (err) {
         showToast(err.message || 'تعذر تحميل التفاصيل — نفّذ SQL الجديد', 'error');
       }
@@ -293,7 +343,7 @@
         renderDone(data, auto);
       } catch (err) {
         console.error(err);
-        showToast(err.message || 'تعذر التسليم. نفّذ supabase/fix_quiz_results_and_scoring.sql', 'error');
+        showToast(err.message || 'تعذر التسليم. نفّذ supabase/SETUP_NEW_DB.sql', 'error');
         if (btn) btn.disabled = false;
       }
     }
@@ -306,7 +356,6 @@
         return;
       }
 
-      // لو خلص قبل كده — اعرض النتيجة
       try {
         const { data: prev } = await supabase.rpc('get_my_quiz_result', { p_quiz_id: quizId });
         if (prev?.has_result) {
@@ -348,7 +397,7 @@
         console.error(err);
         showError(
           root,
-          'تعذر بدء الكويز. نفّذ في Supabase: supabase/fix_quiz_results_and_scoring.sql'
+          'تعذر بدء الكويز. نفّذ في Supabase: supabase/SETUP_NEW_DB.sql'
         );
       }
     }
