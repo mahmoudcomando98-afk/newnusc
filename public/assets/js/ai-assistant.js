@@ -534,6 +534,15 @@ function init() {
   // تعرف على الجنس تلقائيًا من البروفايل (مفيش خانة اختيار — كل حاجة ذكية)
   fetchGender().then(function (gender) {
     state.gender = gender;
+    try {
+      if (gender === 'female') {
+        localStorage.setItem('comando-palette', 'girl');
+        document.documentElement.setAttribute('data-palette', 'girl');
+      } else {
+        localStorage.removeItem('comando-palette');
+        document.documentElement.removeAttribute('data-palette');
+      }
+    } catch { /* private mode */ }
     buildPanel();
     // لو GSAP محمّلة بالفعل (من صفحة سابقة) — شغّل الريج فورًا، وإلا لما توصل
     if (window.gsap) { rigRobot(); } else { loadGsapAsync(function () { rigRobot(); }); }

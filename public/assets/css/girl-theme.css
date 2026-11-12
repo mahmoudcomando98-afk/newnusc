@@ -1,0 +1,145 @@
+/* ============================================================
+   COMANDO — ثيم البنات (وردي)
+   يتفعل تلقائيًا لكل طالبة عبر <html data-palette="girl">
+   الوضع الافتراضي للمنصة يظل كما هو للشباب (دهبي/محايد)
+   ============================================================ */
+
+:root[data-palette="girl"] {
+  --primary: #e2558c !important;
+  --primary-light: #fbdcea !important;
+  --primary-dark: #a92a5b !important;
+  --accent: #c9427f !important;
+  --info: #e2558c !important;
+}
+
+:root[data-palette="girl"] body {
+  background: #fdf3f7 !important;
+}
+
+/* البار العلوي واللوجو */
+:root[data-palette="girl"] .app-header {
+  background: #fff !important;
+  border-bottom-color: #f3cbd9 !important;
+}
+:root[data-palette="girl"] .logo-icon {
+  background: #fbe0ea !important;
+  color: #a92a5b !important;
+  border-color: #ecc0d1 !important;
+}
+:root[data-palette="girl"] .logo-word { color: #a92a5b !important; }
+:root[data-palette="girl"] .logo-word:after { color: #d08ba8 !important; }
+
+/* الناف العلوي والسفلي */
+:root[data-palette="girl"] .desktop-nav {
+  background: #fdf0f5 !important;
+  border-color: #f3cbd9 !important;
+}
+:root[data-palette="girl"] .desktop-nav a.active,
+:root[data-palette="girl"] .desktop-nav a:hover {
+  color: #a92a5b !important;
+  background: #fbe0ea !important;
+}
+:root[data-palette="girl"] .bottom-nav a.active,
+:root[data-palette="girl"] .bottom-nav a.active span[data-icon] {
+  color: #a92a5b !important;
+  background: #fbe0ea !important;
+}
+:root[data-palette="girl"] .header-btn {
+  border-color: #f0cbd8 !important;
+  color: #a92a5b !important;
+}
+:root[data-palette="girl"] .header-btn:hover { background: #fdf0f5 !important; border-color: #e5a3bd !important; }
+
+/* الأزرار */
+:root[data-palette="girl"] .btn-primary,
+:root[data-palette="girl"] .btn-gold,
+:root[data-palette="girl"] .auth-submit {
+  background: #e2558c !important;
+  color: #fff !important;
+  border-color: #e2558c !important;
+  box-shadow: 0 4px 14px rgba(226, 85, 140, 0.28) !important;
+}
+:root[data-palette="girl"] .btn-primary:hover:not(:disabled),
+:root[data-palette="girl"] .btn-gold:hover:not(:disabled),
+:root[data-palette="girl"] .auth-submit:hover:not(:disabled) {
+  background: #c9427f !important;
+  border-color: #c9427f !important;
+}
+:root[data-palette="girl"] .btn-secondary,
+:root[data-palette="girl"] .btn-outline {
+  background: #fff !important;
+  color: #a92a5b !important;
+  border-color: #e5a3bd !important;
+}
+:root[data-palette="girl"] .btn-outline:hover:not(:disabled) { background: #fdf0f5 !important; }
+:root[data-palette="girl"] .hero-secondary-link { color: #a92a5b !important; }
+
+/* البطاقات والعناصر الصغيرة */
+:root[data-palette="girl"] .badge-primary,
+:root[data-palette="girl"] .badge-success,
+:root[data-palette="girl"] .tab.active,
+:root[data-palette="girl"] .shortcut-icon,
+:root[data-palette="girl"] .list-item-icon,
+:root[data-palette="girl"] .notice-symbol,
+:root[data-palette="girl"] .subjects-count,
+:root[data-palette="girl"] .quick-link,
+:root[data-palette="girl"] .subjects-count,
+:root[data-palette="girl"] .hero-dot {
+  background: #fbe0ea !important;
+  color: #a92a5b !important;
+  border-color: #efc3d3 !important;
+}
+:root[data-palette="girl"] .important-notice {
+  background: #fdf0f5 !important;
+  border-color: #f0b9cd !important;
+  border-right-color: #e2558c !important;
+}
+
+/* الهيدر الكبير والهيرو */
+:root[data-palette="girl"] .home-hero,
+:root[data-palette="girl"] .welcome-banner,
+:root[data-palette="girl"] .page-hero,
+:root[data-palette="girl"] .profile-hero,
+:root[data-palette="girl"] .admin-hero {
+  background: #f6dfe8 !important;
+  color: #4a1f30 !important;
+  border-color: #ecc4d2 !important;
+}
+:root[data-palette="girl"] .home-hero h1,
+:root[data-palette="girl"] .home-hero p,
+:root[data-palette="girl"] .home-hero .hero-eyebrow,
+:root[data-palette="girl"] .home-hero .hero-bottom-line { color: #4a1f30 !important; }
+:root[data-palette="girl"] .home-hero .hero-bottom-line { border-color: #ecc4d2 !important; }
+
+/* الحقول والفوكس */
+:root[data-palette="girl"] input:focus,
+:root[data-palette="girl"] select:focus,
+:root[data-palette="girl"] textarea:focus,
+:root[data-palette="girl"] .form-input:focus,
+:root[data-palette="girl"] .form-select:focus,
+:root[data-palette="girl"] .search-box input:focus {
+  border-color: #e2558c !important;
+  box-shadow: 0 0 0 3px rgba(226, 85, 140, 0.18) !important;
+}
+
+/* فوكس الوصول */
+:root[data-palette="girl"] :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline-color: rgba(226, 85, 140, 0.55) !important;
+}
+
+/* الهيدر السفلي والعناوين الرئيسية */
+:root[data-palette="girl"] .section-kicker,
+:root[data-palette="girl"] .section-more { color: #a92a5b !important; }
+:root[data-palette="girl"] .footer-brand { color: #a92a5b !important; }
+:root[data-palette="girl"] .welcome-name,
+:root[data-palette="girl"] #welcome-name { color: #4a1f30 !important; }
+
+/* شعار المنصة في شاشة الدخول */
+:root[data-palette="girl"] .auth-logo .logo-icon {
+  background: #e2558c !important;
+  color: #fff !important;
+  border-color: #e2558c !important;
+}
+:root[data-palette="girl"] .auth-submit { min-height: 46px; }
+:root[data-palette="girl"] .auth-benefit-check { color: #a92a5b !important; }
+:root[data-palette="girl"] .auth-page a:not(.auth-brand) { color: #a92a5b !important; }
