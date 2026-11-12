@@ -1,4 +1,4 @@
-/**
+﻿/**
  * نافذة تثبيت التطبيق / اختصار سطح المكتب (PWA)
  * - موبايل + كمبيوتر (Chrome / Edge)
  * - لو متثبت أو مفتوح كـ standalone → مش بتظهر
@@ -66,7 +66,7 @@ function isDesktop() {
 async function ensureServiceWorkerRegistered() {
   if (!('serviceWorker' in navigator)) return null;
   try {
-    const reg = await navigator.serviceWorker.register('/sw.js?v=5', { scope: '/' });
+    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
     await navigator.serviceWorker.ready;
     return reg;
   } catch (err) {

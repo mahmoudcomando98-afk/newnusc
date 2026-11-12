@@ -118,6 +118,10 @@ function createSafeAuthStorage() {
   };
 }
 
+/** ثوابت الاتصال — تُستخدم في رفع الملفات بـ XHR مع progress (storage-js لا يعرض التقدم) */
+export const SUPABASE_URL = supabaseUrl;
+export const SUPABASE_ANON_KEY = supabaseKey;
+
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: true,

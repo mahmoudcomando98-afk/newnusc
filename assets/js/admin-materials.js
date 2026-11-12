@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js';
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase.js';
 import { protectAdminPage } from './auth.js';
 import { escapeHtml, formatFileSize, showEmpty, showError, showToast, withLoading, initIcons, timeAgo } from './utils.js';
 
@@ -274,14 +274,75 @@ async function updateMaterial(id, payload) {
   return { data: null, error: { message: 'تعذر تحديث سجل الملف.' } };
 }
 
+function uploadProgressEls() {
+  return {
+    wrap: document.getElementById('upload-progress'),
+    bar: document.getElementById('upload-progress-bar'),
+    text: document.getElementById('upload-progress-text')
+  };
+}
+
+function setUploadProgress(pct, bytesText) {
+  const { wrap, bar, text } = uploadProgressEls();
+  if (!wrap || !bar) return;
+  wrap.classList.remove('hidden');
+  const clamped = Math.max(0, Math.min(100, pct));
+  bar.style.width = clamped + '%';
+  if (text) text.textContent = bytesText ? `${clamped}% · ${bytesText}` : `${clamped}%`;
+}
+
+function hideUploadProgress() {
+  const { wrap, bar, text } = uploadProgressEls();
+  if (!wrap) return;
+  wrap.classList.add('hidden');
+  if (bar) bar.style.width = '0%';
+  if (text) text.textContent = '0%';
+}
+
+/**
+ * رفع ملف على Storage بـ XHR عشان يظهر تقدم حقيقي.
+ * (supabase-js storage ما بيدعمش progress علني)
+ */
+async function storageUploadWithProgress(path, file, label) {
+  setUploadProgress(0);
+  const session = (await supabase.auth.getSession())?.data?.session;
+  const token = session?.access_token;
+  const url = `${SUPABASE_URL}/storage/v1/object/materials/${path
+    .split('/')
+    .map((seg) => encodeURIComponent(seg))
+    .join('/')}`;
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
+    if (token) xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.setRequestHeader('x-upsert', 'false');
+    xhr.upload.onprogress = (ev) => {
+      if (ev.lengthComputable) {
+        const pct = Math.round((ev.loaded / ev.total) * 100);
+        setUploadProgress(pct, formatFileSize(ev.loaded) + ' / ' + formatFileSize(ev.total));
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        setUploadProgress(100);
+        resolve();
+        return;
+      }
+      let msg = xhr.responseText || '';
+      try { const j = JSON.parse(msg); msg = j?.message || j?.error || msg; } catch { /* نص خام */ }
+      reject(new Error('فشل رفع ' + (label || 'الملف') + ' (' + xhr.status + ')' + (msg ? ': ' + msg : '')));
+    };
+    xhr.onerror = () => reject(new Error('خطأ شبكة أثناء رفع ' + (label || 'الملف')));
+    xhr.send(file);
+  });
+}
+
 async function uploadSolutionImage(file) {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const path = `solutions/${profile.id}/${Date.now()}_${safeName}`;
-  const { error } = await supabase.storage.from('materials').upload(path, file, {
-    contentType: file.type || 'image/jpeg',
-    upsert: false
-  });
-  if (error) throw error;
+  await storageUploadWithProgress(path, file, 'صورة الحل');
   return path;
 }
 
@@ -564,8 +625,10 @@ async function save(event) {
       if (file) {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         newPath = `${profile.id}/${Date.now()}_${safeName}`;
-        const { error: uploadError } = await supabase.storage.from('materials').upload(newPath, file);
-        if (uploadError) {
+        try {
+          await storageUploadWithProgress(newPath, file, 'المادة');
+        } catch (uploadError) {
+          hideUploadProgress();
           showToast(uploadError.message, 'error');
           return;
         }
@@ -580,6 +643,7 @@ async function save(event) {
           newSolutionPath = await uploadSolutionImage(solutionFile);
           payload.solution_image_path = newSolutionPath;
         } catch (solErr) {
+          hideUploadProgress();
           if (newPath) await supabase.storage.from('materials').remove([newPath]).catch(() => {});
           showToast(solErr.message || 'فشل رفع صورة الحل.', 'error');
           return;
@@ -620,6 +684,7 @@ async function save(event) {
           isNew: !!file
         });
       }
+      hideUploadProgress();
       document.getElementById('form-panel').classList.add('hidden');
       resetFormMode();
       await load();
@@ -628,8 +693,10 @@ async function save(event) {
 
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const path = `${profile.id}/${Date.now()}_${safeName}`;
-    const { error: uploadError } = await supabase.storage.from('materials').upload(path, file);
-    if (uploadError) {
+    try {
+      await storageUploadWithProgress(path, file, 'المادة');
+    } catch (uploadError) {
+      hideUploadProgress();
       showToast(uploadError.message, 'error');
       return;
     }
@@ -639,6 +706,7 @@ async function save(event) {
       try {
         solutionPath = await uploadSolutionImage(solutionFile);
       } catch (solErr) {
+        hideUploadProgress();
         await supabase.storage.from('materials').remove([path]);
         showToast(solErr.message || 'فشل رفع صورة الحل.', 'error');
         return;
@@ -690,6 +758,7 @@ async function save(event) {
         isNew: true
       });
     }
+    hideUploadProgress();
     document.getElementById('form-panel').classList.add('hidden');
     resetFormMode();
     await load();

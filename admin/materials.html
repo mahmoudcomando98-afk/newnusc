@@ -8,6 +8,12 @@
   <title>محتوى المواد | NUSC</title>
   <link rel="stylesheet" href="/assets/css/main.css?v=mat-pub-1" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=mat-pub-1" />
+  <style>
+    .upload-progress { margin: 10px 0 2px; }
+    .upload-progress-track { height: 10px; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+    .upload-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--primary-dark)); border-radius: 999px; transition: width .15s linear; }
+    .upload-progress-text { margin: 6px 0 0; font-size: 0.8rem; color: var(--text-muted); text-align: center; font-variant-numeric: tabular-nums; }
+  </style>
 </head>
 <body>
   <header class="app-header">
@@ -83,6 +89,10 @@
           <div class="form-group" id="solution-group">
             <label class="form-label" for="solution_image">صورة الحل (اختياري — للواجبات)</label>
             <input type="file" id="solution_image" class="form-input" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+          </div>
+          <div id="upload-progress" class="upload-progress hidden" role="status" aria-live="polite">
+            <div class="upload-progress-track"><div class="upload-progress-bar" id="upload-progress-bar"></div></div>
+            <p class="upload-progress-text" id="upload-progress-text">0%</p>
           </div>
           <div class="flex gap-1">
             <button type="submit" class="btn btn-primary" id="submit-btn">ارفع الملف</button>
