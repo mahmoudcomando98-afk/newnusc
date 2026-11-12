@@ -248,7 +248,7 @@ function openPanel({ welcome = true } = {}) {
     });
   }
 
-  setTimeout(function () { $('ai-input') && $('ai-input').focus(); }, 80);
+  // ملاحظة متعمدة: مفيش focus تلقائي على الخانة — عشان الكيبورد ميفتحش لوحده على الموبايل
   if (welcome && state.messages.length === 0) {
     callAi({ action: 'welcome' })
       .then(function (data) { addMessage('assistant', data.reply); })
