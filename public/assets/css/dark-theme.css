@@ -303,47 +303,8 @@
 }
 
 /* ============================================================
-   زر تبديل الوضع الليلي + انميشن التبديل
+   زر تبديل الوضع الليلي — البار العلوي فقط (لا يوجد زر عائم إطلاقًا)
    ============================================================ */
-.theme-toggle {
-  position: fixed;
-  inset-inline-end: auto;
-  left: 16px;
-  bottom: calc(var(--bottom-nav-h, 60px) + env(safe-area-inset-bottom, 0px) + 14px);
-  z-index: 160;
-  width: 46px;
-  height: 46px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
-  transition: transform 0.25s ease, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-  -webkit-tap-highlight-color: transparent;
-}
-.theme-toggle:hover { transform: translateY(-2px) scale(1.05); }
-.theme-toggle:active { transform: scale(0.94); }
-.theme-toggle:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
-:root[data-theme="dark"] .theme-toggle {
-  background: #2a2723;
-  border-color: #3f3a34;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(224, 150, 95, 0.12);
-}
-.theme-toggle .theme-icon {
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  transition: transform 0.45s cubic-bezier(0.34, 1.4, 0.44, 1), opacity 0.3s ease;
-}
-.theme-toggle .icon-sun { transform: rotate(0) scale(1); opacity: 1; }
-.theme-toggle .icon-moon { transform: rotate(90deg) scale(0.4); opacity: 0; }
-:root[data-theme="dark"] .theme-toggle .icon-sun { transform: rotate(-90deg) scale(0.4); opacity: 0; }
-:root[data-theme="dark"] .theme-toggle .icon-moon { transform: rotate(0) scale(1); opacity: 1; color: #e0965f; }
-
 /* ومضة نبض عند التبديل */
 @keyframes theme-pulse {
   0% { transform: scale(1); }
@@ -351,7 +312,6 @@
   70% { transform: scale(0.9); }
   100% { transform: scale(1); }
 }
-.theme-toggle.pulse { animation: theme-pulse 0.5s cubic-bezier(0.34, 1.4, 0.44, 1); }
 
 /* انتقال ناعم لكل الألوان أثناء تبديل الثيم */
 html.theme-anim,
@@ -360,17 +320,11 @@ html.theme-anim * {
     border-color 0.45s ease, box-shadow 0.45s ease, fill 0.45s ease !important;
 }
 
-@media (min-width: 900px) {
-  .theme-toggle { bottom: 22px; left: 22px; }
-}
 @media (prefers-reduced-motion: reduce) {
-  .theme-toggle, .theme-toggle .theme-icon, html.theme-anim, html.theme-anim * {
+  .theme-toggle-header, .theme-toggle-header .theme-icon, html.theme-anim, html.theme-anim * {
     animation: none !important;
     transition: none !important;
   }
-}
-@media print {
-  .theme-toggle { display: none !important; }
 }
 
 /* ---------- ????? ??????: ???? ????? ????? ??? ??????? ---------- */

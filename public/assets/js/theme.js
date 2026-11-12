@@ -2,8 +2,8 @@
  * COMANDO — تبديل الوضع الليلي/النهاري
  * - الوضع الافتراضي نهاري دائمًا عند أول دخول للمنصة
  * - يحفظ اختيار الطالب في localStorage (مفتاح: comando-theme) ويتبعه بعد كده
- * - الزر في البار العلوي جنب زر الإشعارات (.header-actions) في الصفحات الطالبة
- * - صفحات الإدارة (اللي مالها .header-actions) لازالت بتظهر الزر العائم أسفل الشاشة
+ * - الزر في البار العلوي فقط (.header-actions إن وُجدت، وإلا داخل .app-header .container)
+ * - لا يظهر أي زر عائم في أي صفحة أو جهاز — مطلقًا
  */
 
 const KEY = 'comando-theme';
@@ -32,7 +32,7 @@ function updateThemeColorMeta(theme) {
 }
 
 function updateToggle(theme) {
-  const btns = document.querySelectorAll('.theme-toggle, .theme-toggle-header');
+  const btns = document.querySelectorAll('.theme-toggle-header');
   const isDark = theme === 'dark';
   const label = isDark ? 'التبديل إلى الوضع النهاري' : 'التبديل إلى الوضع الليلي';
   const title = isDark ? 'الوضع النهاري' : 'الوضع الليلي';
@@ -62,7 +62,7 @@ function applyTheme(theme, { animate = false } = {}) {
 export function toggleTheme() {
   const next = currentTheme() === 'dark' ? 'light' : 'dark';
   applyTheme(next, { animate: true });
-  const btns = document.querySelectorAll('.theme-toggle, .theme-toggle-header');
+  const btns = document.querySelectorAll('.theme-toggle-header');
   if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
     btns.forEach((btn) => {
       btn.classList.remove('pulse');
@@ -79,34 +79,32 @@ const MOON_SVG =
   '<svg class="theme-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
 
 function createToggle() {
-  // الأولوية: حقنه في البار العلوي (جنب الإشعارات) — لو مش موجود، زر عائم
+  if (document.querySelector('.theme-toggle-header')) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'header-btn theme-toggle-header';
+  btn.innerHTML = SUN_SVG + MOON_SVG;
+  btn.setAttribute('aria-label', 'التبديل إلى الوضع الليلي');
+  btn.setAttribute('aria-pressed', 'false');
+  btn.title = 'الوضع الليلي';
+  btn.addEventListener('click', toggleTheme);
+
+  // الأولوية: البار العلوي جنب زر الإشعارات (.header-actions)
   const headerActions = document.querySelector('.header-actions');
-  if (headerActions && !headerActions.querySelector('.theme-toggle-header')) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'header-btn theme-toggle-header';
-    btn.innerHTML = SUN_SVG + MOON_SVG;
-    btn.setAttribute('aria-label', 'التبديل إلى الوضع الليلي');
-    btn.setAttribute('aria-pressed', 'false');
-    btn.title = 'الوضع الليلي';
-    btn.addEventListener('click', toggleTheme);
-    // إدراجه قبل زر الإشعارات مباشرة (أحدث نزولاً/من الأعلى)
+  if (headerActions) {
     headerActions.insertBefore(btn, headerActions.firstChild);
     updateToggle(currentTheme());
     return;
   }
 
-  // fallback: زر عائم أسفل الشاشة (صفحات الإدارة والأدمن)
-  if (document.querySelector('.theme-toggle')) return;
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'theme-toggle';
-  btn.innerHTML = SUN_SVG + MOON_SVG;
-  btn.setAttribute('aria-label', 'التبديل إلى الوضع الليلي');
-  btn.setAttribute('aria-pressed', 'false');
-  btn.addEventListener('click', toggleTheme);
-  document.body.appendChild(btn);
-  updateToggle(currentTheme());
+  // وإلا: بار العلوي العادي (صفحات الأدمن وبعض الصفحات اللي ما عندها header-actions)
+  const container = document.querySelector('.app-header .container');
+  if (container) {
+    container.appendChild(btn);
+    updateToggle(currentTheme());
+    return;
+  }
+  // صفحات بدون بار علوي (تسجيل الدخول/الصيانة/الأخطاء): بدون زر — لا شيء عائم أبدًا
 }
 
 // طبّق السمة المحفوظة أو الوضع النهاري الافتراضي عند أول دخول (الـ inline script في <head> سبق وطبقها أيضًا لمنع الوميض)
