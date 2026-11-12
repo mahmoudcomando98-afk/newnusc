@@ -480,7 +480,7 @@ export async function getProfile(userId = null) {
     const { data, error } = await withTimeout(
       supabase
         .from('profiles')
-        .select('id, full_name, email, student_id, college, academic_year, avatar_url, role, is_active, created_at')
+        .select('id, full_name, email, student_id, college, academic_year, avatar_url, role, is_active, gender, created_at')
         .eq('id', uid)
         .maybeSingle(),
       8000

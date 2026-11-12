@@ -39,6 +39,7 @@ function trimHistory(messages: ChatMessage[]): ChatMessage[] {
 
 function buildSystemPrompt(ctx: {
   studentName: string;
+  gender: 'male' | 'female' | null;
   subjects: string;
   materials: string;
   faq: string;
@@ -46,6 +47,12 @@ function buildSystemPrompt(ctx: {
   quizzes: string;
   knowledge: string;
 }): string {
+  const genderLine = ctx.gender === 'male'
+    ? 'الطالب ذَكَر — خاطبه بالمذكر دائمًا: انت، جاهز، عايز، عارف، سلّمها لما تكون جاهز؟ شاطر. ولا مرة تخاطب طالب ذكر بالتأنيث.'
+    : ctx.gender === 'female'
+      ? 'الطالبة أنثى — خاطبيها بالمؤنث دائمًا: انتي، جاهزة، عايزة، عارفة، سلّميها لما تكوني جاهزة؟ شاطرة. ولا مرة تخاطبي طالبة بالتذكير.'
+      : 'النوع غير معروف — استخدم عبارات محايدة للجنس (يا غالي/غالية، يا فندم، تحب تعمل إيه...) وتجنب أفعال مؤنثة/مذكرة صريحة.';
+
   return `إنت «مساعد COMANDO» — مساعد ذكي داخل منصة COMANDO لطلاب كلية الحاسبات والمعلومات.
 
 شخصيتك:
@@ -55,6 +62,7 @@ function buildSystemPrompt(ctx: {
 
 قواعد صارمة:
 - اسم الطالب اللي معاه دلوقتي: ${ctx.studentName} — استدعيه باسمه في الترحيب وبشكل طبيعي (مش كل سطر).
+- الجنس — ${genderLine}
 - ردّ بس بناءً على البيانات اللي عندك تحت (المواد/الملفات/الامتحانات/الإعلانات/الأسئلة الشائعة/المعرفة من الأدمن).
 - لو الطالب سأل عن شيء مش موجود، قول بجانب اللغة «مش موجود لسه» وحده الكلام بدون افتراء.
 - ممنوع تأليف أسماء أو روابط مش موجودة في البيانات.
@@ -62,7 +70,7 @@ function buildSystemPrompt(ctx: {
 - لو سؤالك برة سياق المنصة (رياضة/أخبار/سياسة...)، رد بجملتين وراجع الطالب إنك موجود عشان الدراسة.
 - ماتذكرش نوع الموديل ولا حاجة تقنية عن طريقة عملك.
 
-أنت متكلم دلوقتي مع: ${ctx.studentName} — يمكن تنده عليه باسمه بس مش كل سطر.
+أنت متكلم دلوقتي مع: ${ctx.studentName} — يمكن تنادي عليه أو عليها بالاسم بس، مش كل سطر.
 
 --- سياق المنصة ---
 مواد الطالب:
@@ -131,7 +139,7 @@ Deno.serve(async (req) => {
     // 2) المستخدم محظور؟
     const { data: profile } = await admin
       .from('profiles')
-      .select('id, full_name, is_active, role')
+      .select('id, full_name, is_active, role, gender')
       .eq('id', user.id)
       .maybeSingle();
     if (profile && profile.is_active === false) {
@@ -147,15 +155,17 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'هديك شوية ثواني ما سألتش مرتين — اسأل تاني بعد دقيقة.' }, 429);
     }
 
-    // 4.1) action: 'welcome' — ترحيب سريع باسم الطالب
+    // 4.1) action: 'welcome' — ترحيب سريع باسم الطالب ولغة نوعه
     const studentName = short((profile?.full_name || user.email || 'يا بطل').trim().split(/\s+/)[0] || 'يا بطل', 40);
+    const gender = (profile?.gender === 'male' || profile?.gender === 'female') ? profile.gender : null;
     const body2Early = await req.json().catch(() => ({}));
     if (body2Early?.action === 'welcome') {
-      return json({
-        ok: true,
-        reply: `أهلاً يا ${studentName} — أنا مساعد COMANDO الذكي. أقدر أساعدك تلاقي مادة أو ملف أو موعد، أو أعملك ملخص سريع. اسأل براحتك.`,
-        student_name: studentName
-      });
+      const reply = gender === 'female'
+        ? `أهلاً بيكِ يا ${studentName} — أنا مساعد COMANDO الذكي. أقدر أساعدك تلاقي مادة أو ملف أو موعد، أو أعملك ملخص سريع. اسألي على طول وانتي براحتك.`
+        : gender === 'male'
+          ? `أهلاً بيك يا ${studentName} — أنا مساعد COMANDO الذكي. أقدر أساعدك تلاقي مادة أو ملف أو موعد، أو أعملك ملخص سريع. اسأل على طول وانت براحتك.`
+          : `أهلاً يا ${studentName} — أنا مساعد COMANDO الذكي. أقدر أساعدك تلاقي مادة أو ملف أو موعد، أو أعملك ملخص سريع. اسأل براحتك.`;
+      return json({ ok: true, reply, student_name: studentName });
     }
     const [
       { data: subjects },
@@ -249,6 +259,7 @@ Deno.serve(async (req) => {
 
     const systemPrompt = buildSystemPrompt({
       studentName,
+      gender,
       subjects: subjectLines,
       materials: materialLines,
       faq: faqLines,
