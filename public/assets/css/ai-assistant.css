@@ -58,13 +58,38 @@
   width: min(360px, calc(100vw - 32px));
   height: min(460px, calc(100dvh - 190px));
   max-height: calc(100dvh - 190px);
+  /* المرآة بدون قصّ — عشان ذيل فقاعة الكلام يطلع من تحت فوق لمبة البوت */
+  filter: drop-shadow(0 18px 34px rgba(0, 0, 0, 0.28));
+}
+.ai-panel-inner {
+  height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22), 0 4px 14px rgba(0, 0, 0, 0.12);
   overflow: hidden;
+}
+/* زاويه/ذيل فقاعة كلام: قاعدتها عند حد اللوحة السفلي وقمتها تنزل لتحت عند لمبة البوت (x ≈ 33px) */
+.ai-panel::before,
+.ai-panel::after {
+  content: '';
+  position: absolute;
+  bottom: -13px;
+  left: 32px;
+  width: 0;
+  height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 13px solid var(--border, #e5e0d3);
+  pointer-events: none;
+}
+.ai-panel::after {
+  bottom: -12px;
+  left: 33px;
+  border-left-width: 10px;
+  border-right-width: 10px;
+  border-top: 12px solid var(--surface, #ffffff);
 }
 @keyframes ai-panel-in {
   from { opacity: 0; transform: translateY(16px) scale(0.96); }

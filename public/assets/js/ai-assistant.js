@@ -229,7 +229,7 @@ function openPanel({ welcome = true } = {}) {
   if (window.gsap) {
     gsap.set(panel, { visibility: 'visible' });
     gsap.fromTo(panel,
-      { autoAlpha: 0, scale: 0.5, y: 36, transformOrigin: 'bottom left' },
+      { autoAlpha: 0, scale: 0.35, y: 34, transformOrigin: '32px bottom' },
       { autoAlpha: 1, scale: 1, y: 0, duration: 0.55, ease: 'back.out(1.7)' });
     gsap.fromTo(fab,
       { scale: 1, rotate: 0 },
@@ -264,7 +264,7 @@ function closePanel() {
     gsap.set(panel, { visibility: 'visible' });
     gsap.to(panel,
       {
-        autoAlpha: 0, scale: 0.55, y: 34, transformOrigin: 'bottom left',
+        autoAlpha: 0, scale: 0.3, y: 34, transformOrigin: '32px bottom',
         duration: 0.32, ease: 'power3.in',
         onComplete: function () { panel.hidden = true; }
       });
@@ -303,19 +303,21 @@ function buildPanel() {
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-label', 'المساعد الذكي — COMANDO');
   panel.innerHTML =
-    '<div class="ai-header">' +
-      '<div class="ai-header-icon">' + ROBOT_SVG + '</div>' +
-      '<div class="ai-header-text">' +
-        '<p class="ai-header-title">مساعد COMANDO الذكي</p>' +
-        '<p class="ai-header-sub">يعرف مجال الدراسة والجدول والامتحانات</p>' +
+    '<div class="ai-panel-inner">' +
+      '<div class="ai-header">' +
+        '<div class="ai-header-icon">' + ROBOT_SVG + '</div>' +
+        '<div class="ai-header-text">' +
+          '<p class="ai-header-title">مساعد COMANDO الذكي</p>' +
+          '<p class="ai-header-sub">يعرف مجال الدراسة والجدول والامتحانات</p>' +
+        '</div>' +
+        '<button type="button" class="ai-close" id="ai-close" aria-label="إغلاق">' + CLOSE_SVG + '</button>' +
       '</div>' +
-      '<button type="button" class="ai-close" id="ai-close" aria-label="إغلاق">' + CLOSE_SVG + '</button>' +
-    '</div>' +
-    '<div class="ai-body" id="ai-body" aria-live="polite"></div>' +
-    '<form class="ai-input-bar" id="ai-form" autocomplete="off">' +
-      '<textarea class="ai-input" id="ai-input" rows="1" placeholder="اسألني عن المواد، الملفات، المواعيد…" aria-label="اكتب سؤالك" required></textarea>' +
-      '<button type="submit" class="ai-send" id="ai-send" aria-label="إرسال">' + SEND_SVG + '</button>' +
-    '</form>';
+      '<div class="ai-body" id="ai-body" aria-live="polite"></div>' +
+      '<form class="ai-input-bar" id="ai-form" autocomplete="off">' +
+        '<textarea class="ai-input" id="ai-input" rows="1" placeholder="اسألني عن المواد، الملفات، المواعيد…" aria-label="اكتب سؤالك" required></textarea>' +
+        '<button type="submit" class="ai-send" id="ai-send" aria-label="إرسال">' + SEND_SVG + '</button>' +
+      '</form>' +
+    '</div>';
   document.body.appendChild(panel);
 
   $('ai-close').addEventListener('click', function () { closePanel(); });
