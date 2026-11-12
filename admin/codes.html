@@ -11,23 +11,42 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     .codes-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
-    @media (min-width: 900px) { .codes-grid { grid-template-columns: 380px 1fr; align-items: start; } }
+    @media (min-width: 760px) { .codes-grid { grid-template-columns: 340px 1fr; align-items: start; } }
+    @media (min-width: 1024px) { .codes-grid { grid-template-columns: 400px 1fr; } }
     .codes-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
     .codes-card h2 { font-size: 0.98rem; font-weight: 700; margin: 0 0 10px; }
+    .codes-title { font-size: 1.25rem; font-weight: 700; margin: 0 0 8px; }
     .hint { font-size: 0.78rem; color: var(--text-muted); background: var(--surface-soft); border: 1px dashed var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; line-height: 1.8; }
-    .codes-table-wrap { overflow-x: auto; }
-    table.codes-table { font-size: 0.85rem; }
-    .code-pill { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.8rem; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 6px; padding: 1px 8px; unicode-bidi: embed; direction: ltr; display: inline-block; }
+    .codes-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -14px; padding: 0 14px; }
+    table.codes-table { font-size: 0.82rem; min-width: 640px; border-collapse: collapse; }
+    table.codes-table th { white-space: nowrap; }
+    table.codes-table td { vertical-align: middle; padding: 8px 6px; }
+    table.codes-table td:nth-child(1) { max-width: 180px; white-space: normal; overflow-wrap: break-word; }
+    .code-pill { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.78rem; background: var(--surface-soft); border: 1px solid var(--border); border-radius: 6px; padding: 1px 8px; unicode-bidi: embed; direction: ltr; display: inline-block; }
     .badge-admin { background: #fdf0e4 !important; color: #9a4f2b !important; }
     .badge-mod { background: #eef4ff !important; color: #1e4fa8 !important; }
     .badge-off { background: #fdeceb !important; color: #9b1c1c !important; }
-    .row-actions { display: flex; gap: 6px; white-space: nowrap; }
-    .row-actions .btn-sm { min-height: 30px !important; padding: 4px 10px !important; font-size: 0.75rem !important; }
+    .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .row-actions .btn-sm { min-height: 30px !important; padding: 4px 10px !important; font-size: 0.74rem !important; white-space: nowrap; }
     #import-preview-wrap { display: none; margin-top: 10px; }
-    .import-summary { display: none; margin-top: 10px; padding: 10px; border-radius: 8px; background: #e8f6ee; color: #1b6b3a; font-size: 0.85rem; border: 1px solid #bfe6d2; }
+    .import-summary { display: none; margin-top: 10px; padding: 10px; border-radius: 8px; background: #e8f6ee; color: #1b6b3a; font-size: 0.85rem; border: 1px solid #bfe6d2; line-height: 1.7; }
     .import-summary.error { background: #fdeceb; color: #9b1c1c; border-color: #f3c1bb; }
-    .counts-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0 12px; }
-    .count-chip { font-size: 0.78rem; color: var(--text-muted); background: var(--surface-soft); border: 1px solid var(--border); border-radius: 999px; padding: 3px 12px; }
+    .counts-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 12px; }
+    .count-chip { font-size: 0.78rem; color: var(--text-muted); background: var(--surface-soft); border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; white-space: nowrap; }
+    @media (max-width: 480px) {
+      .container { padding-left: 10px !important; padding-right: 10px !important; }
+      .codes-card { padding: 10px; border-radius: 8px; }
+      .codes-card h2 { font-size: 0.9rem; }
+      h1.codes-title { font-size: 1.05rem !important; }
+      .hint { font-size: 0.73rem; padding: 8px; }
+      .counts-row { gap: 6px; }
+      .count-chip { font-size: 0.7rem; padding: 3px 9px; }
+      .row-actions { gap: 4px; }
+      .row-actions .btn-sm { font-size: 0.68rem !important; padding: 3px 7px !important; }
+      table.codes-table { font-size: 0.76rem; min-width: 560px; }
+      .codes-table-wrap { margin: 0 -10px; padding: 0 10px; }
+      .code-pill { font-size: 0.72rem; }
+    }
   </style>
 </head>
 <body>
@@ -42,7 +61,7 @@
 
   <main class="page" style="padding-bottom:32px">
     <div class="container page-content">
-      <h1 class="mb-2" style="font-size:1.25rem">إدارة كودات الطلاب</h1>
+      <h1 class="codes-title mb-2">إدارة كودات الطلاب</h1>
       <p class="text-sm text-muted mb-3">الدخول للمنصة بالكود الجامعي فقط. أضف الكود يدويًا أو ارفع ملف Excel/CSV — الإدارة تتحكم في القائمة كاملة.</p>
 
       <div class="counts-row" aria-live="polite">
