@@ -14,7 +14,7 @@ const THEME_HEAD_SNIPPET = `
 `;
 const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=2"></script>`;
 const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=10" />`;
-const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=10"></script>`;
+const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=11"></script>`;
 
 function injectAiAssistantPlugin() {
   return {
