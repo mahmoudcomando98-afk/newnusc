@@ -653,6 +653,7 @@ function rigRobot() {
 function init() {
   var path = (window.location.pathname || '').toLowerCase();
   if (/admin/i.test(path)) return;
+  if (/\/chat(\.html)?$/.test(path)) return;
   if (!getToken()) return;
 
   // تنظيف مفاتيح قديمة من نسخ سابقة كانت بتحفظ المحادثة محليًا أو بتفتح تلقائي

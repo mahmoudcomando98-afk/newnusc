@@ -1,0 +1,23 @@
+/* COMANDO — زر دردشة الدفعة في البار العلوي + شارة عدد الرسائل */
+.chat-icon-btn { position: relative; }
+.chat-unread-badge {
+  position: absolute;
+  top: -3px;
+  inset-inline-end: -3px;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: .65rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 1;
+  border: 1.5px solid var(--surface, #fff);
+}
+:root[data-theme="dark"] .chat-unread-badge { border-color: #1f1c19; }
+:root[data-palette="girl"] .chat-unread-badge { background: #d6336c; }
+@media print { .chat-icon-btn { display: none !important } }
