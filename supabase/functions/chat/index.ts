@@ -1,4 +1,4 @@
-// دردشة الدفعة — رسائل مشفرة AES-256-GCM
+// دردشة الدفعة — رسائل مشفرة AES-256-GCM + ردود + مسح الأدمن
 // Deploy: npx supabase functions deploy chat --project-ref bmqqacvgtevogcuqfryq
 // Secret: supabase secrets set --project-ref ... CHAT_KEY=<64 hex chars>
 
@@ -25,6 +25,27 @@ function hexToBytes(hex: string): Uint8Array {
   return out;
 }
 
+function toByteaHex(arr: Uint8Array): string {
+  return '\\x' + [...arr].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function parseBytea(v: unknown): Uint8Array {
+  if (v instanceof Uint8Array) return v;
+  if (Array.isArray(v)) return new Uint8Array(v);
+  const s = String(v ?? '').trim();
+  if (!s) return new Uint8Array(0);
+  // PostgREST returns bytea as \x... (hex)
+  if (s.startsWith('\\x') || s.startsWith('x') || s.startsWith('\\X')) {
+    const hex = s.replace(/^\\x/i, '');
+    const out = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
+      out[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+    }
+    return out;
+  }
+  return new TextEncoder().encode(s);
+}
+
 async function getKey(): Promise<CryptoKey> {
   const hex = (Deno.env.get('CHAT_KEY') || '').trim();
   if (!hex || hex.length !== 64) throw new Error('CHAT_KEY غير صالح.');
@@ -41,6 +62,14 @@ async function decrypt(ct: Uint8Array, iv: Uint8Array, key: CryptoKey): Promise<
   const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
   return new TextDecoder().decode(pt);
 }
+
+function nameOf(p: { full_name?: string | null; email?: string | null } | undefined) {
+  const raw = String(p?.full_name || p?.email || 'طالب').trim();
+  const name = raw ? raw.split(/\s+/)[0] : 'طالب';
+  return { name, initial: (name.charAt(0) || 'ط').toUpperCase() };
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -86,26 +115,55 @@ Deno.serve(async (req) => {
     if (profile && profile.is_active === false) {
       return json({ ok: false, error: 'حسابك موقوف مؤقتًا.' }, 403);
     }
+    const isAdmin = String(profile?.role || '') === 'admin';
 
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action || 'list');
 
     const key = await getKey();
 
-    // إرسال رسالة
+    // مسح رسالة — الأدمن بس
+    if (action === 'delete') {
+      if (!isAdmin) {
+        return json({ ok: false, error: 'الأدمن بس اللي يمسح الرسايل.' }, 403);
+      }
+      const id = String(body?.id || '').trim();
+      if (!UUID_RE.test(id)) {
+        return json({ ok: false, error: 'معرّف الرسالة غير صالح.' }, 400);
+      }
+      const { error: delErr } = await admin.from('chat_messages').delete().eq('id', id);
+      if (delErr) {
+        return json({ ok: false, error: 'تعذر مسح الرسالة.', detail: delErr.message }, 500);
+      }
+      return json({ ok: true });
+    }
+
+    // إرسال رسالة (مع إمكانية الرد على رسالة)
     if (action === 'send') {
       const text = String(body?.text || '').trim();
       if (!text) return json({ ok: false, error: 'اكتب سؤالك بسرعة.' }, 400);
       if (text.length > 600) return json({ ok: false, error: 'الرسالة طويلة.' }, 400);
 
+      // لو الرد على رسالة — نتحقق إنها موجودة قبل ما نخزنها (لو اتمسحت بيبقى الرد عادي بدون اقتباس)
+      let replyToId: string | null = null;
+      const wantedReply = String(body?.reply_to_id || '').trim();
+      if (UUID_RE.test(wantedReply)) {
+        const { data: target } = await admin
+          .from('chat_messages')
+          .select('id')
+          .eq('id', wantedReply)
+          .maybeSingle();
+        if (target) replyToId = wantedReply;
+      }
+
       const { iv, ciphertext } = await encrypt(text, key);
-      const hex = (arr: Uint8Array) => '\\x' + [...arr].map((b) => b.toString(16).padStart(2, '0')).join('');
       const { error: insertErr } = await admin
         .from('chat_messages')
         .insert({
           user_id: user.id,
-          ciphertext: hex(ciphertext),
-          iv: hex(iv)
+          ciphertext: toByteaHex(ciphertext),
+          iv: toByteaHex(iv),
+          reply_to_id: replyToId
         });
       if (insertErr) {
         return json({ ok: false, error: 'تعذر إرسال الرسالة.', detail: insertErr.message }, 500);
@@ -116,7 +174,7 @@ Deno.serve(async (req) => {
     // تحميل آخر ٣٠ رسالة (الأحدث الأول) — نعرضها بترتيب من الأقدم للأحدث في الفرونت
     const rowsQuery = admin
       .from('chat_messages')
-      .select('id, user_id, ciphertext, iv, created_at')
+      .select('id, user_id, ciphertext, iv, created_at, reply_to_id')
       .order('created_at', { ascending: false })
       .limit(30);
 
@@ -141,32 +199,31 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'تعذر تحميل الرسايل.', detail: fetchErr.message }, 500);
     }
 
-    const userIds = Array.from(new Set((rows || []).map((r) => r.user_id)));
+    // اجمع الردود المطلوبة ومفكوكتها أولًا
+    const replyIds = Array.from(new Set((rows || []).map((r) => r.reply_to_id).filter(Boolean))) as string[];
+    const replyMap = new Map<string, { text: string; user_id: string }>();
+    if (replyIds.length) {
+      const { data: replied } = await admin
+        .from('chat_messages')
+        .select('id, user_id, ciphertext, iv')
+        .in('id', replyIds);
+      for (const rr of replied || []) {
+        let text = '';
+        try { text = await decrypt(parseBytea(rr.ciphertext), parseBytea(rr.iv), key); } catch { text = ''; }
+        replyMap.set(rr.id, { text, user_id: rr.user_id });
+      }
+    }
+
+    const userIds = Array.from(new Set([
+      ...(rows || []).map((r) => r.user_id),
+      ...Array.from(replyMap.values()).map((r) => r.user_id)
+    ]));
     const profilesMap = new Map<string, { name: string; initial: string }>();
     if (userIds.length) {
       const { data: people } = await admin.from('profiles').select('id, full_name, email').in('id', userIds);
       for (const p of people || []) {
-        const raw = String(p.full_name || p.email || 'طالب').trim();
-        const name = raw ? raw.split(/\s+/)[0] : 'طالب';
-        profilesMap.set(p.id, { name, initial: (name.charAt(0) || 'ط').toUpperCase() });
+        profilesMap.set(p.id, nameOf(p));
       }
-    }
-
-    function parseBytea(v: unknown): Uint8Array {
-      if (v instanceof Uint8Array) return v;
-      if (Array.isArray(v)) return new Uint8Array(v);
-      const s = String(v ?? '').trim();
-      if (!s) return new Uint8Array(0);
-      // PostgREST returns bytea as \x... (hex)
-      if (s.startsWith('\\x') || s.startsWith('x') || s.startsWith('\\X')) {
-        const hex = s.replace(/^\\x/i, '');
-        const out = new Uint8Array(hex.length / 2);
-        for (let i = 0; i < hex.length; i += 2) {
-          out[i / 2] = parseInt(hex.slice(i, i + 2), 16);
-        }
-        return out;
-      }
-      return new TextEncoder().encode(s);
     }
 
     const messages = await Promise.all(
@@ -179,6 +236,16 @@ Deno.serve(async (req) => {
           text = '[تعذر فك تشفير الرسالة]';
         }
         const sender = profilesMap.get(r.user_id) || { name: 'طالب', initial: 'ط' };
+
+        let reply: { author: string; text: string } | null = null;
+        if (r.reply_to_id) {
+          const original = replyMap.get(r.reply_to_id);
+          if (original) {
+            const p = profilesMap.get(original.user_id);
+            reply = { author: p?.name || 'طالب', text: original.text };
+          }
+        }
+
         return {
           id: r.id,
           user_id: r.user_id,
@@ -186,7 +253,9 @@ Deno.serve(async (req) => {
           initial: sender.initial,
           is_me: r.user_id === user.id,
           text,
-          created_at: r.created_at
+          created_at: r.created_at,
+          reply_to_id: r.reply_to_id || null,
+          reply
         };
       })
     );
@@ -196,7 +265,7 @@ Deno.serve(async (req) => {
     const membersCount = membersRes?.count ?? 0;
     const totalStudents = totalRes?.count ?? 0;
 
-    return json({ ok: true, messages, members_count: membersCount, total_students: totalStudents });
+    return json({ ok: true, messages, members_count: membersCount, is_admin: isAdmin, total_students: totalStudents });
   } catch (err) {
     console.error('[chat] unexpected:', err);
     return json({ ok: false, error: 'حصلت مشكلة غير متوقعة.' }, 500);

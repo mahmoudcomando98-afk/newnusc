@@ -1,8 +1,10 @@
 ﻿/* COMANDO — دردشة الدفعة */
+/* تثبيت البار بالأسفل — الصفحة نفسها مالهاش سكرول، الرسايل بس هي اللي بتتمرر */
+html, body { height: 100% }
+body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden }
+
 .chat-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 50;
+  flex: none;
   background: var(--surface, #fff);
   border-bottom: 1px solid var(--border, #e9e4d6);
   padding: 10px 0;
@@ -33,10 +35,10 @@
 .chat-members strong { font-size: .95rem; color: var(--primary-dark,#82621a); line-height: 1 }
 .chat-members small  { font-size: .62rem; color: var(--text-muted,#777); line-height: 1.4 }
 
-.chat-page { display: flex; flex-direction: column; height: calc(100dvh - 58px); padding-bottom: 12px }
+.chat-page { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 
 .chat-messages {
-  flex: 1; overflow-y: auto;
+  flex: 1; min-height: 0; overflow-y: auto;
   display: flex; flex-direction: column; gap: 6px;
   padding: 18px 12px 12px; scroll-behavior: smooth;
   background-image:
@@ -126,7 +128,9 @@
 .chat-text { white-space: pre-wrap; overflow-wrap: anywhere }
 
 .chat-composer {
+  flex: none;
   display: flex; gap: 8px; padding: 10px 12px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--border, #e9e4d6);
   background: var(--surface, #fff);
 }
@@ -190,9 +194,96 @@
 .chat-messages::-webkit-scrollbar-thumb { background: rgba(197, 106, 58, 0.3); border-radius: 999px; }
 .chat-messages::-webkit-scrollbar-thumb:hover { background: rgba(197, 106, 58, 0.55); }
 
+/* ثيم البنات (وردي) — أجزاء الرد والمسح */
+:root[data-palette="girl"] .chat-swipe-arrow { color: #d6336c }
+:root[data-palette="girl"] .chat-msg.them .chat-quote { border-inline-start-color: #d6336c }
+:root[data-palette="girl"] .chat-msg.them .chat-quote-author { color: #d6336c }
+:root[data-palette="girl"] .chat-reply-bar-icon, :root[data-palette="girl"] .chat-reply-bar-author { color: #d6336c }
+:root[data-palette="girl"] .chat-reply-bar-info { border-inline-start-color: #d6336c }
+
+/* الوضع الليلي — أجزاء الرد والمسح */
+:root[data-theme="dark"] .chat-swipe-arrow { background: #26221e; border-color: #3a3531; color: #e0965f }
+:root[data-theme="dark"] .chat-msg.them .chat-quote { border-inline-start-color: #e0965f; background: #26221e }
+:root[data-theme="dark"] .chat-msg.them .chat-quote-author { color: #e0965f }
+:root[data-theme="dark"] .chat-reply-bar { background: #26221e; border-top-color: #3a3531 }
+:root[data-theme="dark"] .chat-reply-bar-icon, :root[data-theme="dark"] .chat-reply-bar-author { color: #e0965f }
+:root[data-theme="dark"] .chat-reply-bar-info { border-inline-start-color: #e0965f }
+:root[data-theme="dark"] .chat-reply-bar-text { color: #a8a59c }
+:root[data-theme="dark"] .chat-del:hover { background: rgba(248, 113, 113, 0.12); color: #f87171 }
+
 @media (max-width: 420px) {
   .chat-title p { display: none }
   .chat-members { padding: 2px 8px }
 }
 
-@media print { .chat-topbar, .chat-composer { display: none } }
+/* الرد باقتباس — swipe زي واتساب */
+.chat-msg { touch-action: pan-y; position: relative; }
+.chat-swipe-arrow {
+  position: absolute; top: 50%; inset-inline-start: 10px;
+  width: 32px; height: 32px; margin-top: -16px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-soft, #fbf8ee);
+  border: 1px solid var(--border, #e9e4d6);
+  color: #c56a3a; opacity: 0; pointer-events: none;
+}
+.chat-msg.swipe-anim { transition: transform .18s ease }
+.chat-msg.swipe-anim .chat-swipe-arrow { transition: opacity .18s ease }
+
+.chat-quote {
+  display: flex; flex-direction: column; gap: 1px;
+  border-inline-start: 3px solid rgba(255, 255, 255, 0.65);
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 8px; padding: 4px 8px; margin-bottom: 4px;
+  max-width: 100%; min-width: 0;
+}
+.chat-msg.them .chat-quote { border-inline-start-color: #c56a3a; background: var(--surface-soft, #fbf8ee) }
+.chat-quote-author { font-size: 0.66rem; font-weight: 800; opacity: 0.85 }
+.chat-msg.them .chat-quote-author { color: #c56a3a; opacity: 1 }
+.chat-quote-text {
+  font-size: 0.74rem; opacity: 0.9;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chat-quote.chat-quote--missing { border-inline-start-color: #b45309 }
+
+/* زرار مسح الرسالة — للأدمن فقط */
+.chat-del {
+  flex: none; align-self: center;
+  width: 32px; height: 32px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--text-muted, #777);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; opacity: 0.55; transition: opacity .15s ease, background .15s ease, color .15s ease;
+}
+.chat-del:hover { opacity: 1; background: rgba(220, 38, 38, 0.12); color: #dc2626 }
+
+/* بار الرد فوق شريط الكتابة */
+.chat-reply-bar {
+  flex: none;
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 12px;
+  background: var(--surface-soft, #fbf8ee);
+  border-top: 1px solid var(--border, #e9e4d6);
+  animation: reply-bar-in .18s ease;
+}
+.chat-reply-bar[hidden] { display: none !important }
+@keyframes reply-bar-in { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+.chat-reply-bar-icon { flex: none; color: #c56a3a }
+.chat-reply-bar-info {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 1px;
+  border-inline-start: 3px solid #c56a3a;
+  padding-inline-start: 8px;
+}
+.chat-reply-bar-author { font-size: 0.72rem; font-weight: 800; color: #c56a3a }
+.chat-reply-bar-text {
+  font-size: 0.78rem; color: var(--text-muted, #777);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chat-reply-cancel {
+  flex: none; width: 32px; height: 32px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--text-muted, #777);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .15s ease;
+}
+.chat-reply-cancel:hover { background: var(--border, #e9e4d6) }
+
+@media print { .chat-topbar, .chat-composer, .chat-reply-bar { display: none } }

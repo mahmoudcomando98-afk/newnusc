@@ -8,7 +8,7 @@
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <link rel="stylesheet" href="/assets/css/main.css?v=chat1" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=chat1" />
-  <link rel="stylesheet" href="/assets/css/chat.css?v=3" />
+  <link rel="stylesheet" href="/assets/css/chat.css?v=4" />
 </head>
 <body>
   <header class="chat-topbar">
@@ -33,10 +33,16 @@
   </header>
 
   <main class="chat-page" role="main">
-    <div class="chat-messages" id="chat-messages" aria-live="polite">
-      <div class="chat-skeleton"></div>
-      <div class="chat-skeleton"></div>
-      <div class="chat-skeleton"></div>
+    <div class="chat-messages" id="chat-messages" aria-live="polite"></div>
+    <div class="chat-reply-bar" id="chat-reply-bar" hidden>
+      <svg class="chat-reply-bar-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+      <div class="chat-reply-bar-info">
+        <span class="chat-reply-bar-author" id="chat-reply-author"></span>
+        <span class="chat-reply-bar-text" id="chat-reply-text"></span>
+      </div>
+      <button type="button" class="chat-reply-cancel" id="chat-reply-cancel" aria-label="إلغاء الرد">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
     <form class="chat-composer" id="chat-form" autocomplete="off" novalidate>
       <input type="text" class="chat-input" id="chat-input" placeholder="اكتب سؤالك…" maxlength="600" autocomplete="off" required />
@@ -46,6 +52,6 @@
     </form>
   </main>
 
-  <script type="module" src="/assets/js/chat.js?v=4"></script>
+  <script type="module" src="/assets/js/chat.js?v=5"></script>
 </body>
 </html>
