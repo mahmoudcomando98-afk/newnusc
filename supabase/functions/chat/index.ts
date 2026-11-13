@@ -114,11 +114,28 @@ Deno.serve(async (req) => {
     }
 
     // تحميل آخر ٣٠ رسالة (الأحدث الأول) — نعرضها بترتيب من الأقدم للأحدث في الفرونت
-    const { data: rows, error: fetchErr } = await admin
+    const rowsQuery = admin
       .from('chat_messages')
       .select('id, user_id, ciphertext, iv, created_at')
       .order('created_at', { ascending: false })
       .limit(30);
+
+    // عدد الأعضاء — اللي منهم عنده حساب (مرتبط) على المنصة + كمان عدد الطلاب العامية إجمالًا
+    const membersQuery = admin
+      .from('student_codes')
+      .select('linked_user_id', { count: 'exact', head: true })
+      .not('linked_user_id', 'is', null)
+      .eq('is_active', true);
+
+    const totalQuery = admin
+      .from('student_codes')
+      .select('id', { count: 'exact', head: true });
+
+    const [{ data: rows, error: fetchErr }, membersRes, totalRes] = await Promise.all([
+      rowsQuery,
+      membersQuery,
+      totalQuery
+    ]);
 
     if (fetchErr) {
       return json({ ok: false, error: 'تعذر تحميل الرسايل.', detail: fetchErr.message }, 500);
@@ -176,7 +193,10 @@ Deno.serve(async (req) => {
 
     messages.sort((a, b) => new Date(String(a.created_at)).getTime() - new Date(String(b.created_at)).getTime());
 
-    return json({ ok: true, messages });
+    const membersCount = membersRes?.count ?? 0;
+    const totalStudents = totalRes?.count ?? 0;
+
+    return json({ ok: true, messages, members_count: membersCount, total_students: totalStudents });
   } catch (err) {
     console.error('[chat] unexpected:', err);
     return json({ ok: false, error: 'حصلت مشكلة غير متوقعة.' }, 500);

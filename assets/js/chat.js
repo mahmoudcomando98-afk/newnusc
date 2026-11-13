@@ -108,6 +108,12 @@ async function poll() {
     const list = Array.isArray(data?.messages) ? data.messages : [];
     state.messages = list;
     renderMessages();
+    // عدد الأعضاء الفعّالين
+    const countEl = $('chat-count');
+    if (countEl) {
+      const n = data?.members_count;
+      if (typeof n === 'number') countEl.textContent = String(n);
+    }
     // علامة "شفتهم كلهم"
     const lastCreated = list[list.length - 1]?.created_at;
     if (lastCreated) {
