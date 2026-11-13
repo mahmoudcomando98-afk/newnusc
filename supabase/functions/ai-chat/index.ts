@@ -25,6 +25,110 @@ function json(body: Record<string, unknown>, status = 200) {
   });
 }
 
+interface ReminderIntent { message: string; label: string; dueAt: string }
+
+const AR_WORD_NUMS: Record<string, number> = {
+  'واحد': 1, 'واحده': 1, 'اتنين': 2, 'اثنين': 2, 'اتنينين': 2,
+  'ثلاثه': 3, 'ثلاثة': 3, 'ثلاث': 3, 'تلات': 3, 'تلاتة': 3, 'ثلاث': 3,
+  'اربعه': 4, 'أربعة': 4, 'اربع': 4,
+  'خمسه': 5, 'خمسة': 5, 'خمس': 5,
+  'سته': 6, 'ستة': 6, 'ست': 6,
+  'سبعه': 7, 'سبعة': 7, 'سبع': 7,
+  'ثمانيه': 8, 'ثمانية': 8, 'تمانية': 8, 'تماني': 8, 'تمان': 8,
+  'تسعه': 9, 'تسعة': 9, 'تسع': 9,
+  'عشره': 10, 'عشرة': 10, 'عشر': 10
+};
+
+function normalizeArabicDigits(text: string): string {
+  return String(text || '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+}
+
+function unifyArabic(text: string): string {
+  return String(text || '')
+    .replace(/[إأآا]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .toLowerCase();
+}
+
+function parseReminderIntent(raw: string): ReminderIntent | null {
+  const t = unifyArabic(normalizeArabicDigits(String(raw || '').trim()));
+  if (!t) return null;
+  const trigger = /فكر|ذكر|نبه/;
+  if (!trigger.test(t)) return null;
+
+  let seconds = 0;
+  let label = '';
+  let m: RegExpMatchArray | null;
+
+  // ربع/نص ساعة — يتابعوا الأول عشان "بعد نص ساعه" ما تختلطش بـ "بعد 30 دقيقة"
+  if (/ربع\s*ساعه/.test(t)) {
+    seconds = 15 * 60; label = 'ربع ساعة';
+  } else if (/نصف\s*ساعه|نص\s*ساعه/.test(t)) {
+    seconds = 30 * 60; label = 'نص ساعة';
+  } else if (/ساعه\s*ونص|ساع\s*ونص/.test(t)) {
+    seconds = 90 * 60; label = 'ساعة ونص';
+  } else if (/ساعتين/.test(t)) {
+    seconds = 120 * 60; label = 'ساعتين';
+  } else if ((m = t.match(/بعد\s*(\d+)\s*(دقيقه|دقايق|دقائق)/))) {
+    seconds = Number(m[1]) * 60; label = `${m[1]} دقيقة`;
+  } else if ((m = t.match(/بعد\s*(\d+)\s*(ساعه|ساعات)/))) {
+    seconds = Number(m[1]) * 3600; label = `${m[1]} ساعة`;
+  } else if ((m = t.match(/بعد\s*(\d+)\s*(يوم|ايام)/))) {
+    seconds = Number(m[1]) * 86400; label = `${m[1]} يوم`;
+  } else if ((m = t.match(/بعد\s*([ء-ي]+)/))) {
+    const n = AR_WORD_NUMS[m[1]] ?? 0;
+    if (n && /دقيق|دقايق/.test(t)) {
+      seconds = n * 60; label = `${n} دقيقة`;
+    } else if (n && /ساع/.test(t)) {
+      seconds = n * 3600; label = `${n} ساعة`;
+    } else if (n && /يوم|ايام/.test(t)) {
+      seconds = n * 86400; label = `${n} يوم`;
+    }
+  }
+
+  if (!seconds) {
+    // "بعد ساعه" بدون رقم = ساعة واحدة
+    if (/بعد\s*ساعه/.test(t)) {
+      seconds = 3600; label = 'ساعة';
+    } else if (/بعد\s*يوم/.test(t)) {
+      seconds = 86400; label = 'يوم';
+    } else if (/بعد\s*نص\s*ساعه/.test(t)) {
+      seconds = 1800; label = 'نص ساعة';
+    }
+  }
+  if (!seconds || seconds > 7 * 86400) return null;
+
+  // استخرج مهمة الطالب ("اني أذاكر كذا" / "عايز اذاكر" ...)
+  let message = '';
+  const afterAny = t.match(/(?:اني|على\s+اني|عن|انى)\s*(.{2,})/);
+  if (afterAny && afterAny[1]) {
+    message = afterAny[1].trim();
+  } else {
+    // إزالة عبارات البداية (فكرني / ذكرني / بعد X دقيقة) وبعدها ما يبقى هو المطلوب
+    message = t
+      .replace(/بعد\s*(ربع|نصف|نص|ساعه|ساع|دقيقه|دقايق|دقائق|يوم|ايام|\d+|[ء-ي]+)\s*(ساعه|دقيقه|دقايق|دقيقة|دقائق|يوم)?\s*/gi, ' ')
+      .replace(/فكر|ذكر|نبه/g, ' ')
+      .replace(/(افكرني|افكريني|اذكرني|اذكريني|انبهني|انبهيني)/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  message = message.replace(/^(اني|انى|انك|عن|على)\s*/, '').trim();
+  if (!message || message.length < 2) message = raw.trim().slice(0, 120);
+  if (message.length > 100) message = message.slice(0, 100) + '…';
+
+  return {
+    message,
+    label,
+    dueAt: new Date(Date.now() + seconds * 1000).toISOString()
+  };
+}
+
+function parseCancelReminder(raw: string): boolean {
+  const t = unifyArabic(normalizeArabicDigits(String(raw || '').trim()));
+  return /الغاء|لغي|مسح/.test(t) && /تذكير|تذكيرات|فكرني/.test(t);
+}
+
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -255,6 +359,61 @@ Deno.serve(async (req) => {
     const lastQuestion = messages[messages.length - 1];
     if (!lastQuestion || lastQuestion.role !== 'user') {
       return json({ ok: false, error: 'اكتب سؤالك.' }, 400);
+    }
+
+    // 5.2) هل الطالب طالب/الغى تذكير؟
+    const userText = String(lastQuestion.content || '');
+
+    // 5.2.1) إلغاء كل التذكيرات المعلقة للطالب
+    if (parseCancelReminder(userText)) {
+      const { data: cancelled } = await admin
+        .from('ai_reminders')
+        .update({ status: 'cancelled' })
+        .eq('user_id', user.id)
+        .eq('status', 'pending')
+        .select('id');
+      const n = (cancelled || []).length;
+      return json({
+        ok: true,
+        reply: n > 0
+          ? `تم إلغاء ${n === 1 ? 'تذكير واحد' : n + ' تذكيرات'} عندك ✓`
+          : 'مفيش عندك تذكيرات معلقة أصلاً.'
+      });
+    }
+
+    // 5.2.2) إنشاء تذكير جديد
+    const reminder = parseReminderIntent(userText);
+    if (reminder) {
+      // هل الطالب مفعل إشعارات المنصة؟
+      const { count: subCount, error: subErr } = await admin
+        .from('push_subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+      const subs = subErr ? 0 : (subCount ?? 0);
+
+      if (subs === 0) {
+        return json({
+          ok: true,
+          reply: `عايز أقولك إني حلو جدًا أرجعلك بمعلومة "${reminder.message}" بعد ${reminder.label} — بس إشعارات المنصة مش مفعلة على الجهاز بتاعك دلوقتي 🔔\n\nلو فعّلتها دلوقتي، هيسجّل التذكير تلقائي وهبعتلك إشعار على التليفون بعد ${reminder.label}.`,
+          action: 'enable_notifications',
+          pending_reminder: { message: reminder.message, due_at: reminder.dueAt, due_label: reminder.label }
+        });
+      }
+
+      const { data: created, error: insertErr } = await admin
+        .from('ai_reminders')
+        .insert({ user_id: user.id, message: reminder.message, due_at: reminder.dueAt })
+        .select('id, due_at')
+        .single();
+
+      if (insertErr) {
+        return json({ ok: false, error: 'حصلت مشكلة وأنا بسجل التذكير — حاول تاني.', detail: insertErr.message }, 500);
+      }
+      return json({
+        ok: true,
+        reply: `✓ سجّلت تذكير: «${reminder.message}»\nهنبعتلك إشعار على تليفونك بعد ${reminder.label} ⏰`,
+        reminder: { id: created?.id, due_at: created?.due_at }
+      });
     }
 
     const systemPrompt = buildSystemPrompt({

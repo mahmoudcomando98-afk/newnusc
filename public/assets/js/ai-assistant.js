@@ -191,6 +191,21 @@ function renderMessages() {
   body.innerHTML = state.messages
     .map(function (m) { return '<div class="ai-msg ai-msg-' + escapeHtml(m.role) + '">' + escapeHtml(m.content) + '</div>'; })
     .join('');
+
+  // زر "فعّل الإشعارات" لآخر رد فيه الطلب ده
+  var last = state.messages[state.messages.length - 1];
+  if (last && last.action === 'enable_notifications') {
+    var bubbles = body.querySelectorAll('.ai-msg-assistant');
+    var bubble = bubbles[bubbles.length - 1];
+    if (bubble) {
+      var cta = document.createElement('button');
+      cta.type = 'button';
+      cta.className = 'ai-notif-cta';
+      cta.setAttribute('data-action', 'enable_notifications');
+      cta.textContent = 'فعّل الإشعارات + تسجيل التذكير';
+      bubble.appendChild(cta);
+    }
+  }
   scrollToBottom();
 }
 
@@ -228,6 +243,109 @@ function friendlyError(errText) {
   return 'حصلت مشكلة — جرّب تاني.';
 }
 
+// مفتاح VAPID العام للاشتراك في الإشعارات
+var VAPID_PUBLIC = 'BPMz4yfOTRot0gDUO_0USJVuqzKYhlY7OWcpvproCs1BlfWpwBNCO-ugCrhLdRJXRcDoFGF-Qi9Y7ItaMlaK9xQ';
+
+function getUserIdFromToken() {
+  try {
+    var token = getToken() || '';
+    var parts = token.split('.');
+    if (parts.length !== 3) return null;
+    var payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload && payload.sub ? String(payload.sub) : null;
+  } catch { return null; }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var raw = atob(base64);
+  var out = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+async function subscribeAndSavePush(userId) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    return { ok: false, reason: 'الإشعارات غير مدعومة على هذا الجهاز.' };
+  }
+  var perm = Notification.permission;
+  if (perm !== 'granted') {
+    try { perm = await Notification.requestPermission(); } catch { return { ok: false, reason: 'تعذر طلب الإذن.' }; }
+  }
+  if (perm !== 'granted') return { ok: false, reason: 'محتاج توافق على الإشعارات من إعدادات المتصفح.' };
+
+  try {
+    var reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    await navigator.serviceWorker.ready;
+    var sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC)
+      });
+    }
+    var keys = (sub.toJSON() && sub.toJSON().keys) || {};
+    var row = {
+      user_id: userId,
+      endpoint: sub.endpoint,
+      p256dh: keys.p256dh || '',
+      auth: keys.auth || '',
+      user_agent: String(navigator.userAgent || '').slice(0, 300),
+      updated_at: new Date().toISOString()
+    };
+    var res = await fetch(SUPABASE_URL + '/rest/v1/push_subscriptions', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + (getToken() || ''),
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify(row)
+    });
+    if (!res.ok) {
+      var text = await res.text().catch(function () { return ''; });
+      return { ok: false, reason: text || ('HTTP ' + res.status) };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: (e && e.message) || 'تعذر تفعيل الإشعارات.' };
+  }
+}
+
+// تفعيل الإشعارات وسجّل التذكير تلقائيًا — بمجرد الضغط على زر التفعيل
+async function activateNotificationsAndRegister(cta) {
+  var userId = getUserIdFromToken();
+  if (!userId) {
+    cta.textContent = 'انتهت جلستك — سجّل دخول تاني';
+    return;
+  }
+  cta.disabled = true;
+  cta.textContent = 'جاري تفعيل الإشعارات…';
+  var result = await subscribeAndSavePush(userId);
+  if (!result.ok) {
+    cta.disabled = false;
+    cta.textContent = 'تعذر التفعيل — ' + (result.reason || 'جرّب تاني');
+    return;
+  }
+  cta.textContent = 'تم ✓ — جاري تسجيل التذكير…';
+  try {
+    var history = state.messages.map(function (m) { return { role: m.role, content: m.content }; }).slice(-20);
+    var data = await callAi({ messages: history });
+    if (data && data.reply) {
+      state.messages = state.messages.filter(function (m) { return m.action !== 'enable_notifications'; });
+      addMessage('assistant', data.reply);
+    } else {
+      cta.textContent = 'ثبت الإشعارات بس ماقدرتش أسجل التذكير';
+    }
+  } catch (e) {
+    cta.disabled = false;
+    cta.textContent = 'حصل مشكلة — جرّب تاني';
+  }
+}
+
+// استدعاء الباكند — ai-chat يفهم التذكير تلقائي
 async function callAi(body) {
   var token = getToken();
   var res = await fetch(SUPABASE_URL + '/functions/v1/ai-chat', {
@@ -256,7 +374,12 @@ async function sendQuestion(question) {
   var history = state.messages.map(function (m) { return { role: m.role, content: m.content }; });
   try {
     var data = await callAi({ messages: history });
-    addMessage('assistant', data.reply);
+    if (data && data.action === 'enable_notifications' && data.pending_reminder) {
+      state.messages.push({ role: 'assistant', content: data.reply || '', action: 'enable_notifications' });
+      renderMessages();
+    } else {
+      addMessage('assistant', data.reply);
+    }
   } catch (err) {
     var body = getBody();
     if (body) {
@@ -463,6 +586,11 @@ function buildPanel() {
   getBodyChips();
   function getBodyChips() {
     $('ai-body').addEventListener('click', function (e) {
+      var cta = e.target.closest ? e.target.closest('.ai-notif-cta') : null;
+      if (cta && cta.dataset.action === 'enable_notifications') {
+        activateNotificationsAndRegister(cta);
+        return;
+      }
       var chip = e.target.closest ? e.target.closest('.ai-chip') : null;
       if (chip && chip.dataset && chip.dataset.q) sendQuestion(chip.dataset.q);
     });

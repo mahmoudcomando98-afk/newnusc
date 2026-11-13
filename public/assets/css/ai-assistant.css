@@ -162,6 +162,27 @@
 :root[data-theme="dark"] .ai-msg-assistant { border-color: #332e29; color: var(--primary); }
 .ai-msg-error { align-self: center; background: #fdeceb; border: 1px solid #f3c1bb; color: #9b1c1c; font-size: 0.8rem; border-radius: 10px; padding: 8px 12px; }
 
+/* زر تفعيل الإشعارات داخل فقاعة البوت */
+.ai-notif-cta {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--primary, #454d55);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.2s ease;
+}
+.ai-notif-cta:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+.ai-notif-cta:disabled { opacity: 0.7; cursor: default; }
+.ai-gender-female .ai-notif-cta { background: #d6336c; }
+.ai-gender-female .ai-notif-cta:hover:not(:disabled) { background: #b02358; }
+
 .ai-empty { text-align: center; color: var(--text-muted); font-size: 0.82rem; padding: 18px 14px; line-height: 1.9; }
 .ai-chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
 .ai-chip {
