@@ -6,12 +6,12 @@
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending');setTimeout(function(){document.documentElement.classList.remove('admin-auth-pending');},6000);</script>
   <title>محتوى المواد | COMANDO</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=upload-progress-1" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=upload-progress-1" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=upload-progress-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=upload-progress-2" />
   <style>
     .upload-progress { margin-top: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft, #f7f6f3); }
     .upload-progress-track { height: 10px; border-radius: 999px; background: rgba(0,0,0,.08); overflow: hidden; }
-    .upload-progress-fill { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, #c45c26, #e08a4f); transition: width .15s ease-out; }
+    .upload-progress-fill { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, #c45c26, #e08a4f); transition: width .12s linear; }
     .upload-progress-text { margin: 8px 0 0; font-size: 0.82rem; color: var(--text-muted); font-weight: 600; }
   </style>
 </head>
@@ -40,33 +40,30 @@
           <div class="form-group">
             <label class="form-label" for="material_type">القسم *</label>
             <select id="material_type" class="form-select" required>
-              <option value="lecture">المحاضرات</option>
-              <option value="section">السكاشن</option>
-              <option value="assignment">الواجبات</option>
-              <option value="summary">ملخصات المادة</option>
-              <option value="past_exam">امتحانات سابقة</option>
+              <option value="lecture">محاضرة</option>
+              <option value="section">سكشن</option>
+              <option value="assignment">واجب</option>
+              <option value="summary">ملخص</option>
+              <option value="past_exam">امتحان سابق</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label" for="description">وصف مختصر (اختياري)</label>
-            <textarea id="description" class="form-textarea" rows="2" maxlength="1000" placeholder="تفاصيل تساعد الطالب يعرف الملف"></textarea>
+            <label class="form-label" for="description">وصف مختصر</label>
+            <textarea id="description" class="form-textarea" rows="2" maxlength="500" placeholder="اختياري"></textarea>
           </div>
           <div class="form-group">
-            <label class="form-label" for="admin_note">ملاحظة للأدمن (تظهر للطالب)</label>
-            <input type="text" id="admin_note" class="form-input" maxlength="120" placeholder="مثال: مهم للامتحان — أو: اتلغى" />
-            <p class="form-hint">اختياري. جملة قصيرة واضحة تحت اسم الملف.</p>
+            <label class="form-label" for="admin_note">ملاحظة داخلية (للأدمن فقط)</label>
+            <input type="text" id="admin_note" class="form-input" maxlength="300" placeholder="مش بتظهر للطالب" />
           </div>
-          <div class="form-group hidden" id="due-date-group">
-            <label class="form-label" for="due_at">آخر موعد للتسليم (اختياري)</label>
-            <div class="flex gap-1 items-center flex-wrap">
-              <input type="datetime-local" id="due_at" class="form-input" style="flex:1;min-width:180px" />
-              <button type="button" class="btn btn-sm btn-outline" id="clear-due-at">مسح الموعد</button>
-              <button type="button" class="btn btn-sm btn-primary" id="mark-delivered">تم التسليم</button>
+          <div id="due-date-group" class="hidden">
+            <div class="form-group">
+              <label class="form-label" for="due_at">آخر موعد للتسليم</label>
+              <input type="datetime-local" id="due_at" class="form-input" />
             </div>
-            <input type="hidden" id="is_delivered" value="0" />
-            <p class="form-hint" id="due-hint">هيظهر للطالب عدّاد تنازلي. الإشعارات بتتبعت قبل الموعد بـ 24 ساعة و 3 ساعات.</p>
-            <p class="form-hint hidden" id="delivered-hint" style="color:#2f6b3a;font-weight:600">الحالة: تم التسليم</p>
-            <div class="form-group" style="margin-top:10px;margin-bottom:0">
+            <div class="form-group">
+              <label class="form-check"><input type="checkbox" id="is_delivered" /><span>تم التسليم / إغلاق الموعد</span></label>
+            </div>
+            <div class="form-group">
               <label class="form-label" for="submission_url">رابط التسليم (اختياري)</label>
               <input type="url" id="submission_url" class="form-input" dir="ltr" maxlength="500" placeholder="https://forms.google.com/... أو أي رابط تسليم" />
               <p class="form-hint">هيظهر للطالب زر «تسليم الواجب» يفتح الرابط ده.</p>
@@ -105,6 +102,6 @@
       <input type="file" id="solution-attach-input" class="hidden" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" />
     </div>
   </main>
-  <script type="module" src="../assets/js/admin-materials.js?v=upload-progress-1"></script>
+  <script type="module" src="../assets/js/admin-materials.js?v=upload-progress-2"></script>
 </body>
 </html>
