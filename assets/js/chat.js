@@ -11,7 +11,9 @@ const SUPABASE_FUNCTIONS_PATH = '/functions/v1/chat';
 const state = {
   messages: [],
   sending: false,
-  pollHandle: 0
+  pollHandle: 0,
+  renderedFingerprint: '',
+  renderedIds: new Set()
 };
 
 const KEY_LAST_SEEN = 'comando_chat_last_seen';
@@ -118,19 +120,44 @@ async function poll() {
   }
 }
 
+function fingerprint(list) {
+  return list.map((m) => String(m.id || '') + '|' + (m.is_me ? '1' : '0') + '|' + String(m.text || '')).join('§');
+}
+
 function renderMessages() {
   const body = $('chat-messages');
   if (!body) return;
+  const fp = fingerprint(state.messages);
+  if (fp === state.renderedFingerprint) return; // مفيش جديد — مفيش يومض
+  state.renderedFingerprint = fp;
+
   if (!state.messages.length) {
     body.innerHTML =
-      '<div class="chat-skeleton" style="height:80px;margin-top:20px"></div>' +
       '<div style="text-align:center;padding:60px 20px;color:var(--text-muted,#777)">' +
         '<p style="font-size:1.1rem;font-weight:800;color:var(--text,#25232e);margin-bottom:8px">مافيش رسائل تاني…</p>' +
         '<p>اكتب سؤالك هيلاقي حد جواب. 🤝</p>' +
       '</div>';
+    state.renderedIds = new Set();
     return;
   }
-  body.innerHTML = state.messages.map((m) => {
+
+  const target = new Set(state.messages.map((m) => m.id));
+
+  // شيل الرسائل اللي اتمسحت من الـ DB
+  body.querySelectorAll('.chat-msg[data-id]').forEach((node) => {
+    if (!target.has(node.dataset.id)) {
+      node.remove();
+      state.renderedIds.delete(node.dataset.id);
+    }
+  });
+
+  // أضف الجديد في مكان مناسب باختصار
+  const existing = new Set();
+  body.querySelectorAll('.chat-msg[data-id]').forEach((n) => existing.add(n.dataset.id));
+  let appended = 0;
+
+  for (const m of state.messages) {
+    if (existing.has(m.id)) continue;
     const mine = !!m.is_me;
     const initial = escapeHtml(String(m.initial || '?').slice(0, 1)).toUpperCase();
     const author = escapeHtml(String(m.author || 'طالب'));
@@ -139,8 +166,10 @@ function renderMessages() {
       .format(new Date(String(m.created_at)));
     const bg = mine ? '' : 'background:' + colorFor(String(m.user_id || '')) + ';';
 
-    return (
-      '<article class="chat-msg ' + (mine ? 'me' : 'them') + '" data-id="' + escapeHtml(m.id) + '">' +
+    const article = document.createElement('article');
+    article.className = 'chat-msg ' + (mine ? 'me' : 'them');
+    article.dataset.id = String(m.id);
+    article.innerHTML =
       (mine
         ? ''
         : '<div class="chat-avatar" style="' + bg + '" aria-hidden="true">' + initial + '</div>'
@@ -151,13 +180,27 @@ function renderMessages() {
           '<time>' + escapeHtml(time) + '</time>' +
         '</div>' +
         '<div class="chat-text">' + text + '</div>' +
-      '</div>' +
-      '</article>'
-    );
-  }).join('');
+      '</div>';
 
-  // scroll to bottom on load/new messages
-  body.scrollTop = body.scrollHeight;
+    body.appendChild(article);
+    appended += 1;
+  }
+
+  // If messages were inserted in the middle (unlikely), re-order by data-id
+  if (appended === 0 && body.children.length > 1) {
+    const map = {};
+    for (const m of state.messages) map[m.id] = m;
+    const nodes = Array.from(body.querySelectorAll('.chat-msg[data-id]'));
+    nodes.sort((a, b) => {
+      const ta = new Date(String(map[a.dataset.id].created_at)).getTime();
+      const tb = new Date(String(map[b.dataset.id].created_at)).getTime();
+      return ta - tb;
+    });
+    for (const n of nodes) body.appendChild(n);
+  }
+
+  // Scroll للأسفل لو فيه جديد
+  if (appended > 0) body.scrollTop = body.scrollHeight;
 }
 
 function markAllSeen() {
