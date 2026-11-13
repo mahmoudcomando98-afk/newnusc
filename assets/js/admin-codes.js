@@ -40,14 +40,42 @@ function normGender(v) {
   return null;
 }
 
-function genderCellHtml(r) {
+function genderButtonHtml(r) {
+  const label = r.gender === 'male' ? 'شاب' : r.gender === 'female' ? 'شابة' : 'تلقائي';
+  const cls = r.gender === 'male' ? 'badge-m' : r.gender === 'female' ? 'badge-f' : 'badge';
   return (
-    '<select class="form-select gender-inline" data-id="' + escapeHtml(r.id) + '" aria-label="الجنس">' +
-      '<option value=""' + (r.gender ? '' : ' selected') + '>تلقائي</option>' +
-      '<option value="male"' + (r.gender === 'male' ? ' selected' : '') + '>شاب</option>' +
-      '<option value="female"' + (r.gender === 'female' ? ' selected' : '') + '>شابة</option>' +
-    '</select>'
+    '<div class="gender-menu-wrap" data-id="' + escapeHtml(r.id) + '">' +
+      '<button type="button" class="btn btn-sm gender-btn ' + cls + '" aria-haspopup="true">الجنس: ' + label + '</button>' +
+      '<div class="gender-menu hidden" role="menu">' +
+        '<button type="button" class="gender-option" data-value="male" role="menuitem">شب (ذكر)</button>' +
+        '<button type="button" class="gender-option" data-value="female" role="menuitem">شابة (أنثى)</button>' +
+        '<button type="button" class="gender-option" data-value="" role="menuitem">تلقائي (من الاسم)</button>' +
+      '</div>' +
+    '</div>'
   );
+}
+
+function closeGenderMenus() {
+  document.querySelectorAll('.gender-menu').forEach((m) => m.classList.add('hidden'));
+}
+
+async function setCodeGender(id, gender) {
+  const valid = gender === 'male' || gender === 'female' ? gender : null;
+  const { error } = await supabase.rpc('admin_set_code_gender', {
+    p_code_id: id,
+    p_gender: valid
+  });
+  if (error) {
+    showToast('تعذر تحديث الجنس: ' + error.message, 'error');
+    return false;
+  }
+  const row = state.rows.find((r) => r.id === id);
+  if (row) row.gender = valid;
+  showToast(
+    valid === 'male' ? 'اتظبط: شب' : valid === 'female' ? 'اتظبطت: شابة' : 'اترجع تلقائي (من الاسم)',
+    'success'
+  );
+  return true;
 }
 
 function filteredRows() {
@@ -117,7 +145,7 @@ function renderList() {
         '">' +
         role.text +
         '</span></td><td>' +
-        genderCellHtml(r) +
+        genderButtonHtml(r) +
         '</td><td>' +
         statusBadge(r) +
         '</td><td>' +
@@ -144,8 +172,10 @@ function renderList() {
           '<div class="code-card-meta"><span class="code-pill">' +
           escapeHtml(r.code || '') +
           '</span>' +
-          genderPill(r.gender) +
           statusBadge(r) +
+          '</div>' +
+          '<div style="margin-bottom:10px">' +
+          genderButtonHtml(r) +
           '</div>' +
           rowActionsHtml(r) +
           '</article>'
@@ -222,7 +252,38 @@ function bindUi() {
 
   async function onCodesActionClick(e) {
     const btn = e.target.closest('button');
-    if (!btn) return;
+    if (!btn) {
+      closeGenderMenus();
+      return;
+    }
+
+    // زر تغيير الجنس (فتح/قفل القائمة)
+    const gBtn = e.target.closest('.gender-btn');
+    if (gBtn) {
+      const wrap = gBtn.closest('.gender-menu-wrap');
+      const menu = wrap?.querySelector('.gender-menu');
+      if (menu) {
+        const willOpen = menu.classList.contains('hidden');
+        closeGenderMenus();
+        if (willOpen) menu.classList.remove('hidden');
+      }
+      return;
+    }
+    // زرار اختيار الجنس داخل القائمة
+    const gOption = e.target.closest('.gender-option');
+    if (gOption) {
+      const wrap = gOption.closest('.gender-menu-wrap');
+      const id = wrap?.dataset?.id;
+      const value = gOption.dataset.value;
+      closeGenderMenus();
+      if (id) {
+        const ok = await setCodeGender(id, value === 'male' || value === 'female' ? value : null);
+        if (ok) renderList();
+      }
+      return;
+    }
+    closeGenderMenus();
+
     const host = btn.closest('tr, article.code-card');
     const id = host?.dataset?.id;
     if (!id) return;
@@ -295,33 +356,6 @@ function bindUi() {
       await loadCodes();
     }
   }
-
-  async function onInlineGenderChange(e) {
-    const select = e.target.closest('.gender-inline');
-    if (!select) return;
-    const id = select.dataset?.id;
-    if (!id) return;
-    const value = select.value;
-    const valid = value === 'male' || value === 'female' ? value : null;
-    select.disabled = true;
-    const { error } = await supabase.rpc('admin_set_code_gender', {
-      p_code_id: id,
-      p_gender: valid
-    });
-    select.disabled = false;
-    if (error) {
-      showToast('تعذر تحديث الجنس: ' + error.message, 'error');
-      return;
-    }
-    const row = state.rows.find((r) => r.id === id);
-    if (row) row.gender = valid;
-    showToast(
-      value === 'male' ? 'اتظبط: شب' : value === 'female' ? 'اتظبطت: شابة' : 'اترجع تلقائي (من الاسم)',
-      'success'
-    );
-  }
-  $('codes-list')?.addEventListener('change', onInlineGenderChange);
-  $('codes-mobile')?.addEventListener('change', onInlineGenderChange);
 
   $('codes-list')?.addEventListener('click', onCodesActionClick);
   $('codes-mobile')?.addEventListener('click', onCodesActionClick);
