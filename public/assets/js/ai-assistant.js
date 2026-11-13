@@ -174,6 +174,7 @@ function emptyStateHtml() {
       'اسألني عن المواد، الملفات، الكويزات أو مذاكرة الامتحانات — أنا هنا عشانك' +
       '<div class="ai-chips">' +
         '<button class="ai-chip" type="button" data-q="إيه عندي النهاردة؟">إيه عندي النهاردة؟</button>' +
+        '<button class="ai-chip" type="button" data-q="أذكرني إيه اللي مفروض أعمله في خطتي النهاردة؟">إيه المطلوب مني النهاردة؟</button>' +
         '<button class="ai-chip" type="button" data-q="اكتبلي ملخص سريع لأقوى المواد عندي">ملخص المواد</button>' +
         '<button class="ai-chip" type="button" data-q="فين أقرب موعد كويز عندي؟">موعد أقرب كويز</button>' +
       '</div>' +

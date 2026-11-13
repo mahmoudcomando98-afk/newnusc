@@ -57,7 +57,8 @@ async function init() {
       loadAnnouncements(),
       loadImportantNotice(),
       loadLiveOnlineSections(),
-      loadDueReminders()
+      loadDueReminders(),
+      loadStudyPlanToday()
     ]);
     await Promise.all([loadLectures(), loadQuizzes(), loadMaterials(), loadNotifCount()]);
     import('./due-reminders.js')
@@ -519,6 +520,46 @@ async function loadMaterials() {
   } catch (error) {
     console.error('[NUSC] loadMaterials:', error);
     showError(el, 'تعذر تحميل الملفات. حاول مرة أخرى.');
+  }
+}
+
+async function loadStudyPlanToday() {
+  const el = document.getElementById('study-plan-banner');
+  const text = document.getElementById('study-plan-banner-text');
+  if (!el || !text) return;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) return;
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+
+    const { data, error } = await supabase
+      .from('study_tasks')
+      .select('id, title, is_done')
+      .eq('user_id', user.id)
+      .gte('due_at', start.toISOString())
+      .lt('due_at', end.toISOString());
+    if (error) return;
+
+    const tasks = data || [];
+    const total = tasks.length;
+    const done = tasks.filter((t) => !!t.is_done).length;
+    const pending = total - done;
+
+    if (total === 0) {
+      el.classList.remove('hidden');
+      el.classList.remove('is-due');
+      text.textContent = 'مفيش مهام مجدولة النهاردة — تحب تضيف واحدة من زر "خطتي"؟';
+      return;
+    }
+    el.classList.remove('hidden');
+    text.textContent = pending === 0
+      ? `هنيك! النهاردة خلصت كل مهامك (${done}/${total}) 🎉`
+      : `عندك ${pending} ${pending === 1 ? 'مهمة' : 'مهام'} النهاردة لسة — ${done} من ${total} خلصت`;
+  } catch (error) {
+    console.error('[NUSC] loadStudyPlanToday:', error);
   }
 }
 

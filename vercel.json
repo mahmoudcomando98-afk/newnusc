@@ -14,6 +14,7 @@
     { "source": "/announcements", "destination": "/announcements.html" },
     { "source": "/notifications", "destination": "/notifications.html" },
     { "source": "/profile", "destination": "/profile.html" },
+    { "source": "/study-plan", "destination": "/study-plan.html" },
     { "source": "/admin/codes", "destination": "/admin/codes.html" },
     { "source": "/admin/ai", "destination": "/admin/ai.html" },
     { "source": "/faq", "destination": "/faq.html" },

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>خطتي | COMANDO</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=comando-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-2" />
+  <link rel="stylesheet" href="/assets/css/study-plan.css?v=1" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/home.html" class="logo">
+        <span class="logo-icon">C</span>
+        <span class="logo-word">COMANDO</span>
+      </a>
+      <nav class="desktop-nav" aria-label="التنقل الرئيسي">
+        <a href="/home.html" data-nav="home">الرئيسية</a>
+        <a href="/subjects.html" data-nav="subjects">المواد</a>
+        <a href="/study-plan.html" class="active" data-nav="study-plan">خطتي</a>
+        <a href="/quizzes.html" data-nav="quizzes">الكويزات</a>
+        <a href="/schedule.html" data-nav="schedule">الجدول</a>
+        <a href="/profile.html" data-nav="profile">حسابي</a>
+      </nav>
+      <div class="header-actions">
+        <a href="/notifications.html" class="header-btn notification-header-btn" title="الإشعارات" aria-label="الإشعارات">
+          <span data-icon="bell"></span>
+          <span class="notification-dot hidden" id="notif-dot"></span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="container page-content study-plan-root">
+      <section class="study-hero" aria-labelledby="study-title">
+        <h1 id="study-title">خطتي — نظّم وقتك قبل ما يضيع منك</h1>
+        <p>إيه اللي مفروض تذاكره النهاردة؟ تحل ايه بكرة؟ اطلع الويك تاني وشوف الصورة كاملة — واعلم لنفسك والسلام عليك.</p>
+      </section>
+
+      <div class="study-stats" id="study-stats">
+        <div class="study-stat"><strong id="stat-today">—</strong><small>مهامي النهاردة</small></div>
+        <div class="study-stat"><strong id="stat-done-today">—</strong><small>خلصتها النهاردة</small></div>
+        <div class="study-stat"><strong id="stat-week">—</strong><small>نسبة إنجاز الأسبوع</small></div>
+      </div>
+
+      <section id="due-reminders" class="due-reminders hidden" aria-live="polite"></section>
+
+      <section class="card study-add-form" aria-labelledby="study-add-title">
+        <h2 id="study-add-title" class="card-title" style="margin-bottom:8px">ضيف مهمة جديدة</h2>
+        <form id="study-add-form" autocomplete="off">
+          <div class="study-add-form">
+            <div class="form-group">
+              <label class="form-label" for="t-title">عنوان المهمة *</label>
+              <input type="text" id="t-title" class="form-input study-task-title-input" required maxlength="160" placeholder="ذاكر مادة الرياضيات ١ — Lecture 7" />
+            </div>
+            <div class="study-add-row-wrap">
+              <div class="form-group">
+                <label class="form-label" for="t-type">النوع</label>
+                <select id="t-type" class="form-select">
+                  <option value="study">مذاكرة</option>
+                  <option value="solve">حل / تمارين</option>
+                  <option value="review">مراجعة</option>
+                  <option value="exam">حل / امتحان</option>
+                  <option value="other">أخرى</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="t-subject">المادة (اختياري)</label>
+                <select id="t-subject" class="form-select"><option value="">— بدون مادة —</option></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="t-due">التاريخ والوقت *</label>
+                <input type="datetime-local" id="t-due" class="form-input" required />
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="t-add-btn">أضفها للخطة</button>
+        </form>
+      </section>
+
+      <div class="study-main-row mt-3">
+        <div id="study-week" class="study-week" aria-live="polite"></div>
+        <aside class="study-sidebar">
+          <div class="card mb-3" aria-labelledby="study-tip-title">
+            <h2 id="study-tip-title" class="card-title">نصيحة للأسبوع ده</h2>
+            <p class="text-sm text-muted">رتّب مهامك حسب الصعوبة — الأصعب بدري والسهل بكرة.</p>
+          </div>
+          <div class="card" aria-labelledby="study-empty-title">
+            <h2 id="study-empty-title" class="card-title">الفكرة ببساطة</h2>
+            <p class="text-sm text-muted">اكتب اللي مفروض تذاكره كل يوم وخلصه وحدة وحدة — خطوة خطوة أحسن من عصفور في اليد.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/home.html" data-nav="home"><span data-icon="home"></span>الرئيسية</a>
+    <a href="/subjects.html" data-nav="subjects"><span data-icon="book"></span>المواد</a>
+    <a href="/study-plan.html" data-nav="study-plan" class="active"><span data-icon="clipboard"></span>خطتي</a>
+    <a href="/quizzes.html" data-nav="quizzes"><span data-icon="clipboard"></span>الكويزات</a>
+    <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
+  </nav>
+  <script type="module" src="/assets/js/study-plan.js"></script>
+</body>
+</html>

@@ -83,6 +83,12 @@ export const PAGE_REQUIREMENTS = {
     title: 'الأسئلة الشائعة',
     needs: 'جلسة نشطة'
   },
+  '/study-plan.html': {
+    auth: true,
+    roles: ['student', 'admin', 'moderator'],
+    title: 'خطتي',
+    needs: 'جلسة نشطة'
+  },
   '/profile.html': {
     auth: true,
     roles: ['student', 'admin', 'moderator'],

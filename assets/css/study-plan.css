@@ -1,0 +1,150 @@
+/* COMANDO — خطتي (جدول المذاكرة الشخصي) */
+
+.study-plan-root { padding-bottom: 40px; }
+
+.study-hero {
+  background: linear-gradient(135deg, #25271f 0%, #3c3e33 100%);
+  border-radius: var(--radius);
+  color: #fff7d8;
+  padding: 20px 18px;
+  margin-bottom: 14px;
+  border: 1px solid rgba(230, 200, 110, 0.25);
+  box-shadow: var(--shadow);
+}
+.study-hero h1 { font-size: 1.35rem; margin-bottom: 4px; color: #fff9e5; font-weight: 800; }
+.study-hero p { font-size: .82rem; color: #e0ddb6; line-height: 1.7; margin: 0; }
+
+.study-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.study-stat {
+  flex: 1 1 130px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  box-shadow: var(--shadow);
+}
+.study-stat strong { display: block; font-size: 1.45rem; color: var(--primary-dark); line-height: 1; }
+.study-stat small { font-size: .72rem; color: var(--text-muted); }
+
+.study-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+@media (max-width: 1080px) { .study-week { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .study-week { grid-template-columns: 1fr; } }
+
+.study-day {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  box-shadow: var(--shadow);
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.study-day.is-today {
+  border-color: #c9a444;
+  box-shadow: 0 0 0 2px rgba(230, 200, 110, 0.4);
+}
+.study-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.study-day-title {
+  font-size: .82rem;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+.study-day-date { font-size: .68rem; color: var(--text-muted); }
+
+.study-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
+  min-height: 36px;
+  align-items: center;
+}
+.study-task.is-done { opacity: .65; text-decoration: line-through; }
+.study-task-check {
+  width: 22px; height: 22px; min-width: 22px; border-radius: 6px;
+  border: 1.5px solid var(--border); background: var(--surface);
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.9rem; color: transparent;
+}
+.study-task.is-done .study-task-check {
+  background: var(--success); border-color: var(--success); color: #fff;
+}
+.study-task-body { flex: 1; min-width: 0; }
+.study-task-title { font-size: .8rem; font-weight: 700; line-height: 1.5; overflow-wrap: anywhere; }
+.study-task-meta { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
+.study-task-chip {
+  font-size: .62rem; padding: 2px 7px; border-radius: 999px; font-weight: 700;
+  background: #f7f0d9; color: #85651b; border: 1px solid #e8d8a1;
+}
+.study-task-chip--solve { background: #eef4ff; color: #1e4fa8; border-color: #cfe0ff; }
+.study-task-chip--review { background: #edf8ee; color: #1b6b3a; border-color: #bfe6d2; }
+.study-task-chip--exam { background: #fde3ec; color: #a9245a; border-color: #f5c2d8; }
+.study-task-chip--other { background: #f3f4f6; color: #4b5563; border-color: #e5e7eb; }
+
+.study-task-delete {
+  border: none; background: transparent; color: var(--text-muted);
+  cursor: pointer; padding: 4px; font-size: .8rem; line-height: 1;
+}
+.study-task-delete:hover { color: var(--danger); }
+
+.study-add-row {
+  display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap;
+}
+.study-add-row .form-input, .study-add-row .form-select { min-height: 40px; font-size: .88rem; }
+
+.study-add-form { display: flex; flex-direction: column; gap: 8px; }
+.study-add-row-wrap { display: flex; gap: 8px; flex-wrap: wrap; }
+.study-add-row-wrap > * { flex: 1 1 160px; min-width: 0; }
+
+.study-empty { text-align: center; padding: 22px 10px; color: var(--text-muted); font-size: .82rem; }
+
+.study-day-add {
+  margin-top: auto; align-self: flex-start; font-size: .72rem; font-weight: 700;
+  color: var(--accent); background: transparent; border: 1px dashed var(--border);
+  border-radius: 10px; padding: 4px 10px; cursor: pointer; transition: .18s;
+}
+.study-day-add:hover { border-color: var(--primary); color: var(--primary-dark); }
+
+/* Girls mode — عند data-palette="girl" */
+:root[data-palette="girl"] .study-hero {
+  background: linear-gradient(135deg, #fbe0ea 0%, #f7c6d9 100%);
+  color: #4a2a35;
+  border-color: #f0b7cb;
+}
+:root[data-palette="girl"] .study-hero h1 { color: #a9245a; }
+:root[data-palette="girl"] .study-hero p { color: #7a3e4f; }
+:root[data-palette="girl"] .study-task-check { border-color: #d6336c; }
+:root[data-palette="girl"] .study-task.is-done .study-task-check { background: #d6336c; border-color: #d6336c; }
+
+.study-main-row {
+  display: grid; grid-template-columns: 1fr 340px; gap: 12px; align-items: start;
+}
+@media (max-width: 988px) { .study-main-row { grid-template-columns: 1fr; } }
+
+.study-sidebar .card { padding: 14px; }
+.study-sidebar .card-title { margin-bottom: 8px; }
+.study-sidebar .form-label { font-size: .76rem; }
+
+.study-task-title-input { min-height: 40px; font-size: .95rem; }

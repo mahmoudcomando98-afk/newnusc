@@ -150,6 +150,7 @@ function buildSystemPrompt(ctx: {
   announcements: string;
   quizzes: string;
   knowledge: string;
+  tasks: string;
 }): string {
   const genderLine = ctx.gender === 'male'
     ? 'الطالب ذَكَر — خاطبه بالمذكر دائمًا: انت، جاهز، عايز، عارف، سلّمها لما تكون جاهز؟ شاطر. ولا مرة تخاطب طالب ذكر بالتأنيث.'
@@ -194,7 +195,11 @@ ${ctx.faq}
 
 معرفة الأدمن (مر وتفاصيل ضبطها):
 ${ctx.knowledge}
+
+خطتي — مهام الطالب اليوم/بكرة:
+${ctx.tasks}
 ────────────────────────
+ملاحظة مهمة: لو الطالب سأل عن جدوله أو مهامه أو إيه اللي مفروض يعمله النهاردة، اعرّفه بالمهام دي بالظبط — دي مهامه الفعلية على المنصة (بالتفصيل).
 `;
 }
 
@@ -354,6 +359,56 @@ Deno.serve(async (req) => {
       .map((k: { title?: string; content?: string }) => `- ${short(k.title || 'معلومة', 60)}: ${short(k.content, 220)}`)
       .join('\n') || 'لا توجد معرفة مضافة من الأدمن حتى الآن.';
 
+    // جلب مهام الطالب — نجمع اليوم + بكرة
+    const now = new Date();
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setDate(endOfDay.getDate() + 2);
+
+    const { data: studyTasks } = await admin
+      .from('study_tasks')
+      .select('title, task_type, due_at, is_done')
+      .eq('user_id', user.id)
+      .gte('due_at', startOfDay.toISOString())
+      .lt('due_at', endOfDay.toISOString())
+      .order('due_at', { ascending: true })
+      .limit(20);
+
+    const startOfTomorrow = new Date(startOfDay);
+    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+    const isTaskToday = (t) => {
+      const d = new Date(t.due_at);
+      return d >= startOfDay && d < startOfTomorrow;
+    };
+    const isTaskTomorrow = (t) => {
+      const d = new Date(t.due_at);
+      const start = startOfTomorrow;
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+      return d >= start && d < end;
+    };
+    const fmt = (d) => new Intl.DateTimeFormat('ar-EG', { hour: '2-digit', minute: '2-digit' }).format(new Date(d));
+    const fmtDay = (d) => new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(d));
+
+    const todayTaskLines = (studyTasks || [])
+      .filter(isTaskToday)
+      .map((t) => `${t.is_done ? '[✓]' : '[ ]'} ${short(t.title, 80)}${t.task_type ? ' (' + short(t.task_type, 12) + ')' : ''} — ${fmt(t.due_at)}`)
+      .join('\n');
+
+    const tomorrowTaskLines = (studyTasks || [])
+      .filter(isTaskTomorrow)
+      .map((t) => `${t.is_done ? '[✓]' : '[ ]'} ${short(t.title, 80)}${t.task_type ? ' (' + short(t.task_type, 12) + ')' : ''} — ${fmt(t.due_at)}`)
+      .join('\n');
+
+    const tasksLines = [
+      `النهاردة (${fmtDay(now)}):`,
+      todayTaskLines || 'مافيش مهام مجدولة النهاردة',
+      '',
+      `بكرة (${fmtDay(startOfTomorrow)}):`,
+      tomorrowTaskLines || 'مافيش مهام مجدولة بكرة'
+    ].join('\n');
+
     // 5) الرسائل (نعيد استخدام الجسم اللي قرأناه)
     const messages = trimHistory(((body2Early?.messages || []) as ChatMessage[]) || []);
     const lastQuestion = messages[messages.length - 1];
@@ -424,7 +479,8 @@ Deno.serve(async (req) => {
       faq: faqLines,
       announcements: announcementLines,
       quizzes: quizLines,
-      knowledge: knowledgeLines
+      knowledge: knowledgeLines,
+      tasks: tasksLines
     });
 
     // 6) Groq

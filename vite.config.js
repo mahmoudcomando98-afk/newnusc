@@ -14,8 +14,8 @@ const THEME_HEAD_SNIPPET = `
   <link rel="stylesheet" href="/assets/css/girl-theme.css?v=1" />
 `;
 const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=2"></script>`;
-const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=13" />`;
-const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=15"></script>`;
+const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=14" />`;
+const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=16"></script>`;
 
 /* رابط الموقع النهائي — من متغيرات Vercel وقت النشر؛ محليًا (Vite preview) يفضل نسبي */
 const SITE_URL = (
@@ -179,6 +179,7 @@ export default defineConfig(({ mode }) => {
           privacy: resolve(import.meta.dirname, 'privacy.html'),
           login: resolve(import.meta.dirname, 'login.html'),
           home: resolve(import.meta.dirname, 'home.html'),
+          'study-plan': resolve(import.meta.dirname, 'study-plan.html'),
           subjects: resolve(import.meta.dirname, 'subjects.html'),
           'past-exams': resolve(import.meta.dirname, 'past-exams.html'),
           'past-exam-subject': resolve(import.meta.dirname, 'past-exam-subject.html'),
