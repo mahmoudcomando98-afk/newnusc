@@ -30,6 +30,9 @@
     #import-preview-wrap{display:none;margin-top:10px}
     .import-summary{display:none;margin-top:10px;padding:10px;border-radius:8px;background:#e8f6ee;color:#1b6b3a;font-size:.85rem;border:1px solid #bfe6d2;line-height:1.7}
     .import-summary.error{background:#fdeceb;color:#9b1c1c;border-color:#f3c1bb}
+    .badge-m{background:#eef4ff!important;color:#1e4fa8!important}
+    .badge-f{background:#fde3ec!important;color:#a9245a!important}
+    .gender-inline{min-height:32px!important;padding:2px 6px!important;font-size:.78rem!important;max-width:118px;width:auto}
     .counts-row{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
     .count-chip{font-size:.76rem;color:var(--text-muted);background:var(--surface-soft);border:1px solid var(--border);border-radius:999px;padding:4px 10px;white-space:nowrap}
     .codes-mobile-list{display:none;flex-direction:column;gap:10px}
@@ -68,6 +71,7 @@
             <div class="form-group"><label class="form-label" for="code">الكود الجامعي *</label><input class="form-input" type="text" id="code" required autocomplete="off" spellcheck="false" dir="auto" placeholder="مثال: 20230045" /></div>
             <div class="form-group"><label class="form-label" for="full_name">اسم الطالب *</label><input class="form-input" type="text" id="full_name" required autocomplete="off" placeholder="الاسم كامل" /></div>
             <div class="form-group"><label class="form-label" for="role">الصلاحية</label><select class="form-select" id="role"><option value="student" selected>طالب</option><option value="moderator">مشرف</option><option value="admin">أدمن</option></select></div>
+            <div class="form-group"><label class="form-label" for="gender">الجنس</label><select class="form-select" id="gender"><option value="" selected>يتحدد تلقائي من الاسم</option><option value="male">شب (ذكر)</option><option value="female">شابة (أنثى)</option></select></div>
             <button type="submit" class="btn btn-primary btn-block" id="add-btn">حفظ الكود</button>
           </form>
           <div class="codes-card">
@@ -77,11 +81,12 @@
             <div id="import-pickers" style="display:none;margin-bottom:10px">
               <div class="form-group"><label class="form-label" for="code-col">عمود الكود</label><select class="form-select" id="code-col"></select></div>
               <div class="form-group"><label class="form-label" for="name-col">عمود الاسم</label><select class="form-select" id="name-col"></select></div>
+              <div class="form-group"><label class="form-label" for="gender-col">عمود الجنس (اختياري — تلقائي من الاسم لو اتسيبه)</label><select class="form-select" id="gender-col"></select></div>
               <button type="button" class="btn btn-secondary btn-sm" id="apply-cols-btn">تطبيق الأعمدة</button>
             </div>
             <div id="import-preview-wrap" class="codes-table-wrap">
               <p class="text-sm text-muted mb-1">معاينة (أول 8 من <strong id="import-total">0</strong>):</p>
-              <table class="codes-table"><thead><tr><th>#</th><th>الكود</th><th>الاسم</th></tr></thead><tbody id="import-preview"></tbody></table>
+              <table class="codes-table"><thead><tr><th>#</th><th>الكود</th><th>الاسم</th><th>الجنس</th></tr></thead><tbody id="import-preview"></tbody></table>
               <button type="button" class="btn btn-primary btn-block mt-2" id="import-btn">استيراد الكل</button>
             </div>
             <div id="import-summary" class="import-summary" role="status"></div>
@@ -95,8 +100,8 @@
           <input type="search" id="search" class="form-input mb-2" placeholder="ابحث باسم أو كود..." autocomplete="off" />
           <div class="codes-table-wrap codes-desktop-only">
             <table class="codes-table">
-              <thead><tr><th>الاسم</th><th>الكود</th><th>الصلاحية</th><th>الحالة</th><th>إجراءات</th></tr></thead>
-              <tbody id="codes-list"><tr><td colspan="5"><div class="skeleton-card"><div class="skeleton skeleton-title"></div></div></td></tr></tbody>
+              <thead><tr><th>الاسم</th><th>الكود</th><th>الصلاحية</th><th>الجنس</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+              <tbody id="codes-list"><tr><td colspan="6"><div class="skeleton-card"><div class="skeleton skeleton-title"></div></div></td></tr></tbody>
             </table>
           </div>
           <div class="codes-mobile-list" id="codes-mobile" aria-live="polite"><div class="skeleton-card"><div class="skeleton skeleton-title"></div></div></div>

@@ -7,6 +7,7 @@ const state = {
   parsedRows: [],
   codeCol: -1,
   nameCol: -1,
+  genderCol: -1,
   linkedOnly: false
 };
 
@@ -24,6 +25,29 @@ function statusBadge(row) {
   if (row.is_active === false) return '<span class="badge badge-off">موقوف</span>';
   if (row.linked_user_id) return '<span class="badge badge-success">نشط</span>';
   return '<span class="badge">لم يدخل بعد</span>';
+}
+
+function genderPill(g) {
+  if (g === 'male') return '<span class="badge badge-m">شاب</span>';
+  if (g === 'female') return '<span class="badge badge-f">شابة</span>';
+  return '<span class="text-muted text-xs">تلقائي</span>';
+}
+
+function normGender(v) {
+  const s = String(v || '').trim().toLowerCase().replace(/[\u064b-\u065f]/g, '');
+  if (/^(m|male|boy|man|ذكر|ذكور|شب|شاب|ولد)/.test(s)) return 'male';
+  if (/^(f|female|girl|woman|انثى|أنثى|شابة|بنت)/.test(s)) return 'female';
+  return null;
+}
+
+function genderCellHtml(r) {
+  return (
+    '<select class="form-select gender-inline" data-id="' + escapeHtml(r.id) + '" aria-label="الجنس">' +
+      '<option value=""' + (r.gender ? '' : ' selected') + '>تلقائي</option>' +
+      '<option value="male"' + (r.gender === 'male' ? ' selected' : '') + '>شاب</option>' +
+      '<option value="female"' + (r.gender === 'female' ? ' selected' : '') + '>شابة</option>' +
+    '</select>'
+  );
 }
 
 function filteredRows() {
@@ -72,7 +96,7 @@ function renderList() {
   const rows = filteredRows().slice(0, 500);
   if (!rows.length) {
     tbody.innerHTML =
-      '<tr><td colspan="5" class="text-muted" style="text-align:center;padding:16px">مفيش نتائج.</td></tr>';
+      '<tr><td colspan="6" class="text-muted" style="text-align:center;padding:16px">مفيش نتائج.</td></tr>';
     if (mobile)
       mobile.innerHTML =
         '<p class="text-muted" style="text-align:center;padding:16px;margin:0">مفيش نتائج.</p>';
@@ -93,6 +117,8 @@ function renderList() {
         '">' +
         role.text +
         '</span></td><td>' +
+        genderCellHtml(r) +
+        '</td><td>' +
         statusBadge(r) +
         '</td><td>' +
         rowActionsHtml(r) +
@@ -118,6 +144,7 @@ function renderList() {
           '<div class="code-card-meta"><span class="code-pill">' +
           escapeHtml(r.code || '') +
           '</span>' +
+          genderPill(r.gender) +
           statusBadge(r) +
           '</div>' +
           rowActionsHtml(r) +
@@ -133,7 +160,7 @@ async function loadCodes() {
   try {
     const { data, error } = await supabase
       .from('student_codes')
-      .select('id, code, full_name, role, is_active, linked_user_id, device_id, created_at')
+      .select('id, code, full_name, role, gender, is_active, linked_user_id, device_id, created_at')
       .order('full_name', { ascending: true })
       .limit(10000);
     if (error) throw error;
@@ -144,7 +171,7 @@ async function loadCodes() {
     console.error('[codes] load failed:', err);
     if (tbody)
       tbody.innerHTML =
-        '<tr><td colspan="5" class="text-muted" style="text-align:center;padding:16px">تعذر تحميل الكودات. نفّذ SETUP_NEW_DB.sql</td></tr>';
+        '<tr><td colspan="6" class="text-muted" style="text-align:center;padding:16px">تعذر تحميل الكودات. نفّذ SETUP_NEW_DB.sql</td></tr>';
     const mob = $('codes-mobile');
     if (mob)
       mob.innerHTML =
@@ -161,6 +188,8 @@ function bindUi() {
       const code = normalizeCode($('code').value);
       const fullName = String($('full_name').value || '').trim();
       const role = $('role').value;
+      const genderRaw = String($('gender')?.value || '');
+      const gender = genderRaw === 'male' || genderRaw === 'female' ? genderRaw : null;
       if (!code || !fullName) {
         showToast('اكتب الكود والاسم.', 'error');
         return;
@@ -168,7 +197,9 @@ function bindUi() {
       const btn = $('add-btn');
       if (btn) btn.disabled = true;
       try {
-        const { error } = await supabase.from('student_codes').insert({ code, full_name: fullName, role });
+        const payload = { code, full_name: fullName, role };
+        if (gender) payload.gender = gender;
+        const { error } = await supabase.from('student_codes').insert(payload);
         if (error) {
           const msg = String(error.message || '');
           if (/duplicate|unique|already/i.test(msg)) showToast('الكود موجود بالفعل.', 'error');
@@ -178,6 +209,7 @@ function bindUi() {
         $('code').value = '';
         $('full_name').value = '';
         $('role').value = 'student';
+        if ($('gender')) $('gender').value = '';
         showToast('تم حفظ الكود', 'success');
         await loadCodes();
       } catch (err) {
@@ -264,6 +296,33 @@ function bindUi() {
     }
   }
 
+  async function onInlineGenderChange(e) {
+    const select = e.target.closest('.gender-inline');
+    if (!select) return;
+    const id = select.dataset?.id;
+    if (!id) return;
+    const value = select.value;
+    const valid = value === 'male' || value === 'female' ? value : null;
+    select.disabled = true;
+    const { error } = await supabase.rpc('admin_set_code_gender', {
+      p_code_id: id,
+      p_gender: valid
+    });
+    select.disabled = false;
+    if (error) {
+      showToast('تعذر تحديث الجنس: ' + error.message, 'error');
+      return;
+    }
+    const row = state.rows.find((r) => r.id === id);
+    if (row) row.gender = valid;
+    showToast(
+      value === 'male' ? 'اتظبط: شب' : value === 'female' ? 'اتظبطت: شابة' : 'اترجع تلقائي (من الاسم)',
+      'success'
+    );
+  }
+  $('codes-list')?.addEventListener('change', onInlineGenderChange);
+  $('codes-mobile')?.addEventListener('change', onInlineGenderChange);
+
   $('codes-list')?.addEventListener('click', onCodesActionClick);
   $('codes-mobile')?.addEventListener('click', onCodesActionClick);
   $('search')?.addEventListener('input', renderList);
@@ -278,10 +337,10 @@ function bindUi() {
 
   $('export-btn')?.addEventListener('click', () => {
     const rows = filteredRows();
-    const lines = ['code,full_name,role,is_active,linked'];
+    const lines = ['code,full_name,role,gender,is_active,linked'];
     for (const r of rows) {
       lines.push(
-        [r.code, r.full_name, r.role, r.is_active !== false ? '1' : '0', r.linked_user_id ? '1' : '0']
+        [r.code, r.full_name, r.role, r.gender || '', r.is_active !== false ? '1' : '0', r.linked_user_id ? '1' : '0']
           .map((v) => '"' + String(v || '').replace(/"/g, '""') + '"')
           .join(',')
       );
@@ -302,18 +361,28 @@ function bindUi() {
     return 0;
   }
 
+  function findColByPattern(headers, patterns) {
+    const lower = headers.map((h) => String(h || '').toLowerCase());
+    for (let i = 0; i < lower.length; i++) {
+      if (patterns.some((p) => lower[i].includes(p))) return i;
+    }
+    return -1;
+  }
+
   let sheetMatrix = [];
 
   function applyImportPreview() {
     const ci = Number($('code-col').value) || 0;
     const ni = Number($('name-col').value) || 0;
+    const gi = $('gender-col') ? Number($('gender-col').value) : -1;
     const rows = [];
     for (let i = 1; i < sheetMatrix.length; i++) {
       const row = sheetMatrix[i] || [];
       const code = normalizeCode(row[ci]);
       const name = String(row[ni] || '').trim();
       if (!code && !name) continue;
-      rows.push({ code, full_name: name });
+      const gender = gi >= 0 ? normGender(row[gi]) : null;
+      rows.push({ code, full_name: name, gender });
     }
     state.parsedRows = rows;
     if ($('import-total')) $('import-total').textContent = String(rows.length);
@@ -328,6 +397,8 @@ function bindUi() {
             escapeHtml(r.code) +
             '</span></td><td>' +
             escapeHtml(r.full_name) +
+            '</td><td>' +
+            genderPill(r.gender) +
             '</td></tr>'
         )
         .join('');
@@ -351,17 +422,29 @@ function bindUi() {
       const headers = sheetMatrix[0].map((h) => String(h || ''));
       const codeSel = $('code-col');
       const nameSel = $('name-col');
+      const genderSel = $('gender-col');
       codeSel.innerHTML = '';
       nameSel.innerHTML = '';
+      genderSel.innerHTML = '';
       headers.forEach((h, i) => {
         const o1 = document.createElement('option');
         o1.value = String(i);
         o1.textContent = h || 'عمود ' + (i + 1);
         codeSel.appendChild(o1);
         nameSel.appendChild(o1.cloneNode(true));
+        genderSel.appendChild(o1.cloneNode(true));
       });
+      const empty = document.createElement('option');
+      empty.value = '-1';
+      empty.textContent = '— اتركها تلقائي (من الاسم) —';
+      genderSel.insertBefore(empty, genderSel.firstChild);
       codeSel.value = String(guessCol(headers, ['code', 'كود', 'id', 'رقم']));
       nameSel.value = String(guessCol(headers, ['name', 'اسم', 'full']));
+      genderSel.value = '-1';
+      const foundGenderCol = findColByPattern(headers, ['gender', 'جنس', 'النوع', 'sex']);
+      if (foundGenderCol !== -1 && String(foundGenderCol) !== codeSel.value && String(foundGenderCol) !== nameSel.value) {
+        genderSel.value = String(foundGenderCol);
+      }
       $('import-pickers').style.display = 'block';
       applyImportPreview();
     } catch (err) {
@@ -405,7 +488,7 @@ function bindUi() {
         skippedExisting++;
         continue;
       }
-      toInsert.push({ code: r.code, full_name: r.full_name, role: 'student' });
+      toInsert.push({ code: r.code, full_name: r.full_name, role: 'student', ...(r.gender ? { gender: r.gender } : {}) });
     }
     try {
       for (let i = 0; i < toInsert.length; i += 100) {

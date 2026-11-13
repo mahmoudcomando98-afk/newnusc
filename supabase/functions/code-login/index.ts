@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
 
     const { data: row, error: codeErr } = await admin
       .from('student_codes')
-      .select('id, full_name, role, linked_user_id, is_active, device_id')
+      .select('id, full_name, role, linked_user_id, is_active, device_id, gender')
       .eq('code_norm', code)
       .maybeSingle();
 
@@ -165,6 +165,7 @@ Deno.serve(async (req) => {
     const fullName = String(row.full_name || '').trim();
     const role = row.role === 'admin' || row.role === 'moderator' ? row.role : 'student';
     const email = syntheticEmail(code);
+    const codeGender = row.gender === 'male' || row.gender === 'female' ? row.gender : null;
 
     let userId: string | null = row.linked_user_id || null;
 
@@ -212,7 +213,7 @@ Deno.serve(async (req) => {
     // زامن ملف البروفايل مع بيانات الكود (الاسم والدور من الكود هو مصدر الحقيقة)
     const { data: profile } = await admin
       .from('profiles')
-      .select('id, full_name, role')
+      .select('id, full_name, role, gender')
       .eq('id', userId)
       .maybeSingle();
 
@@ -222,12 +223,15 @@ Deno.serve(async (req) => {
         full_name: fullName,
         email,
         role,
-        is_active: true
+        is_active: true,
+        ...(codeGender ? { gender: codeGender } : {})
       });
     } else {
       const patch: Record<string, unknown> = {};
       if (profile.full_name !== fullName) patch.full_name = fullName;
       if (profile.role !== role) patch.role = role;
+      // الأدمن لو عدل الجنس في الكود — الاختيار اليدوي يفوز وهيتسجل في البروفايل عند الدخول
+      if (codeGender && profile.gender !== codeGender) patch.gender = codeGender;
       if (Object.keys(patch).length) {
         await admin.from('profiles').update(patch).eq('id', userId);
       }
