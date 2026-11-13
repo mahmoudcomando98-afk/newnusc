@@ -359,37 +359,27 @@ Deno.serve(async (req) => {
       .map((k: { title?: string; content?: string }) => `- ${short(k.title || 'معلومة', 60)}: ${short(k.content, 220)}`)
       .join('\n') || 'لا توجد معرفة مضافة من الأدمن حتى الآن.';
 
-    // جلب مهام الطالب — نجمع اليوم + بكرة
+    // جلب مهام الطالب — حسب توقيت القاهرة
     const now = new Date();
-    const startOfDay = new Date(now);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(startOfDay);
-    endOfDay.setDate(endOfDay.getDate() + 2);
-
+    const buffer = 2 * 24 * 60 * 60 * 1000; // ± يومين كفايه
     const { data: studyTasks } = await admin
       .from('study_tasks')
       .select('title, task_type, due_at, is_done')
       .eq('user_id', user.id)
-      .gte('due_at', startOfDay.toISOString())
-      .lt('due_at', endOfDay.toISOString())
+      .gte('due_at', new Date(now.getTime() - buffer).toISOString())
+      .lt('due_at', new Date(now.getTime() + buffer).toISOString())
       .order('due_at', { ascending: true })
-      .limit(20);
+      .limit(30);
 
-    const startOfTomorrow = new Date(startOfDay);
-    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
-    const isTaskToday = (t) => {
-      const d = new Date(t.due_at);
-      return d >= startOfDay && d < startOfTomorrow;
-    };
-    const isTaskTomorrow = (t) => {
-      const d = new Date(t.due_at);
-      const start = startOfTomorrow;
-      const end = new Date(start);
-      end.setDate(end.getDate() + 1);
-      return d >= start && d < end;
-    };
-    const fmt = (d) => new Intl.DateTimeFormat('ar-EG', { hour: '2-digit', minute: '2-digit' }).format(new Date(d));
-    const fmtDay = (d) => new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(d));
+    const cairoDatePart = (d: Date | string) =>
+      new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Cairo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(d as any));
+    const todayStr = cairoDatePart(new Date());
+    const tomorrowStr = cairoDatePart(new Date(Date.now() + 86400000));
+
+    const isTaskToday = (t) => cairoDatePart(t.due_at) === todayStr;
+    const isTaskTomorrow = (t) => cairoDatePart(t.due_at) === tomorrowStr;
+    const fmt = (d: string) => new Intl.DateTimeFormat('ar-EG', { timeZone: 'Africa/Cairo', hour: '2-digit', minute: '2-digit' }).format(new Date(d));
+    const fmtDay = (d: Date) => new Intl.DateTimeFormat('ar-EG', { timeZone: 'Africa/Cairo', weekday: 'long', day: 'numeric', month: 'long' }).format(d);
 
     const todayTaskLines = (studyTasks || [])
       .filter(isTaskToday)
@@ -401,11 +391,12 @@ Deno.serve(async (req) => {
       .map((t) => `${t.is_done ? '[✓]' : '[ ]'} ${short(t.title, 80)}${t.task_type ? ' (' + short(t.task_type, 12) + ')' : ''} — ${fmt(t.due_at)}`)
       .join('\n');
 
+    const tomorrowDate = new Date(Date.now() + 86400000);
     const tasksLines = [
-      `النهاردة (${fmtDay(now)}):`,
+      `النهاردة (${fmtDay(new Date())}):`,
       todayTaskLines || 'مافيش مهام مجدولة النهاردة',
       '',
-      `بكرة (${fmtDay(startOfTomorrow)}):`,
+      `بكرة (${fmtDay(tomorrowDate)}):`,
       tomorrowTaskLines || 'مافيش مهام مجدولة بكرة'
     ].join('\n');
 
