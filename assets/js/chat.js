@@ -34,7 +34,11 @@ const state = {
   renderedIds: new Set(),
   isAdmin: false,
   replyTo: null, /* {id, author, text} */
-  renderedIsAdmin: undefined
+  renderedIsAdmin: undefined,
+  ban: null,     /* { untilMs } */
+  banTimer: 0,
+  menuMsg: null,
+  toastTimer: 0
 };
 
 const KEY_LAST_SEEN = 'comando_chat_last_seen';
@@ -71,7 +75,12 @@ async function callChat(body) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data?.error) {
-    throw new Error(data?.error || ('HTTP ' + res.status));
+    const err = new Error(data?.error || ('HTTP ' + res.status));
+    err.banned = data?.banned === true;
+    err.bannedUntil = data?.banned_until || null;
+    err.seconds = data?.seconds || 0;
+    err.struck = data?.struck === true;
+    throw err;
   }
   return data;
 }
@@ -102,8 +111,14 @@ async function init() {
       await callChat({ action: 'send', text: q, reply_to_id: replyTo });
       await poll(); // طبّق فورًا بدل ما ننتظر البول
     } catch (err) {
-      input.value = q;
-      alert(String(err?.message || err || 'تعذر الإرسال — حاول تاني'));
+      if (err?.banned) {
+        input.value = '';
+        state.ban = { untilMs: err.bannedUntil ? Date.parse(err.bannedUntil) : Date.now() + (Number(err.seconds) || 3600) * 1000 };
+        syncBanUI();
+      } else {
+        input.value = q;
+        showToast(String(err?.message || err || 'تعذر الإرسال — حاول تاني'));
+      }
     } finally {
       state.sending = false;
       btn.disabled = false;
@@ -186,6 +201,87 @@ async function init() {
   msgsBody?.addEventListener('pointerup', endSwipe);
   msgsBody?.addEventListener('pointercancel', endSwipe);
 
+  // ═══ الضغطة الطويلة → قائمة الرسالة (رد / تعديل / حذف) ═══
+  let lp = null;
+  const cancelLp = () => { if (lp) { window.clearTimeout(lp.timer); lp = null; } };
+  msgsBody?.addEventListener('pointerdown', (e) => {
+    if (e.target.closest?.('[data-del], button, input, a, .chat-menu')) { cancelLp(); return; }
+    const row = e.target.closest?.('.chat-msg');
+    if (!row) { cancelLp(); return; }
+    const x = e.clientX, y = e.clientY;
+    cancelLp();
+    lp = { row, x, y, timer: window.setTimeout(() => {
+      if (navigator.vibrate) { try { navigator.vibrate(25); } catch {} }
+      openChatMenu(row, x, y);
+      lp = null;
+    }, 470) };
+  });
+  msgsBody?.addEventListener('pointermove', (e) => {
+    if (!lp) return;
+    if (Math.abs(e.clientX - lp.x) > 10 || Math.abs(e.clientY - lp.y) > 10) cancelLp();
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => msgsBody?.addEventListener(ev, cancelLp));
+  msgsBody?.addEventListener('scroll', cancelLp, { passive: true });
+  msgsBody?.addEventListener('contextmenu', (e) => {
+    if (e.target.closest?.('[data-del], button, input, a')) return;
+    const row = e.target.closest?.('.chat-msg');
+    if (!row) return;
+    e.preventDefault();
+    openChatMenu(row, e.clientX, e.clientY);
+  });
+
+  // قائمة الرسالة
+  const menu = $('chat-menu');
+  menu?.addEventListener('click', (e) => {
+    const btn = e.target.closest?.('[data-menu]');
+    if (!btn) { closeChatMenu(); return; }
+    const action = btn.getAttribute('data-menu');
+    const msg = state.menuMsg;
+    closeChatMenu();
+    if (!msg) return;
+    if (action === 'reply') { setReply(msg); return; }
+    if (action === 'edit') {
+      if (!msg.is_me) return;
+      const row = msgsBody?.querySelector('.chat-msg[data-id="' + msg.id + '"]');
+      if (row) startInlineEdit(row, msg);
+      return;
+    }
+    if (action === 'delete') openDeleteModal(msg);
+  });
+  document.addEventListener('pointerdown', (e) => {
+    if (menu && !menu.hidden && !e.target.closest?.('#chat-menu')) closeChatMenu();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeChatMenu(); closeDeleteModal(); } });
+
+  // شيت الحذف
+  const delModal = $('chat-delete-modal');
+  delModal?.addEventListener('click', (e) => {
+    if (e.target.hasAttribute('data-del-cancel')) closeDeleteModal();
+  });
+  $('del-for-me')?.addEventListener('click', async () => {
+    const msg = state.menuMsg;
+    closeDeleteModal();
+    if (!msg) return;
+    try {
+      await callChat({ action: 'hide', id: msg.id });
+      await poll();
+      showToast('الرسالة اتشالت عندك بس.');
+    } catch (err) {
+      showToast(String(err?.message || err || 'تعذر الحذف'));
+    }
+  });
+  $('del-for-everyone')?.addEventListener('click', async () => {
+    const msg = state.menuMsg;
+    closeDeleteModal();
+    if (!msg) return;
+    try {
+      await callChat({ action: 'delete', id: msg.id });
+      await poll();
+    } catch (err) {
+      showToast(String(err?.message || err || 'تعذر الحذف'));
+    }
+  });
+
   // استعلام كل 4 ثواني أثناء فتح الشات + تراجع لو الوثيقة مهملة
   const tick = () => {
     if (document.hidden) {
@@ -205,6 +301,12 @@ async function poll() {
   try {
     const data = await callChat({ action: 'list' });
     state.isAdmin = !!data?.is_admin;
+    if (data?.ban && data.ban.banned_until) {
+      state.ban = { untilMs: Date.parse(String(data.ban.banned_until)) || 0 };
+    } else {
+      state.ban = null;
+    }
+    syncBanUI();
     const list = Array.isArray(data?.messages) ? data.messages : [];
     state.messages = list;
     renderMessages();
@@ -226,25 +328,85 @@ async function poll() {
   }
 }
 
+function msgFingerprint(m) {
+  return String(m.id || '') + '|' + (m.is_me ? '1' : '0') + '|' + String(m.text || '') +
+    '|e:' + (m.edited ? '1' : '') +
+    '|b:' + (m.is_bot ? '1' : '') +
+    (state.isAdmin ? '|A' : '') +
+    (m.reply_to_id ? (m.reply ? 'r:' + m.reply.author + ':' + m.reply.text : 'r:missing') : '');
+}
+
 function fingerprint(list) {
-  return list.map((m) =>
-    String(m.id || '') + '|' + (m.is_me ? '1' : '0') + '|' + String(m.text || '') + '|' +
-    (m.reply_to_id ? (m.reply ? 'r:' + m.reply.author + ':' + m.reply.text : 'r:missing') : '')
-  ).join('§');
+  return list.map(msgFingerprint).join('§');
+}
+
+function buildMessageNode(m) {
+  const mine = !!m.is_me;
+  const initial = escapeHtml(String(m.initial || '?').slice(0, 1)).toUpperCase();
+  const author = escapeHtml(String(m.author || 'طالب'));
+  const text = escapeHtml(String(m.text || ''));
+  const time = new Intl.DateTimeFormat('ar-EG', { hour: '2-digit', minute: '2-digit' })
+    .format(new Date(String(m.created_at)));
+  const bg = mine ? '' : 'background:' + colorFor(String(m.user_id || '')) + ';';
+
+  let quote = '';
+  if (m.reply_to_id) {
+    if (m.reply) {
+      quote =
+        '<div class="chat-quote">' +
+          '<span class="chat-quote-author">' + escapeHtml(String(m.reply.author || 'طالب')) + '</span>' +
+          '<span class="chat-quote-text">' + escapeHtml(String(m.reply.text || '')) + '</span>' +
+        '</div>';
+    } else {
+      quote =
+        '<div class="chat-quote chat-quote--missing">' +
+          '<span class="chat-quote-text">الرسالة الأصلية اتمسحت</span>' +
+        '</div>';
+    }
+  }
+
+  const delBtn = state.isAdmin
+    ? '<button type="button" class="chat-del" data-del="' + escapeHtml(m.id) + '" aria-label="مسح الرسالة">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
+      '</button>'
+    : '';
+
+  const isBot = !!m.is_bot;
+  const editedMark = m.edited ? '<span class="chat-edited">متعدلة</span>' : '';
+
+  const article = document.createElement('article');
+  article.className = 'chat-msg ' + (mine ? 'me' : 'them') + (isBot ? ' bot' : '');
+  article.dataset.id = String(m.id);
+  article.dataset.fp = msgFingerprint(m);
+  article.innerHTML =
+    '<span class="chat-swipe-arrow" aria-hidden="true">' +
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>' +
+    '</span>' +
+    (mine
+      ? ''
+      : isBot
+        ? '<div class="chat-avatar chat-avatar-bot" aria-hidden="true">🤖</div>'
+        : '<div class="chat-avatar" style="' + bg + '" aria-hidden="true">' + initial + '</div>'
+    ) +
+    '<div class="chat-bubble">' +
+      quote +
+      '<div class="chat-meta">' +
+        (mine ? '' : isBot
+          ? '<span class="chat-bot-chip">بوت COMANDO</span>'
+          : '<span class="chat-author">' + author + '</span>') +
+        '<time>' + escapeHtml(time) + '</time>' +
+        editedMark +
+      '</div>' +
+      '<div class="chat-text">' + text + '</div>' +
+    '</div>' +
+    delBtn;
+  return article;
 }
 
 function renderMessages() {
   const body = $('chat-messages');
   if (!body) return;
   const fp = fingerprint(state.messages);
-
-  // دور الأدمن اتغير؟ نعيد بناء الرسايل كلها عشان زرار المسح يظهر/يتشال صح
-  if (state.renderedIsAdmin !== state.isAdmin) {
-    body.innerHTML = '';
-    state.renderedIds = new Set();
-    state.renderedIsAdmin = state.isAdmin;
-    state.renderedFingerprint = null;
-  }
 
   if (fp === state.renderedFingerprint) return; // مفيش جديد — مفيش يومض
   state.renderedFingerprint = fp;
@@ -267,13 +429,20 @@ function renderMessages() {
   // امسح أي سكيليتونات/حالة فارغة لسه مترميين في الـ DOM
   body.querySelectorAll('.chat-skeleton, .chat-empty').forEach((n) => n.remove());
 
-  const target = new Set(state.messages.map((m) => m.id));
+  const byId = {};
+  for (const m of state.messages) byId[String(m.id)] = m;
 
-  // شيل الرسائل اللي اتمسحت من الـ DB
+  // امسح المحذوف — واستبدل اللي اتغيرت (تعديل/دور الأدمن/حل الاقتباس)
   body.querySelectorAll('.chat-msg[data-id]').forEach((node) => {
-    if (!target.has(node.dataset.id)) {
+    const id = node.dataset.id;
+    const m = byId[id];
+    if (!m) {
       node.remove();
-      state.renderedIds.delete(node.dataset.id);
+      return;
+    }
+    if (node.dataset.fp !== msgFingerprint(m)) {
+      if (node.querySelector('.chat-edit-input')) return; // لسه بيعدل — ما نلمسش الرسالة
+      node.replaceWith(buildMessageNode(m));
     }
   });
 
@@ -283,60 +452,8 @@ function renderMessages() {
   let appended = 0;
 
   for (const m of state.messages) {
-    if (existing.has(m.id)) continue;
-    const mine = !!m.is_me;
-    const initial = escapeHtml(String(m.initial || '?').slice(0, 1)).toUpperCase();
-    const author = escapeHtml(String(m.author || 'طالب'));
-    const text = escapeHtml(String(m.text || ''));
-    const time = new Intl.DateTimeFormat('ar-EG', { hour: '2-digit', minute: '2-digit' })
-      .format(new Date(String(m.created_at)));
-    const bg = mine ? '' : 'background:' + colorFor(String(m.user_id || '')) + ';';
-
-    // بلوك الردول (لو الرسالة رد على رسالة تانية)
-    let quote = '';
-    if (m.reply_to_id) {
-      if (m.reply) {
-        quote =
-          '<div class="chat-quote">' +
-            '<span class="chat-quote-author">' + escapeHtml(String(m.reply.author || 'طالب')) + '</span>' +
-            '<span class="chat-quote-text">' + escapeHtml(String(m.reply.text || '')) + '</span>' +
-          '</div>';
-      } else {
-        quote =
-          '<div class="chat-quote chat-quote--missing">' +
-            '<span class="chat-quote-text">الرسالة الأصلية اتمسحت</span>' +
-          '</div>';
-      }
-    }
-
-    const delBtn = state.isAdmin
-      ? '<button type="button" class="chat-del" data-del="' + escapeHtml(m.id) + '" aria-label="مسح الرسالة">' +
-          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
-        '</button>'
-      : '';
-
-    const article = document.createElement('article');
-    article.className = 'chat-msg ' + (mine ? 'me' : 'them');
-    article.dataset.id = String(m.id);
-    article.innerHTML =
-      '<span class="chat-swipe-arrow" aria-hidden="true">' +
-        '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>' +
-      '</span>' +
-      (mine
-        ? ''
-        : '<div class="chat-avatar" style="' + bg + '" aria-hidden="true">' + initial + '</div>'
-      ) +
-      '<div class="chat-bubble">' +
-        quote +
-        '<div class="chat-meta">' +
-          (mine ? '' : '<span class="chat-author">' + author + '</span>') +
-          '<time>' + escapeHtml(time) + '</time>' +
-        '</div>' +
-        '<div class="chat-text">' + text + '</div>' +
-      '</div>' +
-      delBtn;
-
-    body.appendChild(article);
+    if (existing.has(String(m.id))) continue;
+    body.appendChild(buildMessageNode(m));
     appended += 1;
   }
 
@@ -355,6 +472,129 @@ function renderMessages() {
 
   // Scroll للأسفل لو فيه جديد
   if (appended > 0) body.scrollTop = body.scrollHeight;
+}
+
+function syncBanUI() {
+  const form = $('chat-form');
+  const banBox = $('chat-ban');
+  const replyBar = $('chat-reply-bar');
+  if (!form || !banBox) return;
+  if (state.ban && state.ban.untilMs > Date.now()) {
+    form.classList.add('chat-hidden');
+    if (replyBar) replyBar.classList.add('chat-hidden');
+    banBox.hidden = false;
+    renderBanCountdown();
+    if (!state.banTimer) {
+      state.banTimer = window.setInterval(renderBanCountdown, 1000);
+    }
+  } else {
+    form.classList.remove('chat-hidden');
+    if (replyBar) replyBar.classList.remove('chat-hidden');
+    banBox.hidden = true;
+    if (state.banTimer) { window.clearInterval(state.banTimer); state.banTimer = 0; }
+  }
+}
+
+function renderBanCountdown() {
+  if (!state.ban) return;
+  const secs = Math.max(0, Math.floor((state.ban.untilMs - Date.now()) / 1000));
+  const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+  const ss = String(secs % 60).padStart(2, '0');
+  const el = $('ban-countdown');
+  if (el) el.textContent = mm + ':' + ss;
+  if (secs <= 0) {
+    state.ban = null;
+    if (state.banTimer) { window.clearInterval(state.banTimer); state.banTimer = 0; }
+    syncBanUI();
+    poll();
+  }
+}
+
+function showToast(text) {
+  const t = $('chat-toast');
+  if (!t) return;
+  t.textContent = String(text);
+  t.hidden = false;
+  requestAnimationFrame(() => t.classList.add('chat-toast-show'));
+  clearTimeout(state.toastTimer);
+  state.toastTimer = window.setTimeout(() => {
+    t.classList.remove('chat-toast-show');
+    t.hidden = true;
+  }, 4200);
+}
+
+function openChatMenu(row, x, y) {
+  const menu = $('chat-menu');
+  if (!menu) return;
+  const msg = state.messages.find((m) => String(m.id) === row?.dataset.id);
+  if (!msg) return;
+  state.menuMsg = msg;
+  const editBtn = menu.querySelector('[data-menu="edit"]');
+  if (editBtn) editBtn.style.display = msg.is_me ? '' : 'none';
+  menu.hidden = false;
+  const mw = 170, mh = msg.is_me ? 150 : 105;
+  const left = Math.min(Math.max(8, x), window.innerWidth - mw - 8);
+  const top = Math.min(Math.max(8, y), window.innerHeight - mh - 8);
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+}
+
+function closeChatMenu() {
+  const menu = $('chat-menu');
+  if (menu) menu.hidden = true;
+}
+
+function openDeleteModal(msg) {
+  state.menuMsg = msg;
+  const delEveryone = $('del-for-everyone');
+  if (delEveryone) delEveryone.style.display = (msg.is_me || state.isAdmin) ? '' : 'none';
+  const modal = $('chat-delete-modal');
+  if (modal) modal.hidden = false;
+}
+
+function closeDeleteModal() {
+  const modal = $('chat-delete-modal');
+  if (modal) modal.hidden = true;
+}
+
+function startInlineEdit(row, msg) {
+  const textEl = row.querySelector('.chat-text');
+  if (!textEl) return;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'chat-edit-wrap';
+  wrapper.innerHTML =
+    '<input class="chat-edit-input" maxlength="600" aria-label="تعديل الرسالة" />' +
+    '<div class="chat-edit-actions">' +
+      '<button type="button" class="chat-edit-ok" aria-label="حفظ">✓</button>' +
+      '<button type="button" class="chat-edit-cancel" aria-label="إلغاء">✕</button>' +
+    '</div>';
+  textEl.replaceWith(wrapper);
+  const input = wrapper.querySelector('.chat-edit-input');
+  input.value = msg.text;
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+  let done = false;
+  const finish = async (save) => {
+    if (done) return;
+    done = true;
+    if (save) {
+      const v = input.value.trim();
+      if (v && v !== msg.text) {
+        try {
+          await callChat({ action: 'edit', id: msg.id, text: v });
+        } catch (err) {
+          showToast(String(err?.message || err || 'تعذر الحفظ'));
+        }
+      }
+    }
+    await poll();
+  };
+  wrapper.querySelector('.chat-edit-ok').addEventListener('click', () => finish(true));
+  wrapper.querySelector('.chat-edit-cancel').addEventListener('click', () => finish(false));
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+    else if (e.key === 'Escape') finish(false);
+  });
 }
 
 function setReply(m) {

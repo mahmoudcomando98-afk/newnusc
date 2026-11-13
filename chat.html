@@ -8,7 +8,7 @@
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <link rel="stylesheet" href="/assets/css/main.css?v=chat1" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=chat1" />
-  <link rel="stylesheet" href="/assets/css/chat.css?v=5" />
+  <link rel="stylesheet" href="/assets/css/chat.css?v=6" />
 </head>
 <body>
   <header class="chat-topbar">
@@ -44,6 +44,12 @@
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
+    <div class="chat-ban" id="chat-ban" hidden role="alert">
+      <span class="chat-ban-icon" aria-hidden="true">🚫</span>
+      <p class="chat-ban-title">تم حظرك من الدردشة لمدة ساعة</p>
+      <p class="chat-ban-timer"><span id="ban-countdown">60:00</span></p>
+      <p class="chat-ban-hint">الكلام الغلط ملوش محل — تقدر تكتب تاني لما العدّاد يخلص</p>
+    </div>
     <form class="chat-composer" id="chat-form" autocomplete="off" novalidate>
       <input type="text" class="chat-input" id="chat-input" placeholder="اكتب سؤالك…" maxlength="600" autocomplete="off" required />
       <button type="submit" class="chat-send" id="chat-send" aria-label="أرسل">
@@ -52,6 +58,26 @@
     </form>
   </main>
 
-  <script type="module" src="/assets/js/chat.js?v=7"></script>
+  <!-- قائمة طويلة الضغطة على رسالة -->
+  <div class="chat-menu" id="chat-menu" hidden role="menu">
+    <button type="button" class="chat-menu-item" data-menu="reply" role="menuitem">↩️ رد</button>
+    <button type="button" class="chat-menu-item" data-menu="edit" role="menuitem">✏️ تعديل</button>
+    <button type="button" class="chat-menu-item" data-menu="delete" role="menuitem">🗑️ حذف</button>
+  </div>
+
+  <!-- شيت حذف الرسالة -->
+  <div class="chat-modal" id="chat-delete-modal" hidden role="dialog" aria-modal="true" aria-label="حذف الرسالة">
+    <div class="chat-modal-backdrop" data-del-cancel></div>
+    <div class="chat-modal-card">
+      <h3>شيل الرسالة إزاي؟</h3>
+      <button type="button" class="chat-modal-opt chat-modal-danger" id="del-for-everyone">🗑️ حذف للجميع</button>
+      <button type="button" class="chat-modal-opt" id="del-for-me">🙈 حذف لي فقط</button>
+      <button type="button" class="chat-modal-cancel" data-del-cancel>إلغاء</button>
+    </div>
+  </div>
+
+  <div class="chat-toast" id="chat-toast" hidden role="status"></div>
+
+  <script type="module" src="/assets/js/chat.js?v=8"></script>
 </body>
 </html>

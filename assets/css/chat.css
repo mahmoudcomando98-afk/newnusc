@@ -286,4 +286,119 @@ body { display: flex; flex-direction: column; height: 100dvh; height: var(--vvh,
 }
 .chat-reply-cancel:hover { background: var(--border, #e9e4d6) }
 
-@media print { .chat-topbar, .chat-composer, .chat-reply-bar { display: none } }
+/* ═══ البوت (بوت COMANDO) ═══ */
+.chat-avatar-bot {
+  background: linear-gradient(145deg, #82621a, #5c4712) !important;
+  display: flex; align-items: center; justify-content: center; font-size: 15px;
+}
+:root[data-palette="girl"] .chat-avatar-bot { background: linear-gradient(145deg, #a9245a, #831c45) !important }
+.chat-msg.bot .chat-bubble {
+  background: linear-gradient(160deg, #fff8e1, #fdf0cd);
+  border: 1px solid #e8d48b;
+}
+:root[data-palette="girl"] .chat-msg.bot .chat-bubble {
+  background: linear-gradient(160deg, #ffe9f0, #ffd9e5);
+  border-color: #f2b8cd;
+}
+:root[data-theme="dark"] .chat-msg.bot .chat-bubble { background: #2e2a1e; border-color: #4a4231 }
+:root[data-palette="girl"][data-theme="dark"] .chat-msg.bot .chat-bubble { background: #33222a; border-color: #54303d }
+.chat-bot-chip {
+  font-size: .58rem; font-weight: 800; padding: 1px 7px; border-radius: 999px;
+  background: #82621a; color: #ffe9b0; letter-spacing: .3px;
+}
+:root[data-palette="girl"] .chat-bot-chip { background: #a9245a; color: #ffd6e4 }
+.chat-edited { font-size: .58rem; color: var(--text-muted, #777); font-style: italic; opacity: .85 }
+
+/* ═══ حظر الشتايم ═══ */
+.chat-hidden { display: none !important }
+.chat-ban {
+  flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 18px 16px; text-align: center;
+  background: var(--surface-soft, #fbf8ee);
+  border-top: 1px solid var(--border, #e9e4d6);
+  animation: reply-bar-in .2s ease;
+}
+.chat-ban[hidden] { display: none !important }
+.chat-ban-icon { font-size: 2rem; line-height: 1 }
+.chat-ban-title { font-weight: 800; color: #b91c1c; font-size: .9rem; margin: 0 }
+.chat-ban-timer {
+  font-family: 'Courier New', monospace; font-size: 1.6rem; font-weight: 800; margin: 0;
+  color: #b91c1c; letter-spacing: 2px;
+  animation: ban-pulse 1s ease-in-out infinite;
+}
+@keyframes ban-pulse { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.07) } }
+.chat-ban-hint { font-size: .68rem; color: var(--text-muted, #777); margin: 0 }
+
+/* ═══ قائمة الضغطة الطويلة ═══ */
+.chat-menu {
+  position: fixed; z-index: 200; min-width: 150px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e9e4d6);
+  border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, .18);
+  padding: 6px; display: flex; flex-direction: column; gap: 2px;
+  animation: menu-in .15s ease;
+}
+@keyframes menu-in { from { opacity: 0; transform: scale(.9) translateY(-4px) } to { opacity: 1; transform: none } }
+.chat-menu[hidden] { display: none !important }
+.chat-menu-item {
+  display: flex; align-items: center; gap: 8px;
+  border: 0; background: transparent; padding: 9px 10px; border-radius: 8px;
+  font-family: inherit; font-size: .82rem; cursor: pointer; text-align: start;
+  color: var(--text, #25271f);
+}
+.chat-menu-item:hover { background: var(--surface-soft, #fbf8ee) }
+.chat-menu-item[data-menu="delete"] { color: #b91c1c }
+
+/* ═══ شيت حذف الرسالة ═══ */
+.chat-modal { position: fixed; inset: 0; z-index: 300; display: flex; align-items: flex-end; justify-content: center }
+.chat-modal[hidden] { display: none !important }
+.chat-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, .35); animation: fade-in .18s ease }
+@keyframes fade-in { from { opacity: 0 } }
+.chat-modal-card {
+  position: relative; width: min(480px, 100%);
+  background: var(--surface, #fff);
+  border-radius: 18px 18px 0 0; padding: 16px 14px calc(14px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 8px;
+  animation: sheet-up .22s ease;
+}
+@keyframes sheet-up { from { transform: translateY(40px); opacity: 0 } }
+.chat-modal-card h3 { margin: 0 4px 4px; font-size: .9rem; color: var(--text, #25271f) }
+.chat-modal-opt {
+  border: 1px solid var(--border, #e9e4d6); background: var(--surface-soft, #fbf8ee);
+  border-radius: 12px; padding: 12px; font-family: inherit; font-size: .85rem;
+  cursor: pointer; text-align: start; font-weight: 700; color: var(--text, #25271f);
+}
+.chat-modal-danger { color: #b91c1c; border-color: rgba(185, 28, 28, .35); background: #fef2f2 }
+.chat-modal-opt:active { transform: scale(.98) }
+.chat-modal-cancel {
+  border: 0; background: transparent; border-radius: 12px; padding: 10px;
+  font-family: inherit; font-size: .85rem; cursor: pointer; color: var(--text-muted, #777);
+}
+
+/* ═══ Toast ═══ */
+.chat-toast {
+  position: fixed; bottom: 84px; left: 50%; transform: translate(-50%, 8px);
+  z-index: 250; max-width: min(420px, 92vw);
+  background: #25271f; color: #f3f0e8;
+  border-radius: 12px; padding: 10px 16px; font-size: .8rem; line-height: 1.5;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, .3); opacity: 0; pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.chat-toast-show { opacity: 1; transform: translate(-50%, 0) }
+
+/* ═══ تعديل الرسالة inline ═══ */
+.chat-edit-wrap { display: flex; flex-direction: column; gap: 4px }
+.chat-edit-input {
+  font-family: inherit; font-size: 16px; border: 1px solid var(--border, #e9e4d6);
+  border-radius: 8px; padding: 6px 10px; background: #fff; min-width: 0; width: 100%;
+  box-sizing: border-box;
+}
+.chat-msg.me .chat-edit-input { background: rgba(255, 255, 255, .95) }
+.chat-edit-actions { display: flex; gap: 6px; justify-content: flex-end }
+.chat-edit-ok, .chat-edit-cancel {
+  width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border, #e9e4d6);
+  background: #fff; cursor: pointer; font-size: 15px; font-weight: 800; color: var(--text);
+}
+.chat-edit-ok { color: #15803d; border-color: #bbf7d0; background: #f0fdf4 }
+
+@media print { .chat-topbar, .chat-composer, .chat-reply-bar, .chat-ban { display: none } }
