@@ -87,6 +87,14 @@ async function init() {
     }
   });
 
+  // حالة الاختفاء التلقائي للحالة الفارغة أول ما الشخص يبدأ يكتب
+  input.addEventListener('input', () => {
+    const body = $('chat-messages');
+    const empty = body?.querySelector('.chat-empty');
+    if (!empty) return;
+    empty.classList.toggle('chat-empty--hidden', !!input.value.trim());
+  });
+
   // استعلام كل 4 ثواني أثناء فتح الشات + تراجع لو الوثيقة مهملة
   const tick = () => {
     if (document.hidden) {
@@ -139,13 +147,21 @@ function renderMessages() {
 
   if (!state.messages.length) {
     body.innerHTML =
-      '<div style="text-align:center;padding:60px 20px;color:var(--text-muted,#777)">' +
-        '<p style="font-size:1.1rem;font-weight:800;color:var(--text,#25232e);margin-bottom:8px">مافيش رسائل تاني…</p>' +
-        '<p>اكتب سؤالك هيلاقي حد جواب. 🤝</p>' +
+      '<div class="chat-empty">' +
+        '<div class="chat-empty-stage">' +
+          '<div class="chat-empty-ring"></div>' +
+          '<div class="chat-empty-ring-2"></div>' +
+          '<div class="chat-empty-orb" aria-hidden="true">' +
+            '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
+          '</div>' +
+        '</div>' +
       '</div>';
     state.renderedIds = new Set();
     return;
   }
+
+  // متى ما فيش رسايل… حالة فارغة — تختفي أول ما توصل رسالة واحدة
+  body.querySelectorAll('.chat-empty').forEach((n) => n.remove());
 
   const target = new Set(state.messages.map((m) => m.id));
 

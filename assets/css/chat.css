@@ -35,22 +35,75 @@
 
 .chat-page { display: flex; flex-direction: column; height: calc(100dvh - 58px); padding-bottom: 12px }
 
-.chat-hint {
-  text-align: center; font-size: .72rem; color: var(--text-muted, #777);
-  padding: 6px 14px;
-  background: var(--surface-soft,#fbf8ee);
-  border-bottom: 1px solid var(--border,#e9e4d6);
-}
 .chat-messages {
   flex: 1; overflow-y: auto;
   display: flex; flex-direction: column; gap: 6px;
-  padding: 10px 12px; scroll-behavior: smooth;
+  padding: 18px 12px 12px; scroll-behavior: smooth;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(197, 106, 58, 0.07) 0, transparent 40%),
+    radial-gradient(circle at 88% 82%, rgba(197, 106, 58, 0.06) 0, transparent 40%);
+}
+@keyframes title-breathe {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 2px 6px rgba(197, 106, 58, 0.35)); }
+  50%      { transform: scale(1.06); filter: drop-shadow(0 4px 14px rgba(197, 106, 58, 0.55)); }
+}
+.chat-title-icon { animation: title-breathe 3.2s ease-in-out infinite; }
+
+/* حالة فارغة — موجات ناعمة بدون كلام */
+.chat-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 16px; gap: 12px; color: var(--text-muted, #777);
+  transition: opacity .25s ease, transform .25s ease;
+}
+.chat-empty--hidden { opacity: 0; transform: scale(.88); pointer-events: none; }
+.chat-empty-orb {
+  width: 84px; height: 84px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #c56a3a, #a4562f 70%);
+  display: flex; align-items: center; justify-content: center; color: #fff;
+  box-shadow: 0 8px 28px rgba(197, 106, 58, 0.35);
+  animation: orb-breathe 2.8s ease-in-out infinite;
+}
+:root[data-theme="dark"] .chat-empty-orb { background: radial-gradient(circle at 35% 35%, #e0965f, #7d3e1f 70%); box-shadow: 0 8px 28px rgba(224, 150, 95, 0.3); }
+:root[data-palette="girl"] .chat-empty-orb { background: radial-gradient(circle at 35% 35%, #d6336c, #a9245a 70%); box-shadow: 0 8px 28px rgba(214, 51, 108, 0.35); }
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 8px 28px rgba(197, 106, 58, 0.35); }
+  50%      { transform: scale(1.08); box-shadow: 0 12px 38px rgba(197, 106, 58, 0.55); }
+}
+.chat-empty-ring, .chat-empty-ring-2 {
+  position: absolute; border-radius: 50%; border: 2px solid rgba(197, 106, 58, 0.3);
+  animation: ring-pulse 2.8s ease-in-out infinite;
+}
+.chat-empty-ring { width: 118px; height: 118px; animation-delay: 0s; }
+.chat-empty-ring-2 { width: 152px; height: 152px; animation-delay: 0.9s; opacity: 0.45; }
+.chat-empty-stage { position: relative; width: 160px; height: 160px; display: flex; align-items: center; justify-content: center; }
+@keyframes ring-pulse {
+  0% { transform: scale(0.7); opacity: 0; }
+  30% { opacity: 0.7; }
+  100% { transform: scale(1.05); opacity: 0; }
+}
+:root[data-theme="dark"] .chat-messages {
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(224, 150, 95, 0.07) 0, transparent 40%),
+    radial-gradient(circle at 88% 82%, rgba(224, 150, 95, 0.06) 0, transparent 40%);
+}
+/* حالات ثيم البنات للخلفية والحلقات والسكرول */
+:root[data-palette="girl"] .chat-messages {
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(214, 51, 108, 0.07) 0, transparent 40%),
+    radial-gradient(circle at 88% 82%, rgba(214, 51, 108, 0.06) 0, transparent 40%);
+}
+:root[data-palette="girl"] .chat-empty-ring, :root[data-palette="girl"] .chat-empty-ring-2 { border-color: rgba(214, 51, 108, 0.3) }
+:root[data-palette="girl"] .chat-messages::-webkit-scrollbar-thumb { background: rgba(214, 51, 108, 0.3) }
+:root[data-palette="girl"] .chat-messages::-webkit-scrollbar-thumb:hover { background: rgba(214, 51, 108, 0.55) }
+:root[data-palette="girl"] .chat-title-icon { animation-name: title-breathe-girl }
+@keyframes title-breathe-girl {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 2px 6px rgba(214, 51, 108, 0.35)); }
+  50%      { transform: scale(1.06); filter: drop-shadow(0 4px 14px rgba(214, 51, 108, 0.55)); }
 }
 
-.chat-msg { display: flex; gap: 6px; align-items: flex-end; max-width: 80%; animation: msg-in .22s ease }
+.chat-msg { display: flex; gap: 6px; align-items: flex-end; max-width: 80%; animation: msg-in .28s ease }
 .chat-msg.me   { align-self: flex-end;   flex-direction: row-reverse }
 .chat-msg.them { align-self: flex-start }
-@keyframes msg-in { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
 
 .chat-avatar {
   width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%;
@@ -101,7 +154,6 @@
 :root[data-theme="dark"] .chat-members   { background: #26221e; border-color: #3a3531 }
 :root[data-theme="dark"] .chat-members strong { color: #f0b55a }
 :root[data-theme="dark"] .chat-members small  { color: #a8a59c }
-:root[data-theme="dark"] .chat-hint      { background: #26221e; border-color: #3a3531; color: #a8a59c }
 :root[data-theme="dark"] .chat-composer  { background: #1f1c19; border-top-color: #2e2925 }
 :root[data-theme="dark"] .chat-input     { background: #26221e; border-color: #3a3531; color: #e8e6e1 }
 :root[data-theme="dark"] .chat-input:focus { border-color: #e0965f }
@@ -113,13 +165,34 @@
 :root[data-palette="girl"] .chat-title-icon { background: linear-gradient(145deg, #d6336c, #a9245a) }
 :root[data-palette="girl"] .chat-send       { background: #d6336c }
 :root[data-palette="girl"] .chat-send:hover:not(:disabled) { background: #b02358 }
-:root[data-palette="girl"] .chat-input:focus { border-color: #d6336c }
 :root[data-palette="girl"] .chat-msg.me .chat-bubble { background: #d6336c; border-color: #a9245a }
 :root[data-palette="girl"] .chat-back:hover  { background: #fdf0f5 }
+
+/* Focus glow أنعم */
+.chat-input:focus { border-color: #c56a3a !important; box-shadow: 0 0 0 3px rgba(197, 106, 58, 0.15); }
+:root[data-theme="dark"] .chat-input:focus { border-color: #e0965f !important; box-shadow: 0 0 0 3px rgba(224, 150, 95, 0.2); }
+:root[data-palette="girl"] .chat-input:focus { border-color: #d6336c !important; box-shadow: 0 0 0 3px rgba(214, 51, 108, 0.18); }
+
+/* زر الإرسال: بروما لبؤة انطباع */
+.chat-send { background: linear-gradient(145deg, #d97b4a, #a4562f); }
+:root[data-palette="girl"] .chat-send { background: linear-gradient(145deg, #e57495, #a9245a); }
+:root[data-theme="dark"] .chat-send { background: linear-gradient(145deg, #e0965f, #7d3e1f); }
+.chat-send:hover:not(:disabled) { background: linear-gradient(145deg, #c56a3a, #8a4520); }
+:root[data-theme="dark"] .chat-send:hover:not(:disabled) { background: linear-gradient(145deg, #a4562f, #4d2a0e); }
+:root[data-palette="girl"] .chat-send:hover:not(:disabled) { background: linear-gradient(145deg, #c94b77, #831c45); }
+
+/* رسالة-in أنيميشن أقوى وأجمل */
+@keyframes msg-in { from { opacity: 0; transform: translateY(10px) scale(0.95); } to { opacity: 1; transform: none; } }
+.chat-msg { animation-duration: 0.28s; }
+
+/* تمرير أبطأ + smooth scroll skid */
+.chat-messages::-webkit-scrollbar { width: 4px; }
+.chat-messages::-webkit-scrollbar-thumb { background: rgba(197, 106, 58, 0.3); border-radius: 999px; }
+.chat-messages::-webkit-scrollbar-thumb:hover { background: rgba(197, 106, 58, 0.55); }
 
 @media (max-width: 420px) {
   .chat-title p { display: none }
   .chat-members { padding: 2px 8px }
 }
 
-@media print { .chat-topbar, .chat-composer, .chat-hint { display: none } }
+@media print { .chat-topbar, .chat-composer { display: none } }
