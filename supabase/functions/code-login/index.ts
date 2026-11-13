@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
 
     const { data: row, error: codeErr } = await admin
       .from('student_codes')
-      .select('id, full_name, role, linked_user_id, is_active, device_id, gender')
+      .select('id, full_name, role, linked_user_id, is_active, device_id, device_ids, gender')
       .eq('code_norm', code)
       .maybeSingle();
 
@@ -153,14 +153,27 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: false, error: 'هذا الكود موقوف مؤقتًا. تواصل مع الإدارة.' });
     }
 
-    // قفل الجهاز: الحساب يُربط بالجهاز الذي دخل منه أول مرة
+    // جهازان بحد أقصى للطالب، وجهاز واحد فقط للأدمن/المشرف
     const deviceId = String(body?.device_id || '').trim();
     if (!deviceId || deviceId.length < 8 || deviceId.length > 64) {
       return jsonResponse({ ok: false, error: 'تعذر تحديد الجهاز. امسح بيانات المتصفح (Caches) وجرب تاني.' });
     }
-    if (row.device_id && row.device_id !== deviceId) {
-      return jsonResponse({ ok: false, error: 'هذا الحساب مسجل بالفعل على جهاز آخر. تواصل مع الإدارة لإعادة ضبط الجهاز.' });
+    const roleRaw = row.role === 'admin' || row.role === 'moderator' ? row.role : 'student';
+    const isStaff = roleRaw === 'admin' || roleRaw === 'moderator';
+    const deviceLimit = isStaff ? 1 : 2;
+    const bound = Array.isArray(row.device_ids) && row.device_ids.length
+      ? row.device_ids.slice()
+      : (row.device_id && String(row.device_id).trim() ? [String(row.device_id)] : []);
+    const alreadyBound = bound.includes(deviceId);
+    if (!alreadyBound && bound.length >= deviceLimit) {
+      return jsonResponse({
+        ok: false,
+        error: isStaff
+          ? 'حساب الأدمن مسموح على جهاز واحد فقط — تواصل مع الإدارة لإعادة ضبط الجهاز.'
+          : 'كودك مفتوح على جهازين كمان بس. تواصل مع الإدارة لإعادة ضبط الجهاز.'
+      });
     }
+    const newBound = alreadyBound ? bound : [...bound, deviceId];
 
     const fullName = String(row.full_name || '').trim();
     const role = row.role === 'admin' || row.role === 'moderator' ? row.role : 'student';
@@ -197,16 +210,21 @@ Deno.serve(async (req) => {
         userId = created.user.id;
       }
 
-      // اربط الكود بالمستخدم والجهاز
+      // اربط الكود بالمستخدم والجهاز (جهازان بحد أقصى للطالب، واحد للأدمن)
       await admin
         .from('student_codes')
-        .update({ linked_user_id: userId, device_id: deviceId, updated_at: new Date().toISOString() })
+        .update({
+          linked_user_id: userId,
+          device_ids: newBound,
+          device_id: deviceId,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', row.id);
-    } else if (!row.device_id) {
-      // حساب مرتبط من قبل بلا جهاز — اربطه بالجهاز الحالي
+    } else if (!alreadyBound) {
+      // طالب يستخدم جهاز ثاني — نضيفه للأجهزة المربوطة
       await admin
         .from('student_codes')
-        .update({ device_id: deviceId, updated_at: new Date().toISOString() })
+        .update({ device_ids: newBound, device_id: deviceId, updated_at: new Date().toISOString() })
         .eq('id', row.id);
     }
 

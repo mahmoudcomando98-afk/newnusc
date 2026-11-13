@@ -106,8 +106,8 @@ function rowActionsHtml(r) {
     '<button type="button" class="btn btn-sm btn-outline toggle-btn">' +
     (r.is_active === false ? 'تفعيل' : 'إيقاف') +
     '</button>' +
-    (r.device_id
-      ? '<button type="button" class="btn btn-sm btn-outline reset-device-btn">إعادة ضبط الجهاز</button>'
+    ((r.device_id || (Array.isArray(r.device_ids) && r.device_ids.length > 0))
+      ? '<button type="button" class="btn btn-sm btn-outline reset-device-btn">إعادة ضبط الأجهزة</button>'
       : '') +
     (r.linked_user_id
       ? '<button type="button" class="btn btn-sm btn-outline unlink-btn">فك الربط</button>'
@@ -190,7 +190,7 @@ async function loadCodes() {
   try {
     const { data, error } = await supabase
       .from('student_codes')
-      .select('id, code, full_name, role, gender, is_active, linked_user_id, device_id, created_at')
+      .select('id, code, full_name, role, gender, is_active, linked_user_id, device_id, device_ids, created_at')
       .order('full_name', { ascending: true })
       .limit(10000);
     if (error) throw error;
@@ -308,11 +308,11 @@ function bindUi() {
 
     if (btn.classList.contains('reset-device-btn')) {
       const row = state.rows.find((r) => r.id === id);
-      if (!confirm('إعادة ضبط جهاز «' + (row?.full_name || row?.code || '') + '»؟')) return;
+      if (!confirm('مسح ربط الأجهزة بتاع «' + (row?.full_name || row?.code || '') + '»؟')) return;
       btn.disabled = true;
       const { error } = await supabase
         .from('student_codes')
-        .update({ device_id: null, updated_at: new Date().toISOString() })
+        .update({ device_ids: [], device_id: null, updated_at: new Date().toISOString() })
         .eq('id', id);
       btn.disabled = false;
       if (error) {
@@ -330,7 +330,7 @@ function bindUi() {
       btn.disabled = true;
       const { error } = await supabase
         .from('student_codes')
-        .update({ linked_user_id: null, device_id: null, updated_at: new Date().toISOString() })
+        .update({ linked_user_id: null, device_ids: [], device_id: null, updated_at: new Date().toISOString() })
         .eq('id', id);
       btn.disabled = false;
       if (error) {
