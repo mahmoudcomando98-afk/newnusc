@@ -199,7 +199,12 @@ ${ctx.knowledge}
 خطتي — مهام الطالب اليوم/بكرة:
 ${ctx.tasks}
 ────────────────────────
-ملاحظة مهمة: لو الطالب سأل عن جدوله أو مهامه أو إيه اللي مفروض يعمله النهاردة، اعرّفه بالمهام دي بالظبط — دي مهامه الفعلية على المنصة (بالتفصيل).
+ملاحظة مهمة: لو الطالب سأل عن جدوله أو مهامه أو إيه اللي مفروض يعمله النهاردة:
+- اعرّفه بالمهام دي بالظبط — دي مهامه الفعلية على المنصة.
+- عدّد المهام باسمائها مع الوقت.
+- لو كل المهام خلصت، قوله «خلصت كل مهامك النهاردة 🎉 علّيك!» واكتب قائمة صغيرة بالمهام اللي خلصها.
+- لو واحدة خلصت من ثلاث مهام، قوله صراحة: «عندك ٣ مهام أديت منها ١ لسة ٢ — لسا باقي».
+- لو في مهام لسه، قوله عددها صراحة.
 `;
 }
 
@@ -391,12 +396,31 @@ Deno.serve(async (req) => {
       .map((t) => `${t.is_done ? '[✓]' : '[ ]'} ${short(t.title, 80)}${t.task_type ? ' (' + short(t.task_type, 12) + ')' : ''} — ${fmt(t.due_at)}`)
       .join('\n');
 
+    const todayStats = (() => {
+      const today = (studyTasks || []).filter(isTaskToday);
+      const done = today.filter((t) => t.is_done).length;
+      const total = today.length;
+      const remaining = total - done;
+      if (total === 0) return 'مافيش مهام مجدولة النهاردة.';
+      return `المهام النهاردة: ${total} — منهم ${done} خلصوا، لسا ${remaining}.`;
+    })();
+
+    const tomorrowStats = (() => {
+      const tomorrow = (studyTasks || []).filter(isTaskTomorrow);
+      const done = tomorrow.filter((t) => t.is_done).length;
+      const total = tomorrow.length;
+      if (total === 0) return 'مافيش مهام مجدولة بكرة.';
+      return `المهام بكرة: ${total} — منهم ${done} خلصوا، لسا ${total - done}.`;
+    })();
+
     const tomorrowDate = new Date(Date.now() + 86400000);
     const tasksLines = [
       `النهاردة (${fmtDay(new Date())}):`,
+      todayStats,
       todayTaskLines || 'مافيش مهام مجدولة النهاردة',
       '',
       `بكرة (${fmtDay(tomorrowDate)}):`,
+      tomorrowStats,
       tomorrowTaskLines || 'مافيش مهام مجدولة بكرة'
     ].join('\n');
 
