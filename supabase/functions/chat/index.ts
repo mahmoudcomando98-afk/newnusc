@@ -119,18 +119,19 @@ function fmtDateTime(d: Date): string {
 // ── بوت الشات: بيرد بس لو عارف حقيقي، لو مش عارف يسكت خالص ─────────────────────
 async function botAnswer(raw: string, admin: ReturnType<typeof createClient>, askerId: string): Promise<string | null> {
   const norm = normalizeAr(raw);
+  const stripped = norm.replace(/[\s؟!?\.,،؛…\-]+$/g, '').trim();
 
   // سلام
-  if (/^(ازيك|ازي حالك|كيف حالك|عامل ايه|ايه اخبارك|اخبارك|هاي|اهلا)(\s|$|\?|!)/.test(norm)) {
-    return 'الحمدلله ربنا كويس 🙌 انت اخبارك النهاردة؟';
+  if (/^(ازيك|ازي حالك|كيف حالك|عامل ايه|ايه اخبارك|اخبارك|هاي|اهلا|صباح الخير|مساء الخير)/.test(stripped)) {
+    return 'الحمدلله ربنا كويس، انت اخبارك النهاردة؟';
   }
   // مين انت
-  if (/(مين انت|انت مين|مين البوت|ايه ده البوت|انت روبوت)/.test(norm)) {
-    return 'أنا بوت COMANDO 🤖 — اسألني عن الواجبات والجدول والامتحانات والإعلانات، ولو مش عارف سؤالك هسكت خالص 🤫';
+  if (/(مين انت|انت مين|مين البوت|ايه ده البوت|انت روبوت)/.test(stripped)) {
+    return 'أنا بوت COMANDO — اسألني عن الواجبات والجدول والامتحانات والإعلانات، ولو مش عارف سؤالك هسكت خالص';
   }
   // شكرا
-  if (/^(شكرا|مرسي|تسلم|متشكر)/.test(norm)) {
-    return 'على الرحب 🙌 لو محتاج حاجة تانية قول';
+  if (/^(شكرا|مرسي|تسلم|متشكر)/.test(stripped)) {
+    return 'على الرحب، لو محتاج حاجة تانية قول';
   }
 
   const now = new Date();
@@ -154,13 +155,13 @@ async function botAnswer(raw: string, admin: ReturnType<typeof createClient>, as
     const dueTomorrow = rows.filter((r: any) => cairoParts(r.due).dateStr === tomorrow.dateStr);
     const upcoming = rows.filter((r: any) => r.due.getTime() >= now.getTime()).slice(0, 4);
     const fmt = (r: any) => '• ' + (r.subject ? '[' + r.subject + '] ' : '') + r.title + ' — ' + fmtDateTime(r.due);
-    if (dueToday.length) return '📌 واجبات النهاردة:\n' + dueToday.map(fmt).join('\n');
+    if (dueToday.length) return 'الواجبات النهاردة:\n' + dueToday.map(fmt).join('\n');
     if (norm.includes('بكره') || norm.includes('بكرا')) {
       return dueTomorrow.length
-        ? '📌 واجبات بكرة:\n' + dueTomorrow.map(fmt).join('\n')
-        : 'مفيش واجبات بكرة الحمدلله 🙌';
+        ? 'واجبات بكرة:\n' + dueTomorrow.map(fmt).join('\n')
+        : 'مفيش واجبات بكرة الحمدلله';
     }
-    let msg = 'مفيش واجبات النهاردة الحمدلله 🙌';
+    let msg = 'مفيش واجبات النهاردة الحمدلله';
     if (upcoming.length) msg += '\nبس في القريب العاجل:\n' + upcoming.map(fmt).join('\n');
     return msg;
   }
@@ -177,7 +178,7 @@ async function botAnswer(raw: string, admin: ReturnType<typeof createClient>, as
       .eq('is_active', true)
       .order('start_time', { ascending: true });
     const rows = data || [];
-    if (!rows.length) return 'الجدول ' + label + ' فاضي 😎';
+    if (!rows.length) return 'الجدول ' + label + ' فاضي';
     const typeAr: Record<string, string> = { lecture: 'محاضرة', section: 'سكشن', quiz: 'كويز', exam: 'امتحان', other: 'لقاء' };
     const lines = rows.map((r: any) => {
       const t = String(r.start_time || '').slice(0, 5);
@@ -185,7 +186,7 @@ async function botAnswer(raw: string, admin: ReturnType<typeof createClient>, as
       const loc = r.location ? ' — ' + r.location : '';
       return '• ' + (t || '؟') + (end ? ' ← ' + end : '') + ' | ' + (typeAr[r.event_type] || 'لقاء') + ' ' + r.title + loc;
     });
-    return '🗓️ جدول ' + label + ':\n' + lines.join('\n');
+    return 'جدول ' + label + ':\n' + lines.join('\n');
   }
 
   // الامتحانات والكويزات
@@ -198,9 +199,9 @@ async function botAnswer(raw: string, admin: ReturnType<typeof createClient>, as
       .order('start_at', { ascending: true })
       .limit(4);
     const rows = data || [];
-    if (!rows.length) return 'مفيش امتحانات أو كويزات متسجلة الفترة الجاية الحمدلله 🍀';
+    if (!rows.length) return 'مفيش امتحانات أو كويزات متسجلة الفترة الجاية الحمدلله';
     const fmt = (q: any) => '• ' + (q.subjects?.name ? '[' + q.subjects.name + '] ' : '') + q.title + ' — ' + fmtDateTime(new Date(q.start_at));
-    return '📝 أقرب امتحانات/كويزات:\n' + rows.map(fmt).join('\n');
+    return 'أقرب امتحانات/كويزات:\n' + rows.map(fmt).join('\n');
   }
 
   // الإعلانات
@@ -214,7 +215,7 @@ async function botAnswer(raw: string, admin: ReturnType<typeof createClient>, as
     const rows = data || [];
     if (!rows.length) return 'مفيش إعلانات جديدة خالص';
     const fmt = (a: any) => '• ' + a.title;
-    return '📢 آخر الإعلانات:\n' + rows.map(fmt).join('\n');
+    return 'آخر الإعلانات:\n' + rows.map(fmt).join('\n');
   }
 
   // مهام المستخدم (خطتي)
@@ -231,9 +232,9 @@ async function botAnswer(raw: string, admin: ReturnType<typeof createClient>, as
     const rows = data || [];
     const total = rows.length;
     const done = rows.filter((r: any) => !!r.is_done).length;
-    if (!total) return 'مفيش مهام في خطتك النهاردة — يوم هادي ☕';
+    if (!total) return 'مفيش مهام في خطتك النهاردة — يوم هادي';
     const left = total - done;
-    return '📋 مهامك النهاردة: عندك ' + total + ' مهمة — خلصت ' + done + ' ولسه فاضل ' + left + (left > 0 ? ' 💪' : ' — برافو عليك 🏆');
+    return 'مهامك النهاردة: عندك ' + total + ' مهمة — خلصت ' + done + ' ولسه فاضل ' + left + (left > 0 ? '' : ' — برافو عليك');
   }
 
   return null; // مش عارف؟ ما يردش خالص
@@ -391,10 +392,10 @@ Deno.serve(async (req) => {
       if (bad) {
         const s = await applyStrike(admin, user.id);
         if (s.banned) {
-          await postBotMessage(admin, key, 'يا جماعة 🚫 ' + firstName + ' اتحظر من الدردشة لمدة ساعة عشان الكلام الغلط — مستنيه يرجع وإحنا أحسن 🙏', null);
+          await postBotMessage(admin, key, 'يا جماعة، ' + firstName + ' اتحظر من الدردشة لمدة ساعة عشان الكلام الغلط — مستنيه يرجع وإحنا أحسن', null);
           return json({ ok: false, error: 'تم حظرك من الدردشة لمدة ساعة بسبب الشتايم.', banned: true, banned_until: s.banned_until, seconds: s.seconds }, 403);
         }
-        await postBotMessage(admin, key, 'يا ' + firstName + ' 🤦 كمان مرة وانت هتحظر من الدردشة ساعة كاملة — خلينا كويسين مع بعض 🙏', null);
+        await postBotMessage(admin, key, 'يا ' + firstName + '، كمان مرة وانت هتحظر من الدردشة ساعة كاملة — خلينا كويسين مع بعض', null);
         return json({ ok: false, error: 'الشتايم ملهاش محل في الشات يا صاحبي — كمان مرة وهتتحظر ساعة.', struck: true }, 403);
       }
 

@@ -8,7 +8,7 @@
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
   <link rel="stylesheet" href="/assets/css/main.css?v=chat1" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=chat1" />
-  <link rel="stylesheet" href="/assets/css/chat.css?v=6" />
+  <link rel="stylesheet" href="/assets/css/chat.css?v=7" />
 </head>
 <body>
   <header class="chat-topbar">
@@ -45,7 +45,7 @@
       </button>
     </div>
     <div class="chat-ban" id="chat-ban" hidden role="alert">
-      <span class="chat-ban-icon" aria-hidden="true">🚫</span>
+      <span class="chat-ban-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg></span>
       <p class="chat-ban-title">تم حظرك من الدردشة لمدة ساعة</p>
       <p class="chat-ban-timer"><span id="ban-countdown">60:00</span></p>
       <p class="chat-ban-hint">الكلام الغلط ملوش محل — تقدر تكتب تاني لما العدّاد يخلص</p>
@@ -60,9 +60,9 @@
 
   <!-- قائمة طويلة الضغطة على رسالة -->
   <div class="chat-menu" id="chat-menu" hidden role="menu">
-    <button type="button" class="chat-menu-item" data-menu="reply" role="menuitem">↩️ رد</button>
-    <button type="button" class="chat-menu-item" data-menu="edit" role="menuitem">✏️ تعديل</button>
-    <button type="button" class="chat-menu-item" data-menu="delete" role="menuitem">🗑️ حذف</button>
+    <button type="button" class="chat-menu-item" data-menu="reply" role="menuitem"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg> رد</button>
+    <button type="button" class="chat-menu-item" data-menu="edit" role="menuitem"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg> تعديل</button>
+    <button type="button" class="chat-menu-item" data-menu="delete" role="menuitem"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> حذف</button>
   </div>
 
   <!-- شيت حذف الرسالة -->
@@ -70,14 +70,14 @@
     <div class="chat-modal-backdrop" data-del-cancel></div>
     <div class="chat-modal-card">
       <h3>شيل الرسالة إزاي؟</h3>
-      <button type="button" class="chat-modal-opt chat-modal-danger" id="del-for-everyone">🗑️ حذف للجميع</button>
-      <button type="button" class="chat-modal-opt" id="del-for-me">🙈 حذف لي فقط</button>
+      <button type="button" class="chat-modal-opt chat-modal-danger" id="del-for-everyone"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> حذف للجميع</button>
+      <button type="button" class="chat-modal-opt" id="del-for-me"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="2" y1="2" x2="22" y2="22"/></svg> حذف لي فقط</button>
       <button type="button" class="chat-modal-cancel" data-del-cancel>إلغاء</button>
     </div>
   </div>
 
   <div class="chat-toast" id="chat-toast" hidden role="status"></div>
 
-  <script type="module" src="/assets/js/chat.js?v=8"></script>
+  <script type="module" src="/assets/js/chat.js?v=9"></script>
 </body>
 </html>

@@ -330,7 +330,7 @@ async function activateNotificationsAndRegister(cta) {
     cta.textContent = 'تعذر التفعيل — ' + (result.reason || 'جرّب تاني');
     return;
   }
-  cta.textContent = 'تم ✓ — جاري تسجيل التذكير…';
+  cta.textContent = 'تم — جاري تسجيل التذكير…';
   try {
     var history = state.messages.map(function (m) { return { role: m.role, content: m.content }; }).slice(-20);
     var data = await callAi({ messages: history });

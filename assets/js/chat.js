@@ -385,7 +385,7 @@ function buildMessageNode(m) {
     (mine
       ? ''
       : isBot
-        ? '<div class="chat-avatar chat-avatar-bot" aria-hidden="true">🤖</div>'
+        ? '<div class="chat-avatar chat-avatar-bot" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="8.5" width="15" height="10.5" rx="3"/><path d="M12 8.5V5.5"/><circle cx="12" cy="3.5" r="1.4"/><path d="M9.4 13.6h.01M14.6 13.6h.01"/><path d="M9.5 19v2.4M14.5 19v2.4"/></svg></div>'
         : '<div class="chat-avatar" style="' + bg + '" aria-hidden="true">' + initial + '</div>'
     ) +
     '<div class="chat-bubble">' +
@@ -565,8 +565,8 @@ function startInlineEdit(row, msg) {
   wrapper.innerHTML =
     '<input class="chat-edit-input" maxlength="600" aria-label="تعديل الرسالة" />' +
     '<div class="chat-edit-actions">' +
-      '<button type="button" class="chat-edit-ok" aria-label="حفظ">✓</button>' +
-      '<button type="button" class="chat-edit-cancel" aria-label="إلغاء">✕</button>' +
+      '<button type="button" class="chat-edit-ok" aria-label="حفظ"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 10"/></svg></button>' +
+      '<button type="button" class="chat-edit-cancel" aria-label="إلغاء"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' +
     '</div>';
   textEl.replaceWith(wrapper);
   const input = wrapper.querySelector('.chat-edit-input');

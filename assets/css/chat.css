@@ -319,7 +319,19 @@ body { display: flex; flex-direction: column; height: 100dvh; height: var(--vvh,
   animation: reply-bar-in .2s ease;
 }
 .chat-ban[hidden] { display: none !important }
-.chat-ban-icon { font-size: 2rem; line-height: 1 }
+.chat-ban-icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 35% 30%, #ef4444, #b91c1c 75%);
+  color: #fff; box-shadow: 0 8px 22px rgba(185, 28, 28, .4);
+  animation: ban-wobble 2.6s ease-in-out infinite;
+}
+@keyframes ban-wobble {
+  0%, 100% { transform: rotate(0deg) scale(1) }
+  25% { transform: rotate(-6deg) scale(1.05) }
+  65% { transform: rotate(5deg) scale(.97) }
+}
+:root[data-palette="girl"] .chat-ban-icon { background: radial-gradient(circle at 35% 30%, #e57495, #a9245a 75%); box-shadow: 0 8px 22px rgba(169, 36, 90, .4) }
 .chat-ban-title { font-weight: 800; color: #b91c1c; font-size: .9rem; margin: 0 }
 .chat-ban-timer {
   font-family: 'Courier New', monospace; font-size: 1.6rem; font-weight: 800; margin: 0;
@@ -364,10 +376,12 @@ body { display: flex; flex-direction: column; height: 100dvh; height: var(--vvh,
 @keyframes sheet-up { from { transform: translateY(40px); opacity: 0 } }
 .chat-modal-card h3 { margin: 0 4px 4px; font-size: .9rem; color: var(--text, #25271f) }
 .chat-modal-opt {
+  display: flex; align-items: center; gap: 10px;
   border: 1px solid var(--border, #e9e4d6); background: var(--surface-soft, #fbf8ee);
-  border-radius: 12px; padding: 12px; font-family: inherit; font-size: .85rem;
+  border-radius: 12px; padding: 12px 14px; font-family: inherit; font-size: .85rem;
   cursor: pointer; text-align: start; font-weight: 700; color: var(--text, #25271f);
 }
+.chat-modal-opt svg { flex: none }
 .chat-modal-danger { color: #b91c1c; border-color: rgba(185, 28, 28, .35); background: #fef2f2 }
 .chat-modal-opt:active { transform: scale(.98) }
 .chat-modal-cancel {
@@ -397,7 +411,8 @@ body { display: flex; flex-direction: column; height: 100dvh; height: var(--vvh,
 .chat-edit-actions { display: flex; gap: 6px; justify-content: flex-end }
 .chat-edit-ok, .chat-edit-cancel {
   width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border, #e9e4d6);
-  background: #fff; cursor: pointer; font-size: 15px; font-weight: 800; color: var(--text);
+  background: #fff; cursor: pointer; color: var(--text);
+  display: flex; align-items: center; justify-content: center;
 }
 .chat-edit-ok { color: #15803d; border-color: #bbf7d0; background: #f0fdf4 }
 

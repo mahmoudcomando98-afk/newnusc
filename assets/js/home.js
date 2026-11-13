@@ -556,7 +556,7 @@ async function loadStudyPlanToday() {
     }
     el.classList.remove('hidden');
     text.textContent = pending === 0
-      ? `اهنيك! النهاردة خلصت كل مهامك ${done}/${total} 🎉`
+      ? `اهنيك! النهاردة خلصت كل مهامك ${done}/${total}`
       : `عندك ${pending} ${pending === 1 ? 'مهمة' : 'مهام'} النهاردة لسة — ${done} من ${total} خلصت`;
   } catch (error) {
     console.error('[NUSC] loadStudyPlanToday:', error);

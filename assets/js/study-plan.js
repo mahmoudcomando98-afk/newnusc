@@ -128,7 +128,7 @@ function renderWeek() {
   const container = $('study-week');
   if (!container) return;
   if (!state.tasks.length) {
-    container.innerHTML = '<div class="study-empty" style="grid-column:1/-1">لسه ما عندكش مهام في خطتي — ابدأ بإضافة مهمة دلوقتي ✍</div>';
+    container.innerHTML = '<div class="study-empty" style="grid-column:1/-1">لسه ما عندكش مهام في خطتي — ابدأ بإضافة مهمة دلوقتي</div>';
     return;
   }
   container.innerHTML = state.days.map((day, idx) => renderDay(day, idx)).join('');
@@ -163,7 +163,9 @@ function renderTask(t) {
   const time = new Intl.DateTimeFormat('ar-EG', { hour: '2-digit', minute: '2-digit' }).format(new Date(t.due_at));
   const typeLabel = TYPE_LABEL[t.task_type] || TYPE_LABEL.other;
   const isDone = !!t.is_done;
-  const checkChar = isDone ? '✓' : '';
+  const checkChar = isDone
+    ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 10"/></svg>'
+    : '';
   return (
     '<article class="study-task' + (isDone ? ' is-done' : '') + '" data-id="' + escapeHtml(t.id) + '">' +
       '<button type="button" class="study-task-check" data-action="toggle" aria-pressed="' + String(isDone) + '" aria-label="' + (isDone ? 'إلغاء الإنجاز' : 'علم كمنجزة') + '">' + checkChar + '</button>' +
@@ -253,7 +255,7 @@ async function addTask() {
   now.setMinutes(0, 0, 0);
   now.setHours(now.getHours() + 1);
   $('t-due').value = toLocalInputValue(now);
-  showToast('تمت الإضافة ✓', 'success');
+  showToast('تمت الإضافة', 'success');
 }
 
 async function toggleTask(id) {
