@@ -1,7 +1,7 @@
 ﻿/* COMANDO — دردشة الدفعة */
 /* تثبيت البار بالأسفل — الصفحة نفسها مالهاش سكرول، الرسايل بس هي اللي بتتمرر */
 html, body { height: 100% }
-body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden }
+body { display: flex; flex-direction: column; height: 100dvh; height: var(--vvh, 100dvh); overflow: hidden }
 
 .chat-topbar {
   flex: none;
@@ -139,7 +139,7 @@ body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden }
   border: 1.5px solid var(--border, #e9e4d6);
   background: var(--bg, #f7f6f1);
   border-radius: 12px; padding: 10px 12px;
-  font-family: inherit; font-size: .9rem; outline: none; transition: border-color .15s ease;
+  font-family: inherit; font-size: 16px; outline: none; transition: border-color .15s ease;
 }
 .chat-input:focus { border-color: #c56a3a }
 .chat-send {

@@ -8,11 +8,29 @@ import { escapeHtml } from './utils.js';
 const $ = (id) => document.getElementById(id);
 const SUPABASE_FUNCTIONS_PATH = '/functions/v1/chat';
 
+// تثبيت ارتفاع الصفحة على ارتفاع الـ visual viewport — عشان الكيبورد مايرفعش الشات لفوق
+(function initViewportFix() {
+  const vv = window.visualViewport;
+  const apply = () => {
+    if (!vv) return;
+    const h = Math.round(vv.height) + 'px';
+    document.documentElement.style.setProperty('--vvh', h);
+    // لو iOS حاول يزحزح الصفحة مع فتح الكيبورد — رجعها مكانها
+    if (window.scrollY > 0) window.scrollTo(0, 0);
+  };
+  if (vv) {
+    vv.addEventListener('resize', apply);
+    vv.addEventListener('scroll', apply);
+    apply();
+  }
+  window.addEventListener('orientationchange', () => window.setTimeout(apply, 120));
+})();
+
 const state = {
   messages: [],
   sending: false,
   pollHandle: 0,
-  renderedFingerprint: '',
+  renderedFingerprint: null,
   renderedIds: new Set(),
   isAdmin: false,
   replyTo: null, /* {id, author, text} */
@@ -219,15 +237,17 @@ function renderMessages() {
   const body = $('chat-messages');
   if (!body) return;
   const fp = fingerprint(state.messages);
-  if (fp === state.renderedFingerprint) return; // مفيش جديد — مفيش يومض
-  state.renderedFingerprint = fp;
 
-  // دور الأدمن اتغير؟ نعيد بناء الرسايل عشان زرار المسح يظهر/يتشال صح
+  // دور الأدمن اتغير؟ نعيد بناء الرسايل كلها عشان زرار المسح يظهر/يتشال صح
   if (state.renderedIsAdmin !== state.isAdmin) {
     body.innerHTML = '';
     state.renderedIds = new Set();
     state.renderedIsAdmin = state.isAdmin;
+    state.renderedFingerprint = null;
   }
+
+  if (fp === state.renderedFingerprint) return; // مفيش جديد — مفيش يومض
+  state.renderedFingerprint = fp;
 
   if (!state.messages.length) {
     body.innerHTML =
