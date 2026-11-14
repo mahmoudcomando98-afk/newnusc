@@ -297,8 +297,8 @@ Deno.serve(async (req) => {
         .select('title, material_type, subject_id, is_published, created_at, due_at')
         .eq('is_published', true)
         .order('created_at', { ascending: false })
-        .limit(80),
-      admin.from('faq').select('question, answer').eq('is_published', true).order('sort_order').limit(30),
+        .limit(30),
+      admin.from('faq').select('question, answer').eq('is_published', true).order('sort_order').limit(20),
       admin
         .from('announcements')
         .select('title, content, created_at, is_pinned')
@@ -316,7 +316,7 @@ Deno.serve(async (req) => {
         .select('title, content')
         .eq('is_active', true)
         .order('created_at', { ascending: false })
-        .limit(40)
+        .limit(25)
     ]);
 
     const subjectNames = new Map<string, string>();
@@ -511,38 +511,55 @@ Deno.serve(async (req) => {
       tasks: tasksLines
     });
 
-    // 6) Groq
-    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer ' + groqKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        temperature: 0.35,
-        max_tokens: MAX_TOKENS
-      })
-    });
+    // 6) Groq — تجربة موديلات متعددة بالترتيب (نادر جدًا ما يفشلوا كلهم)
+    const candidateModels = [GROQ_MODEL, 'openai/gpt-oss-20b', 'openai/gpt-oss-120b'];
+    const payloadMessages = [{ role: 'system', content: systemPrompt }, ...messages];
+    let reply = null;
+    let lastStatus = 0;
+    let lastDetail = '';
 
-    if (!groqRes.ok) {
-      const detail = await groqRes.text().catch(() => '');
-      console.error('[ai-chat] groq error:', groqRes.status, detail.slice(0, 300));
-      if (groqRes.status === 429) {
+    for (const model of candidateModels) {
+      try {
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer ' + groqKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model,
+            messages: payloadMessages,
+            temperature: 0.35,
+            max_tokens: MAX_TOKENS
+          })
+        });
+
+        if (groqRes.ok) {
+          const groqJson = await groqRes.json();
+          reply = groqJson?.choices?.[0]?.message?.content?.trim() || null;
+          if (reply) break;
+        }
+
+        lastStatus = groqRes.status;
+        lastDetail = (await groqRes.text().catch(() => '')).slice(0, 300);
+        console.error('[ai-chat] groq error on', model, ':', lastStatus, lastDetail);
+        // مفتاح بطل — مالهش داعي نجرب الموديلات الثانية
+        if (groqRes.status === 401 || /invalid_api_key|invalid api key/i.test(lastDetail)) break;
+      } catch (e) {
+        lastStatus = 0;
+        lastDetail = String(e).slice(0, 200);
+        console.error('[ai-chat] network error on', model, ':', e);
+      }
+    }
+
+    if (!reply) {
+      if (lastStatus === 429) {
         return json({ ok: false, error: 'المساعد مشغول دلوقتي — جرّب تاني خلال دقيقة.' }, 429);
       }
-      // مفتاح الذكاء الاصطناعي بطل — لازم الأدمن يجدد
-      if (groqRes.status === 401 || /invalid_api_key|invalid api key/i.test(detail)) {
+      if (lastStatus === 401 || /invalid_api_key|invalid api key/i.test(lastDetail)) {
         return json({ ok: false, error: 'المساعد غير مفعل دلوقتي لحد ما يتضبط مفتاح الذكاء — راجع الإدارة.' }, 503);
       }
       return json({ ok: false, error: 'حصل مشكلة في التفكير عنك دلوقتي — جرّب تاني كمان شوية.' }, 502);
-    }
-
-    const groqJson = await groqRes.json();
-    const reply = groqJson?.choices?.[0]?.message?.content?.trim();
-    if (!reply) {
-      return json({ ok: false, error: 'رد فاضي من المساعد — جرّب تاني.' }, 502);
     }
 
     return json({ ok: true, reply });
