@@ -58,17 +58,17 @@ html, body {
   border-radius: 12px !important;
   background: var(--grad-brand) !important;
   color: #fff !important;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 40%, transparent), 0 1px 0 rgba(255,255,255,.35) inset !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.35) inset !important;
   border: 0 !important;
   font-weight: 800 !important;
 }
 .desktop-nav a {
-  transition: background-color .18s ease, color .18s ease, box-shadow .18s ease !important;
+  transition: background-color .18s ease, color .18s ease !important;
 }
 .desktop-nav a.active {
   background: var(--primary-light) !important;
   color: var(--primary-dark) !important;
-  box-shadow: 0 1px 0 rgba(255,255,255,.8) inset, 0 4px 14px color-mix(in srgb, var(--primary) 16%, transparent) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.8) inset !important;
 }
 .header-btn {
   border-radius: 12px !important;
@@ -91,7 +91,7 @@ html, body {
     background: color-mix(in srgb, var(--surface) 84%, transparent) !important;
     backdrop-filter: blur(20px) saturate(1.25) !important;
     -webkit-backdrop-filter: blur(20px) saturate(1.25) !important;
-    box-shadow: 0 18px 44px rgba(30, 22, 14, .22), 0 2px 0 rgba(255,255,255,.75) inset !important;
+    box-shadow: 0 6px 16px rgba(30, 22, 14, .12), 0 2px 0 rgba(255,255,255,.75) inset !important;
     overflow: hidden !important;
   }
   .bottom-nav a {
@@ -106,7 +106,7 @@ html, body {
     background: color-mix(in srgb, var(--primary-light) 72%, var(--surface)) !important;
     color: var(--primary-dark) !important;
     border-radius: 13px !important;
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--primary) 26%, transparent) !important;
+    box-shadow: 0 2px 4px color-mix(in srgb, var(--primary) 16%, transparent) !important;
   }
   .bottom-nav a span[data-icon] { transition: background .25s var(--ease-spring), transform .25s var(--ease-spring) }
   .bottom-nav a:active span[data-icon] { transform: scale(.9) }
@@ -176,7 +176,7 @@ html, body {
   font-weight: 800 !important;
   transition: transform .18s var(--ease-spring), box-shadow .18s ease !important;
 }
-.section-more:hover { transform: translateX(-4px) !important; box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 25%, transparent) !important }
+.section-more:hover { transform: translateX(-4px) !important; border-color: var(--primary) !important }
 
 /* ═══ الأزرار — تدرج بهوية الثيم + ردّات لمس ═══ */
 .btn,
@@ -194,16 +194,16 @@ button.primary,
   padding: 9px 18px !important;
   font-size: .9rem !important;
   font-weight: 700 !important;
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--primary) 36%, transparent), 0 1px 0 rgba(255,255,255,.25) inset !important;
-  transition: transform .16s var(--ease-spring), filter .16s ease, box-shadow .16s ease !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.25) inset !important;
+  transition: transform .16s var(--ease-spring), filter .16s ease !important;
 }
 .btn-primary:hover,
 .btn-gold:hover,
 .btn-success:hover,
 .auth-submit:hover {
-  transform: translateY(-2px) !important;
-  filter: brightness(1.06) saturate(1.05) !important;
-  box-shadow: 0 10px 26px color-mix(in srgb, var(--primary) 44%, transparent), 0 1px 0 rgba(255,255,255,.3) inset !important;
+  transform: translateY(-1px) !important;
+  filter: brightness(1.08) saturate(1.05) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.3) inset !important;
 }
 .btn:active:not(:disabled),
 .header-btn:active { transform: scale(.94) !important }
@@ -264,7 +264,6 @@ input:focus, select:focus, textarea:focus,
   background: var(--grad-brand) !important;
   color: #fff !important;
   border-color: transparent !important;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 34%, transparent) !important;
 }
 
 /* ═══ Skeleton أنعم ═══ */
@@ -321,7 +320,6 @@ input:focus, select:focus, textarea:focus,
   background: var(--grad-brand) !important;
   color: #fff !important;
   border: 0 !important;
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 34%, transparent) !important;
 }
 .shortcut-arrow { color: var(--primary) !important; opacity: .85 !important }
 
@@ -395,6 +393,26 @@ input:focus, select:focus, textarea:focus,
   .bottom-nav a span[data-icon],
   .card,
   .btn { animation: none !important; transition: none !important }
+}
+
+/* ═══ منع هالة الأزرار/الرقائق في كل المنصة — الحد الباطني يكفي ═══ */
+.btn, .btn-primary, .btn-secondary, .btn-outline, .btn-ghost, .btn-soft, .btn-light, .btn-danger,
+.btn-sm, .btn-lg, .btn-xs, .btn-mini, .btn-block, .btn-macro,
+.tab, .tab.active, .pill, .chip, .flt, .flt.is-active, .tab-btn, .tab-btn.active,
+.section-more, .section-link,
+.shortcut-icon, .shortcut-card .shortcut-icon,
+.chat-send, .ai-send, .ai-chip, .ai-fab,
+.header-btn, .logo-icon,
+.notif-mark-all, .notif-chip.is-active, .updates-chip.is-active,
+.favorite-btn, .share-btn, .expand-btn, .expand-toggle-btn,
+.modal-btn, .dialog-btn, .backdrop-btn {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* التمييز البصري للعنصر الـ active — حلقة داخلية خفيفة تخرز التدرج */
+.flt.is-active, .tab-btn.active, .tab.active {
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--primary-light) 70%, #fff) inset !important;
 }
 
 @media print {
