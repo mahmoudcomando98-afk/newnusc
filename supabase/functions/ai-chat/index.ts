@@ -532,6 +532,10 @@ Deno.serve(async (req) => {
       if (groqRes.status === 429) {
         return json({ ok: false, error: 'المساعد مشغول دلوقتي — جرّب تاني خلال دقيقة.' }, 429);
       }
+      // مفتاح الذكاء الاصطناعي بطل — لازم الأدمن يجدد
+      if (groqRes.status === 401 || /invalid_api_key|invalid api key/i.test(detail)) {
+        return json({ ok: false, error: 'المساعد غير مفعل دلوقتي لحد ما يتضبط مفتاح الذكاء — راجع الإدارة.' }, 503);
+      }
       return json({ ok: false, error: 'حصل مشكلة في التفكير عنك دلوقتي — جرّب تاني كمان شوية.' }, 502);
     }
 

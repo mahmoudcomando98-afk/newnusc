@@ -238,9 +238,12 @@ function setSending(sending) {
 }
 
 function friendlyError(errText) {
-  var msg = String(errText || '').toLowerCase();
-  if (msg.indexOf('429') !== -1) return 'محاولات كتير — استنى دقيقة وجرب تاني.';
-  if (msg.indexOf('401') !== -1 || msg.indexOf('jwt') !== -1) return 'انتهت جلستك — سجّل دخول تاني.';
+  var msg = String(errText || '');
+  // رسالة واضحة من السيرفر (زي "المساعد غير مفعل" / "المساعد مشغول") — اعرضها زي ما هي
+  if (/[\u0600-\u06FF]/.test(msg)) return msg;
+  var lower = msg.toLowerCase();
+  if (lower.indexOf('429') !== -1) return 'محاولات كتير — استنى دقيقة وجرب تاني.';
+  if (lower.indexOf('401') !== -1 || lower.indexOf('jwt') !== -1) return 'انتهت جلستك — سجّل دخول تاني.';
   return 'حصلت مشكلة — جرّب تاني.';
 }
 
