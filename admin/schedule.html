@@ -5,122 +5,267 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
-  <title>إدارة الجدول | NUSC</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=sched-fix-v2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=sched-fix-v2" />
+  <title>إدارة الجدول | COMANDO</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=sched-v2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=sched-v2" />
+  <link rel="stylesheet" href="/assets/css/updates.css?v=sched-v2" />
+  <style>
+    .tabs { display:flex; gap:8px; margin-bottom:12px; overflow-x:auto; }
+    .tab-btn { border:0; background: var(--surface-soft,#f5f0eb); color: var(--text-muted,#7a736c); font-family:inherit; font-weight:700; padding:10px 18px; border-radius: 10px; cursor:pointer; white-space:nowrap; font-size:.9rem; }
+    .tab-btn.active { background: var(--primary); color:#fff; }
+    .list-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; display:flex; gap:10px; align-items:center; justify-content:space-between; }
+    .list-card h4 { margin:0; font-size:.95rem; }
+    .list-card small { color:var(--text-muted); display:block; margin-top:2px; font-size:.78rem; line-height:1.5; }
+    .chip { display:inline-flex; align-items:center; background: var(--surface-soft); border-radius:999px; padding:2px 10px; font-size:.7rem; font-weight:700; color:var(--text-muted); }
+    .grid-2 { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    @media (max-width: 520px) { .grid-2 { grid-template-columns: 1fr; } }
+    .section-pill { display:inline-flex; align-items:center; gap:4px; background: var(--primary-light); color: var(--primary-dark); font-size:.7rem; padding:2px 8px; border-radius:999px; font-weight:800; }
+  </style>
 </head>
 <body>
   <header class="app-header">
     <div class="container">
-      <a href="/admin/index.html" class="logo"><span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span><span>الجدول</span></a>
+      <a href="/admin/index.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>الجدول الدراسي</span>
+      </a>
       <button type="button" class="btn btn-sm btn-primary" id="add-btn">+ موعد</button>
     </div>
   </header>
+
   <main class="page" style="padding-bottom:24px">
     <div class="container page-content">
-      <div id="form-panel" class="card mb-3 hidden">
-        <form id="sch-form">
-          <div class="form-group"><label class="form-label">العنوان *</label><input type="text" id="title" class="form-input" required /></div>
-          <div class="form-group"><label class="form-label">النوع</label>
-            <select id="event_type" class="form-select">
-              <option value="lecture">محاضرة</option>
-              <option value="section">سكشن</option>
-              <option value="quiz">كويز</option>
-              <option value="exam">امتحان</option>
-              <option value="other">أخرى</option>
+
+      <div class="tabs" role="tablist" aria-label="نوع الجدول">
+        <button class="tab-btn active" id="tab-lectures" role="tab" aria-selected="true">المحاضرات</button>
+        <button class="tab-btn" id="tab-sections" role="tab" aria-selected="false">السكاشن</button>
+      </div>
+
+      <div id="form-panel" class="card mb-3 hidden" style="padding:16px">
+        <form id="sch-form" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="title">العنوان / اسم المادة *</label>
+            <select id="subject_id" class="form-select" required>
+              <option value="">— اختار المادة —</option>
             </select>
           </div>
-          <div class="form-group"><label class="form-label">اليوم</label>
-            <select id="day_of_week" class="form-select">
-              <option value="">—</option>
-              <option value="0">الأحد</option>
-              <option value="1">الاثنين</option>
-              <option value="2">الثلاثاء</option>
-              <option value="3">الأربعاء</option>
-              <option value="4">الخميس</option>
-              <option value="5">الجمعة</option>
-              <option value="6">السبت</option>
-            </select>
+
+          <div class="form-group" id="section-group" hidden>
+            <label class="form-label" for="section_number">رقم السكشن (١…٢٥)</label>
+            <input type="number" id="section_number" class="form-input" min="1" max="25" step="1" placeholder="مثال: 1" dir="ltr" />
+            <p class="text-xs text-muted" style="margin:.35rem 0 0">السكشن رقم <span id="section-preview">؟</span> — كل مادة تتقسم لكذا سكشن بمواعيد مختلفة</p>
           </div>
-          <div class="form-group"><label class="form-label">من</label><input type="time" id="start_time" class="form-input" dir="ltr" /></div>
-          <div class="form-group"><label class="form-label">إلى</label><input type="time" id="end_time" class="form-input" dir="ltr" /></div>
-          <div class="form-group"><label class="form-label">المكان</label><input type="text" id="location" class="form-input" /></div>
-          <div class="flex gap-1"><button type="submit" class="btn btn-primary">حفظ</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="day_of_week">اليوم</label>
+              <select id="day_of_week" class="form-select">
+                <option value="">— (لمحة/امتحان إضافي)</option>
+                <option value="0">الأحد</option>
+                <option value="1">الاثنين</option>
+                <option value="2">الثلاثاء</option>
+                <option value="3">الأربعاء</option>
+                <option value="4">الخميس</option>
+                <option value="5">الجمعة</option>
+                <option value="6">السبت</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="instructor">المعيد / الدكتور</label>
+              <input type="text" id="instructor" class="form-input" placeholder="اختياري — اتقل في القائمة بوليس إذا سابته" />
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="start_time">يبدأ من</label>
+              <input type="time" id="start_time" class="form-input" dir="ltr" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="end_time">لحد</label>
+              <input type="time" id="end_time" class="form-input" dir="ltr" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="location">المكان / القاعة</label>
+            <input type="text" id="location" class="form-input" placeholder="مثال: قاعة 301 / A2" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="notes">ملاحظة</label>
+            <input type="text" id="notes" class="form-input" placeholder="اختياري" />
+          </div>
+
+          <div class="flex gap-1" style="margin-top:.35rem">
+            <button type="submit" class="btn btn-primary">حفظ</button>
+            <button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button>
+          </div>
         </form>
       </div>
-      <div id="list"></div>
+
+      <div id="list" role="region" aria-label="قائمة المواعيد">
+        <div class="card" style="padding:18px; text-align:center; color: var(--text-muted)">جاري التحميل…</div>
+      </div>
     </div>
   </main>
+
   <script type="module">
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
-    import { escapeHtml, formatTime, showEmpty, showError, showToast, withLoading, initIcons, WEEKDAYS_AR } from '../assets/js/utils.js';
+    import { escapeHtml, formatTime, showToast, showError, showEmpty, initIcons, setActiveNav, WEEKDAYS_AR } from '../assets/js/utils.js';
 
-    // Live database table name
-    const TABLE = 'schedule_items';
+    const WEEK = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+    const TYPES = { lecture: 'lecture', section: 'section' };
+    let currentType = 'lecture';
+    let rowId = null;
+    let subjects = [];
 
-    async function init() {
-      const ok = await protectAdminPage();
-      if (!ok) return;
-      document.documentElement.classList.remove('admin-auth-pending');
-      initIcons();
-      document.getElementById('add-btn').onclick = () => document.getElementById('form-panel').classList.remove('hidden');
-      document.getElementById('cancel-btn').onclick = () => document.getElementById('form-panel').classList.add('hidden');
-      document.getElementById('sch-form').onsubmit = save;
-      await load();
+    function $(sel) { return document.querySelector(sel); }
+    function markType(t) {
+      currentType = t;
+      $('#tab-lectures').classList.toggle('active', t === 'lecture');
+      $('#tab-sections').classList.toggle('active', t === 'section');
+      $('#section-group').hidden = t !== 'section';
+      load();
+    }
+
+    async function loadSubjects() {
+      const { data, error } = await supabase.from('subjects').select('id, name, code, instructor, is_published, sort_order').order('sort_order', { ascending: true }).order('name', { ascending: true });
+      if (error) { console.error(error); subjects = []; return; }
+      subjects = data || [];
+      const sel = document.getElementById('subject_id');
+      sel.innerHTML = '<option value="">— اختار المادة —</option>' + subjects.map((s) => (
+        '<option value="' + escapeHtml(s.id) + '">' + escapeHtml((s.name || 'مادة') + (s.code ? ' · ' + s.code : '')) + '</option>'
+      )).join('');
     }
 
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase.from(TABLE).select('*').order('day_of_week').order('start_time');
+        let query = supabase.from('schedule_items').select('id, subject_id, title, event_type, day_of_week, start_time, end_time, location, instructor, notes, is_active, section_number, created_at').eq('event_type', currentType).order('day_of_week', { ascending: true, nullsFirst: false }).order('start_time', { ascending: true });
+        const { data, error } = await query;
         if (error) throw error;
-        if (!data?.length) {
-          showEmpty(el, 'لا توجد مواعيد — اضغط + موعد');
+        if (!data || !data.length) {
+          showEmpty(el, currentType === 'lecture' ? 'لا توجد محاضرات — اضغط + موعد' : 'لا توجد سكاشن — اضغط + موعد');
           return;
         }
-        el.innerHTML = data.map((s) => {
-          const day = s.day_of_week != null ? (WEEKDAYS_AR[s.day_of_week] || '') : '';
-          const time = s.start_time ? formatTime(s.start_time) : '';
-          return `<div class="card mb-2"><div class="flex justify-between" style="gap:8px;align-items:flex-start"><div><h3 class="card-title">${escapeHtml(s.title)}</h3><p class="text-sm text-muted">${escapeHtml(day)} ${escapeHtml(time)} ${escapeHtml(s.location || '')}</p></div><button type="button" class="btn btn-sm btn-danger" data-del="${s.id}">حذف</button></div></div>`;
-        }).join('');
-        el.querySelectorAll('[data-del]').forEach((btn) => {
-          btn.onclick = async () => {
-            if (!confirm('حذف الموعد؟')) return;
-            const { error } = await supabase.from(TABLE).delete().eq('id', btn.dataset.del);
-            if (error) showToast(error.message, 'error');
-            else await load();
-          };
-        });
+        renderList(el, data);
       } catch (e) {
         console.error(e);
-        showError(el, 'تعذر التحميل: ' + (e.message || 'جدول schedule_items'));
+        showError(el, 'تعذر التحميل: ' + (e.message || 'schedule_items'));
       }
+    }
+
+    function subjectName(id) {
+      const s = subjects.find((x) => x.id === id);
+      return s ? s.name : '';
+    }
+
+    function renderList(el, rows) {
+      const grouped = {};
+      for (const r of rows) {
+        const key = r.day_of_week == null ? 'x' : String(r.day_of_week);
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(r);
+      }
+      const order = ['0','1','2','3','4','5','6'];
+      const html = [];
+      for (const day of order) {
+        if (!grouped[day]) continue;
+        const dayNum = Number(day);
+        html.push('<h3 class="card-title" style="margin:.9rem 0 .35rem; padding:0 .2rem; font-size:.8rem; color: var(--text-muted); font-weight:800; letter-spacing:.4px">' + escapeHtml(WEEKDAYS_AR[dayNum] || day) + '</h3>');
+        grouped[day].forEach((r) => html.push(cardHtml(r)));
+      }
+      if (grouped['x']) {
+        html.push('<h3 class="card-title" style="margin:.9rem 0 .35rem; padding:0 .2rem; font-size:.8rem; color: var(--text-muted); font-weight:800; letter-spacing:.4px">بدون يوم (استثنائي)</h3>');
+        grouped['x'].forEach((r) => html.push(cardHtml(r)));
+      }
+      el.innerHTML = html.join('');
+      el.querySelectorAll('[data-del]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('حذف الموعد؟')) return;
+          const { error } = await supabase.from('schedule_items').delete().eq('id', btn.getAttribute('data-del'));
+          if (error) showToast(error.message, 'error');
+          else { showToast('تم الحذف', 'success'); load(); }
+        });
+      });
+    }
+
+    function cardHtml(r) {
+      const sub = subjectName(r.subject_id);
+      const time = r.start_time ? (r.start_time.slice(0,5) + (r.end_time ? ' ← ' + r.end_time.slice(0,5) : '')) : '';
+      const strip = '<span class="chip">' + escapeHtml(r.event_type === 'section' ? 'سكشن' : 'محاضرة') + '</span>' +
+        (sub ? ' <span class="chip">' + escapeHtml(sub) + '</span>' : '');
+      const sno = r.section_number != null ? '<span class="section-pill">سكشن ' + escapeHtml(String(r.section_number)) + '</span>' : '';
+      const loc = [r.location, r.instructor].filter(Boolean).map(escapeHtml).join(' · ');
+      const body = loc ? '<small>' + loc + '</small>' : '';
+      return '<div class="list-card"><div style="min-width:0"><h4>' + escapeHtml(r.title || (sub || 'موعد')) + '</h4>' +
+        '<small>' + strip + '</small>' +
+        (r.section_number != null ? '<small>' + sno + '</small>' : '') +
+        body +
+        (r.notes ? '<small>' + escapeHtml(r.notes) + '</small>' : '') +
+        (time ? '<small>' + escapeHtml(time) + '</small>' : '') +
+      '</div><button type="button" class="btn btn-sm btn-danger" data-del="' + escapeHtml(r.id) + '">حذف</button></div>';
+    }
+
+    async function init() {
+      const ok = await protectAdminPage();
+      if (!ok) return;
+      document.documentElement.classList.remove('admin-auth-pending');
+      await loadSubjects();
+      $('#tab-lectures').onclick = () => markType('lecture');
+      $('#tab-sections').onclick = () => markType('section');
+      document.getElementById('add-btn').onclick = () => { document.getElementById('form-panel').classList.remove('hidden'); };
+      document.getElementById('cancel-btn').onclick = () => { document.getElementById('form-panel').classList.add('hidden'); };
+      document.getElementById('subject_id').onchange = function(){ const val = this.value; const s = subjects.find((x) => x.id === val); const t = document.getElementById('title'); if (s) t.value = s.name || ''; };
+      document.getElementById('section_number').oninput = function(){ document.getElementById('section-preview').textContent = this.value || '؟'; };
+      document.getElementById('sch-form').onsubmit = save;
+      await load();
     }
 
     async function save(e) {
       e.preventDefault();
-      await withLoading(e.target.querySelector('[type=submit]'), async () => {
+      const submit = e.target.querySelector('[type=submit]');
+      if (!submit) return;
+      submit.disabled = true;
+      try {
         const day = document.getElementById('day_of_week').value;
+        const sectionRaw = document.getElementById('section_number').value.trim();
         const payload = {
-          title: document.getElementById('title').value.trim(),
-          event_type: document.getElementById('event_type').value || 'lecture',
+          title: (function(){
+            const sel = document.getElementById('subject_id');
+            const s = subjects.find((x) => x.id === sel.value);
+            return (s ? s.name : document.getElementById('title').value) || (currentType === 'section' ? 'سكشن' : 'محاضرة');
+          })(),
+          subject_id: document.getElementById('subject_id').value || null,
+          event_type: currentType,
           day_of_week: day !== '' ? parseInt(day, 10) : null,
           start_time: document.getElementById('start_time').value || null,
           end_time: document.getElementById('end_time').value || null,
           location: document.getElementById('location').value.trim() || null,
+          instructor: document.getElementById('instructor').value.trim() || null,
+          notes: document.getElementById('notes').value.trim() || null,
+          section_number: sectionRaw !== '' ? parseInt(sectionRaw, 10) : null,
           is_active: true
         };
-        const { error } = await supabase.from(TABLE).insert(payload);
-        if (error) {
-          showToast(error.message || 'فشل الحفظ', 'error');
+        if (currentType === 'section' && (payload.section_number == null || isNaN(payload.section_number))) {
+          showToast('رقم السكشن مطلوب', 'error');
           return;
         }
+        const { data, error } = await supabase.from('schedule_items').insert(payload).select('id').single();
+        if (error) throw error;
         showToast('تم الحفظ', 'success');
         document.getElementById('form-panel').classList.add('hidden');
         e.target.reset();
+        document.getElementById('section-preview').textContent = '؟';
         await load();
-      })();
+      } catch (e) {
+        console.error(e);
+        showToast('تعذر الحفظ: ' + (e.message || ''), 'error');
+      } finally {
+        submit.disabled = false;
+      }
     }
 
     init();

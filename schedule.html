@@ -4,62 +4,127 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#faf9f7" />
-  <meta name="description" content="الجدول الدراسي على منصة COMANDO التعليمية" />
+  <meta name="description" content="الجدول الدراسي الأسبوعي — محاضرات وسكاشن كل أسبوع على منصة COMANDO." />
   <title>الجدول | COMANDO</title>
-  <link rel="stylesheet" href="/assets/css/main.css?v=comando-2" />
-  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=schedule-polish-3" />
+  <link rel="icon" href="/nusc.png.jpeg" type="image/jpeg" />
+  <link rel="stylesheet" href="/assets/css/main.css?v=sched-v2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=sched-v2" />
   <style>
-    .schedule-page .page-content { max-width: 1040px; }
-    .schedule-page .section-header { margin: 8px 0 18px !important; padding: 18px 20px; background: #fff; border: 1px solid var(--border); border-radius: 10px; }
-    .schedule-page .section-header h1 { font-size: 1.35rem !important; }
-    .schedule-page .section-header h1::after { content: "رتّب محاضراتك ومواعيدك في مكان واحد"; display: block; margin-top: 5px; color: var(--text-muted); font-size: .84rem; font-weight: 400; }
-    .schedule-page #view-tabs { display: inline-flex; padding: 4px; gap: 4px !important; margin-bottom: 16px !important; border: 1px solid var(--border); border-radius: 9px; background: #f5f0eb; }
-    .schedule-page #view-tabs .tab { min-width: 100px; border: 0 !important; background: transparent !important; border-radius: 6px !important; padding: 8px 16px !important; }
-    .schedule-page #view-tabs .tab.active { background: #fff !important; color: var(--primary-dark) !important; border: 1px solid #ebe0d7 !important; }
-    .schedule-page .schedule-card, .schedule-page #schedule-content > .card { padding: 14px 16px !important; margin-bottom: 10px !important; transition: border-color .15s ease; }
-    .schedule-page .schedule-card:hover, .schedule-page #schedule-content > .card:hover { border-color: #d9b8a3 !important; }
-    .schedule-page .schedule-card .list-item, .schedule-page #schedule-content > .card .list-item { gap: 12px; }
-    .schedule-page .schedule-card .list-item-icon, .schedule-page #schedule-content > .card .list-item-icon { width: 42px; height: 42px; min-width: 42px; display: grid; place-items: center; color: var(--primary-dark); background: #f8efe8 !important; border: 1px solid #eee0d5 !important; }
-    .schedule-page .list-item-title { color: var(--text); font-size: .98rem; font-weight: 700; line-height: 1.5; margin-bottom: 5px; }
-    .schedule-page .list-item-desc { color: var(--text-muted); font-size: .82rem; line-height: 1.9; }
-    .schedule-page .badge { display: inline-flex; align-items: center; padding: 2px 9px; margin-inline-end: 3px; font-size: .72rem; }
-    .schedule-page #schedule-content > .card > .card-title { padding-bottom: 10px; margin-bottom: 4px !important; border-bottom: 1px solid var(--border); color: var(--primary-dark); }
-    .schedule-page .skeleton-card { padding: 18px !important; }
-    @media (max-width: 640px) {
-      .schedule-page .section-header { padding: 15px 14px; margin-bottom: 14px !important; }
-      .schedule-page .section-header h1 { font-size: 1.18rem !important; }
-      .schedule-page .section-header h1::after { font-size: .78rem; }
-      .schedule-page #view-tabs { display: flex; width: 100%; }
-      .schedule-page #view-tabs .tab { flex: 1; min-width: 0; }
-      .schedule-page .schedule-card, .schedule-page #schedule-content > .card { padding: 12px !important; }
-      .schedule-page .schedule-card .list-item-icon, .schedule-page #schedule-content > .card .list-item-icon { width: 36px; height: 36px; min-width: 36px; }
+    .schedule-page .page-content { max-width: 1040px; padding-top: 22px; }
+    .schedule-page .schedule-hero {
+      display: flex; align-items: center; justify-content: space-between; gap: 14px;
+      padding: 18px 20px; margin-bottom: 14px; border-radius: 16px;
+      background: linear-gradient(150deg, var(--primary-light, #f8efe8), #fff 60%);
+      border: 1px solid var(--border); box-shadow: var(--shadow);
     }
+    .schedule-page .schedule-hero h1 {
+      font-size: 1.35rem; font-weight: 800; margin: 0; letter-spacing: -.2px;
+    }
+    .schedule-page .schedule-hero p {
+      margin: .25rem 0 0; color: var(--text-muted); font-size: .84rem; line-height: 1.6;
+    }
+    .schedule-page .schedule-hero .ph-icon {
+      flex: none; width: 64px; height: 64px; border-radius: 16px;
+      background: var(--grad-brand, linear-gradient(145deg, #c56a3a, #a4562f));
+      display: grid; place-items: center; color: #fff;
+      box-shadow: 0 8px 22px rgba(197, 106, 58, .35);
+    }
+    .schedule-page .filters {
+      display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; scrollbar-width: none; padding: 2px;
+    }
+    .schedule-page .filters::-webkit-scrollbar { display: none }
+    .schedule-page .flt {
+      flex: none; border: 1px solid var(--border); background: var(--surface); border-radius: 999px;
+      padding: 8px 18px; font-family: inherit; font-size: .84rem; font-weight: 700; color: var(--text-muted);
+      cursor: pointer; transition: all .2s ease;
+    }
+    .schedule-page .flt.is-active {
+      background: var(--grad-brand, linear-gradient(145deg, #c56a3a, #a4562f)); color: #fff;
+      border-color: transparent; box-shadow: 0 6px 16px rgba(197,106,58,.4);
+    }
+
+    .schedule-page .day-block { margin-bottom: 14px; }
+    .schedule-page .day-title {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 4px 10px; border-bottom: 1.5px solid var(--border); margin-bottom: 10px;
+      color: var(--text-muted); font-size: .78rem; letter-spacing: .8px; font-weight: 800;
+    }
+    .schedule-page .day-count {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 999px; padding: 1px 10px; font-size: .66rem;
+    }
+    .schedule-page .slot {
+      display: grid; grid-template-columns: 84px 1fr auto; align-items: center; gap: 10px;
+      padding: 12px; border-radius: 14px; background: var(--surface);
+      border: 1px solid var(--border); margin-bottom: 8px; box-shadow: var(--shadow);
+      transition: transform .15s ease, border-color .15s ease;
+    }
+    .schedule-page .slot:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--primary) 35%, var(--border)); }
+    .schedule-page .slot-time {
+      border-inline-end: 1.5px solid var(--border); padding-inline-end: 10px;
+      display: flex; flex-direction: column; gap: 1px; direction: ltr; text-align: end;
+    }
+    .schedule-page .slot-time strong { font-size: .86rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
+    .schedule-page .slot-time small { color: var(--text-muted); font-size: .66rem; font-variant-numeric: tabular-nums; }
+    .schedule-page .slot-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .schedule-page .slot-title { font-size: .9rem; font-weight: 800; color: var(--text); }
+    .schedule-page .slot-meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: .72rem; color: var(--text-muted); }
+    .schedule-page .chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: .66rem; font-weight: 800; }
+    .schedule-page .chip-lecture { background: #e7eef9; color: #1f4ba8; }
+    .schedule-page .chip-section { background: #fde8d1; color: #9a4f2b; }
+    .schedule-page .chip-quiz { background: #e5f9ed; color: #1f7a52; }
+    .schedule-page .chip-exam { background: #fbe3e0; color: #a12a2a; }
+    .schedule-page .chip-other { background: #efecea; color: #4a4a4a; }
+    .schedule-page .chip-subject { background: var(--surface-soft, #f5f0eb); border: 1px solid var(--border); color: var(--text-muted); }
+    .schedule-page .chip-section-no { background: var(--primary); color: #fff; }
+
+    .schedule-page .slot-section { min-width: 58px; text-align: center; }
+    .schedule-page .slot-section-label { font-size: .66rem; letter-spacing: .6px; color: var(--text-muted); font-weight: 800; }
+    .schedule-page .slot-section-num { font-size: 1.35rem; font-weight: 800; color: var(--primary-dark, #82621a); line-height: 1; }
+
+    .schedule-page .empty {
+      text-align: center; padding: 48px 16px; color: var(--text-muted);
+      border: 1.5px dashed var(--border); border-radius: 16px; background: var(--surface);
+    }
+    .schedule-page .empty h2 { font-size: 1.02rem; margin: 0 0 6px; color: var(--text); }
+    @media (max-width: 520px) {
+      .schedule-page .slot { grid-template-columns: 72px 1fr; }
+      .schedule-page .slot-section { grid-row: 2; grid-column: 1; border-inline-end: 0; border-inline-start: 1.5px solid var(--border); padding: 8px 0 0 0; margin-inline-end: 4px; }
+      .schedule-page .slot-section-num { font-size: 1.15rem }
+      .schedule-page .schedule-hero { padding: 14px 14px; }
+      .schedule-page .schedule-hero h1 { font-size: 1.15rem }
+    }
+    @media print { .filters, .schedule-hero .ph-icon, .bottom-nav { display: none !important } }
   </style>
 </head>
 <body class="schedule-page">
   <header class="app-header">
     <div class="container">
-      <a href="/home.html" class="logo"><span class="logo-icon">C</span><span>COMANDO</span></a>
-      <nav class="desktop-nav">
-        <a href="/home.html" data-nav="home">الرئيسية</a>
-        <a href="/subjects.html" data-nav="subjects">المواد</a>
-        <a href="/quizzes.html" data-nav="quizzes">الكويزات</a>
-        <a href="/schedule.html" data-nav="schedule" class="active">الجدول</a>
-        <a href="/updates.html" data-nav="updates">آخر التحديثات</a>
-      </nav>
-      <div class="header-actions">
-        <a href="/notifications.html" class="header-btn" title="الإشعارات"><span data-icon="bell"></span></a>
-        <a href="/profile.html" class="header-btn" title="حسابي"><span data-icon="user"></span></a>
-      </div>
+      <a href="/home.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>الجدول الدراسي</span>
+      </a>
     </div>
   </header>
-  <main class="page">
+
+  <main class="page" style="padding-bottom:88px">
     <div class="container page-content">
-      <div class="section-header"><h1>الجدول الدراسي</h1></div>
-      <div class="tabs" id="view-tabs" role="tablist">
-        <button type="button" class="tab active" data-view="list" role="tab">قائمة</button>
-        <button type="button" class="tab" data-view="week" role="tab">حسب اليوم</button>
+      <section class="schedule-hero" aria-label="الجدول الدراسي">
+        <div>
+          <h1>الجدول الدراسي</h1>
+          <p>محاضرات وسكاشن موادك — تتقسم على أرقام سكاشن، كل سكشن بموعده ومكانه، كل يوم.</p>
+        </div>
+        <div class="ph-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+      </section>
+
+      <div class="filters" id="filters" role="tablist" aria-label="تصفية الجدول">
+        <button type="button" class="flt is-active" data-filter="all" role="tab">الكل</button>
+        <button type="button" class="flt" data-filter="lecture" role="tab">المحاضرات</button>
+        <button type="button" class="flt" data-filter="section" role="tab">السكاشن</button>
       </div>
+
       <div id="schedule-root">
         <div id="schedule-content" aria-live="polite">
           <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
@@ -67,13 +132,15 @@
       </div>
     </div>
   </main>
+
   <nav class="bottom-nav">
     <a href="/home.html" data-nav="home"><span data-icon="home"></span>الرئيسية</a>
     <a href="/subjects.html" data-nav="subjects"><span data-icon="book"></span>المواد</a>
     <a href="/quizzes.html" data-nav="quizzes"><span data-icon="clipboard"></span>الكويزات</a>
     <a href="/schedule.html" data-nav="schedule" class="active"><span data-icon="calendar"></span>الجدول</a>
-    <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
+    <a href="/updates.html" data-nav="updates"><span data-icon="megaphone"></span>آخر التحديثات</a>
   </nav>
-  <script type="module" src="/assets/js/schedule.js"></script>
+
+  <script type="module" src="/assets/js/schedule.js?v=sched-v2"></script>
 </body>
 </html>
