@@ -15,7 +15,7 @@ const THEME_HEAD_SNIPPET = `
 `;
 const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=2"></script>`;
 const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=15" />`;
-const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=18"></script>`;
+const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=19"></script>`;
 const CHAT_ICON_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/chat-icon.css?v=1" />`;
 const CHAT_ICON_BODY_SNIPPET = `<script type="module" src="/assets/js/chat-icon.js?v=1"></script>`;
 

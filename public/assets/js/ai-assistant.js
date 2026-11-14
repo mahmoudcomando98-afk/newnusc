@@ -451,9 +451,11 @@ function openPanel({ welcome = true } = {}) {
 
   // ملاحظة متعمدة: مفيش focus تلقائي على الخانة — عشان الكيبورد ميفتحش لوحده على الموبايل
   if (welcome && state.messages.length === 0) {
+    setSending(true); // فورية: نقاط "بيكتب" تظهر فورًا — مفيش أي إحساس بتعليق
     callAi({ action: 'welcome' })
       .then(function (data) { addMessage('assistant', data.reply); })
-      .catch(function () { /* تجاهل — الطالب يقدر يسأل عادي */ });
+      .catch(function () { /* تجاهل — الطالب يقدر يسأل عادي */ })
+      .finally(function () { setSending(false); });
   }
 }
 
