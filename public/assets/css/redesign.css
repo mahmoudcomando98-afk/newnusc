@@ -328,7 +328,27 @@ input:focus, select:focus, textarea:focus,
 
 /* ═══ ثيم البنات — نفس التعليمات، بس بينقط تلقائي عن طريق var(--primary) الوردي ═══ */
 
-/* ═══ الوضع الليلي — اعادة إثبات الألوان بهذا الموقع في السلسلة ═══ */
+/* ═══ استعادة بنتيتش — اللون الدافئ الرسمى — عشان ما تسقطش تحت CSS السلسلة الأونلاين ═══ */
+:root {
+  --primary: #c56a3a !important;
+  --primary-light: #f8efe8 !important;
+  --primary-dark: #9a4f2b !important;
+  --accent: #c56a3a !important;
+  --bg: #faf9f7 !important;
+  --surface: #ffffff !important;
+  --surface-soft: #f5f0eb !important;
+  --text: #2c2a28 !important;
+  --text-muted: #7a736c !important;
+  --border: #ebe6e1 !important;
+  --primary-light: #f8efe8 !important;
+  --primary-dark: #9a4f2b !important;
+  --auth-green: #c56a3a !important;
+  --auth-green-hover: #9a4f2b !important;
+  --auth-gold: #c56a3a !important;
+  --auth-line: #ebe6e1 !important;
+  --auth-ink: #2c2a28 !important;
+  --auth-muted: #7a736c !important;
+}
 :root[data-theme="dark"] {
   --primary: #e0965f !important;
   --primary-light: #2b241e !important;
