@@ -11,7 +11,7 @@
     { "source": "/online-schedule", "destination": "/online-schedule.html" },
     { "source": "/admin/statistics", "destination": "/admin/statistics.html" },
     { "source": "/admin/quiz-questions", "destination": "/admin/quiz-questions.html" },
-    { "source": "/announcements", "destination": "/announcements.html" },
+    { "source": "/announcements", "destination": "/updates.html" },
     { "source": "/notifications", "destination": "/notifications.html" },
     { "source": "/profile", "destination": "/profile.html" },
     { "source": "/study-plan", "destination": "/study-plan.html" },

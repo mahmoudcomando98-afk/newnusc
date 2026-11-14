@@ -215,7 +215,6 @@ export default defineConfig(({ mode }) => {
           schedule: resolve(import.meta.dirname, 'schedule.html'),
           'online-sections': resolve(import.meta.dirname, 'online-sections.html'),
           'online-schedule': resolve(import.meta.dirname, 'online-schedule.html'),
-          announcements: resolve(import.meta.dirname, 'announcements.html'),
           notifications: resolve(import.meta.dirname, 'notifications.html'),
           updates: resolve(import.meta.dirname, 'updates.html'),
           favorites: resolve(import.meta.dirname, 'favorites.html'),

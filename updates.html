@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#faf9f7" />
-  <meta name="description" content="آخر الملفات والإعلانات على منصة COMANDO التعليمية." />
+  <meta name="description" content="آخر ملفات المواد وإعلانات المنصة — الإنجاز اللي اتضاف جديد، كله هنا." />
   <meta property="og:title" content="COMANDO — آخر التحديثات" />
-  <meta property="og:description" content="ملفات المواد، الكويزات، والإعلانات." />
+  <meta property="og:description" content="ملفات المواد والإعلانات في مكان واحد." />
   <meta property="og:image" content="/nusc.png.jpeg" />
   <meta property="og:type" content="website" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -15,33 +15,67 @@
   <title>آخر التحديثات | COMANDO</title>
   <link rel="stylesheet" href="/assets/css/main.css?v=comando-2" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-2" />
+  <link rel="stylesheet" href="/assets/css/updates.css?v=1" />
 </head>
 <body>
-  <header class="app-header">
+  <header class="app-header updates-header">
     <div class="container">
-      <a href="/home.html" class="logo"><span class="logo-icon">C</span><span class="logo-word">COMANDO</span></a>
-      <nav class="desktop-nav">
-        <a href="/home.html" data-nav="home">الرئيسية</a>
-        <a href="/subjects.html" data-nav="subjects">المواد</a>
-        <a href="/quizzes.html" data-nav="quizzes">الكويزات</a>
-        <a href="/schedule.html" data-nav="schedule">الجدول</a>
-        <a href="/announcements.html" data-nav="announcements">الإعلانات</a>
-      </nav>
-      <div class="header-actions">
-        <a href="/notifications.html" class="header-btn" title="الإشعارات"><span data-icon="bell"></span></a>
-        <a href="/profile.html" class="header-btn" title="حسابي"><span data-icon="user"></span></a>
-      </div>
+      <a href="/home.html" class="logo">
+        <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
+        <span>آخر التحديثات</span>
+      </a>
     </div>
   </header>
 
-  <main class="page">
+  <main class="page notif-page">
     <div class="container page-content">
-      <div class="section-header">
-        <h1>آخر التحديثات</h1>
+      <p class="text-sm text-muted mb-3" style="margin-top:14px">أحدث الملفات والإعلانات — كله في مكان واحد. أي حاجة تتنزل بعد آخر زيارة ليك، هتلاقيها بعلامة «جديد».</p>
+
+      <!-- إحصائيات -->
+      <div class="updates-stats" id="updates-stats" hidden>
+        <div class="updates-stat"><strong id="updates-stat-total">0</strong><span>إجمالي</span></div>
+        <div class="updates-stat"><strong id="updates-stat-files">0</strong><span>ملفات</span></div>
+        <div class="updates-stat"><strong id="updates-stat-announce">0</strong><span>إعلانات</span></div>
       </div>
-      <p class="text-sm text-muted mb-3">أحدث الملفات والإعلانات في مكان واحد. علامة «جديد» تظهر لما يتضاف حاجة بعد آخر زيارة ليك.</p>
-      <div class="feed-panel" id="updates-list">
-        <div class="skeleton-card"><div class="skeleton skeleton-title"></div></div>
+
+      <!-- فلاتر -->
+      <div class="updates-filters" role="tablist" aria-label="تصفية التحديثات">
+        <button type="button" class="updates-chip is-active" data-filter="all" role="tab">الكل</button>
+        <button type="button" class="updates-chip" data-filter="files" role="tab">الملفات</button>
+        <button type="button" class="updates-chip" data-filter="announcements" role="tab">الإعلانات</button>
+      </div>
+
+      <!-- القائمة -->
+      <div id="updates-list" aria-live="polite">
+        <div class="updates-skeleton" aria-hidden="true">
+          <div class="updates-skel-card"></div>
+          <div class="updates-skel-card"></div>
+          <div class="updates-skel-card"></div>
+          <div class="updates-skel-card"></div>
+        </div>
+      </div>
+
+      <!-- حالة فاضية -->
+      <div id="updates-empty" class="updates-empty" hidden>
+        <div class="updates-empty-stage">
+          <div class="updates-empty-ring"></div>
+          <div class="updates-empty-ring-2"></div>
+          <div class="updates-empty-icon">
+            <svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+        </div>
+        <h2>لسه مفيش تحديثات</h2>
+        <p>أي ملفات أو إعلانات جديدة هتتنزل هنا أول بأول.</p>
+      </div>
+
+      <!-- حالة الخطأ -->
+      <div id="updates-error" class="updates-error" hidden>
+        <div class="updates-error-icon">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <h2>تعذر تحميل التحديثات</h2>
+        <p>حصلت مشكلة مؤقتة — حاول تاني.</p>
+        <button type="button" class="btn btn-secondary" id="updates-retry">إعادة المحاولة</button>
       </div>
     </div>
   </main>

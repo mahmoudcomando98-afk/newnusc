@@ -59,12 +59,6 @@ export const PAGE_REQUIREMENTS = {
     title: 'الجدول',
     needs: 'جلسة نشطة'
   },
-  '/announcements.html': {
-    auth: true,
-    roles: ['student', 'admin', 'moderator'],
-    title: 'الإعلانات',
-    needs: 'جلسة نشطة'
-  },
   '/notifications.html': {
     auth: true,
     roles: ['student', 'admin', 'moderator'],
