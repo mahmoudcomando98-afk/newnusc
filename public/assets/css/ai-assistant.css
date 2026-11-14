@@ -80,8 +80,9 @@
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .22);
 }
 /* زاويه/ذيل فقاعة كلام: قاعدتها عند حد اللوحة السفلي وقمتها تنزل لتحت عند لمبة البوت (x ≈ 33px) */
 .ai-panel::before,
@@ -124,9 +125,10 @@
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  background: linear-gradient(145deg, #c56a3a 0%, #a4562f 100%);
+  background: linear-gradient(150deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: #fff;
   flex: none;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .25) inset, 0 4px 14px rgba(0, 0, 0, .12);
 }
 .ai-header-icon {
   width: 34px;
@@ -169,9 +171,9 @@
 .ai-body::-webkit-scrollbar { width: 5px; }
 .ai-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
 
-.ai-msg { max-width: 82%; padding: 9px 12px; border-radius: 14px; font-size: 0.87rem; line-height: 1.75; white-space: pre-wrap; word-wrap: break-word; }
-.ai-msg-user { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-top-right-radius: 4px; color: var(--text); }
-.ai-msg-assistant { align-self: flex-end; background: var(--primary-light); border: 1px solid #eadfd3; border-top-left-radius: 4px; color: var(--primary-dark); }
+.ai-msg { max-width: 82%; padding: 10px 13px; border-radius: 16px; font-size: 0.87rem; line-height: 1.75; white-space: pre-wrap; word-wrap: break-word; box-shadow: 0 1px 3px rgba(0, 0, 0, .06); }
+.ai-msg-user { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); border-top-right-radius: 5px; color: var(--text); }
+.ai-msg-assistant { align-self: flex-end; background: linear-gradient(160deg, var(--primary-light), color-mix(in srgb, var(--primary-light) 70%, #fff)); border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border)); border-top-left-radius: 5px; color: var(--primary-dark); }
 :root[data-theme="dark"] .ai-msg-assistant { border-color: #332e29; color: var(--primary); }
 .ai-msg-error { align-self: center; background: #fdeceb; border: 1px solid #f3c1bb; color: #9b1c1c; font-size: 0.8rem; border-radius: 10px; padding: 8px 12px; }
 

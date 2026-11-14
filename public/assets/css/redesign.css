@@ -1,0 +1,347 @@
+/* COMANDO — إعادة التصميم (نسخة 2.0 حديثة)
+   تحتفظ بهوية الثيم الرئيسية (الدهبي للبنين / الوردي للبنات) 100% —
+   بتغيّر الشكل والحركة بس، بدون ألوان تانية */
+
+:root {
+  --radius: 14px !important;
+  --radius-sm: 10px;
+  --radius-pill: 999px;
+  --shadow: 0 1px 2px rgba(43, 28, 18, .04), 0 6px 18px rgba(43, 28, 18, .06) !important;
+  --shadow-md: 0 2px 4px rgba(43, 28, 18, .05), 0 14px 36px rgba(43, 28, 18, .10) !important;
+  --glow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent) !important;
+  --ring: 3px solid color-mix(in srgb, var(--primary) 42%, transparent) !important;
+  --ease-out: cubic-bezier(.2, .7, .3, 1);
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+  --grad-brand: linear-gradient(150deg, var(--primary), var(--primary-dark));
+  --grad-brand-soft: linear-gradient(150deg, var(--primary-light) 0%, #ffffff 100%);
+}
+
+/* خلفية الصفحة: تدرج ناعم بدلاً من اللون الصريح — نفس لون الثيم */
+html, body {
+  background:
+    radial-gradient(1100px 500px at 110% -10%, color-mix(in srgb, var(--primary-light) 55%, transparent), transparent 55%),
+    radial-gradient(900px 600px at -10% -10%, color-mix(in srgb, var(--primary-light) 40%, transparent), transparent 55%),
+    var(--bg, #faf9f7) !important;
+}
+
+::selection { background: color-mix(in srgb, var(--primary) 30%, transparent) }
+:focus-visible { outline: var(--ring) !important; outline-offset: 2px !important; }
+
+/* Scrollbar نحيف بلون الثيم */
+::-webkit-scrollbar { width: 8px; height: 8px }
+::-webkit-scrollbar-track { background: transparent }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--primary) 30%, var(--border)); border-radius: 999px; transition: background .2s }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--primary) 50%, var(--border)) }
+
+/* ═══ الهيدر (التطبيق العلوي) — glass + خط ذهبي أسفل ═══ */
+.app-header {
+  background: color-mix(in srgb, var(--surface) 82%, transparent) !important;
+  backdrop-filter: blur(16px) saturate(1.15) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.15) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .6) inset, 0 6px 26px rgba(43, 28, 18, .05) !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 110 !important;
+}
+.app-header::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--primary) 28%, var(--primary-dark) 50%, var(--primary) 72%, transparent 100%);
+  opacity: .5;
+  pointer-events: none;
+}
+.logo-icon {
+  border-radius: 12px !important;
+  background: var(--grad-brand) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 40%, transparent), 0 1px 0 rgba(255,255,255,.35) inset !important;
+  border: 0 !important;
+  font-weight: 800 !important;
+}
+.desktop-nav a {
+  transition: background-color .18s ease, color .18s ease, box-shadow .18s ease !important;
+}
+.desktop-nav a.active {
+  background: var(--primary-light) !important;
+  color: var(--primary-dark) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.8) inset, 0 4px 14px color-mix(in srgb, var(--primary) 16%, transparent) !important;
+}
+.header-btn {
+  border-radius: 12px !important;
+  transition: transform .16s var(--ease-spring), background-color .18s, border-color .18s, color .18s !important;
+}
+.header-btn:hover { transform: translateY(-2px) !important; border-color: var(--primary) !important; color: var(--primary-dark) !important }
+.header-btn:active { transform: scale(.92) !important }
+
+/* ═══ شريط التنقل السفلي — Pill عائم ═══ */
+@media (max-width: 899px) {
+  .bottom-nav {
+    position: fixed !important;
+    bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+    inset-inline: 12px !important;
+    left: auto !important;
+    right: auto !important;
+    height: 62px !important;
+    border-radius: 20px !important;
+    border: 1px solid color-mix(in srgb, var(--border) 80%, transparent) !important;
+    background: color-mix(in srgb, var(--surface) 86%, transparent) !important;
+    backdrop-filter: blur(18px) saturate(1.2) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.2) !important;
+    box-shadow: 0 12px 34px rgba(30, 22, 14, .16), 0 2px 0 rgba(255,255,255,.7) inset !important;
+    overflow: hidden !important;
+  }
+  .bottom-nav a {
+    border-radius: 14px !important;
+    transition: color .2s ease !important;
+    margin: 6px 3px !important;
+    flex: 1 !important;
+    position: relative !important;
+  }
+  .bottom-nav a.active { color: var(--primary-dark) !important }
+  .bottom-nav a.active span[data-icon] {
+    background: color-mix(in srgb, var(--primary-light) 72%, var(--surface)) !important;
+    color: var(--primary-dark) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 22%, transparent) !important;
+  }
+  .bottom-nav a span[data-icon] { transition: background .25s var(--ease-spring), transform .25s var(--ease-spring) }
+  .bottom-nav a:active span[data-icon] { transform: scale(.9) }
+  .page { padding-bottom: calc(var(--bottom-nav-h) + 34px + env(safe-area-inset-bottom)) !important }
+}
+
+/* ═══ الكروت — طبقة رفيعة محفورة + رفع عند التحويم ═══ */
+.card,
+.subject-card,
+.shortcut-card,
+.feed-panel,
+.notification-card,
+.important-notice,
+.subjects-intro,
+.quiz-card,
+.lecture-card,
+.announcement-card,
+.material-card,
+.stat-card,
+.profile-card,
+.schedule-card,
+.faq-item,
+.admin-card,
+.panel,
+.modal-content,
+.skeleton-card,
+.notif-card,
+.updates-card {
+  background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,0) 32%), var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow) !important;
+  transition: transform .22s var(--ease-out), box-shadow .22s var(--ease-out), border-color .22s ease !important;
+}
+.card:hover,
+.subject-card:hover,
+.shortcut-card:hover,
+.quiz-card:hover,
+.lecture-card:hover,
+.announcement-card:hover,
+.material-card:hover,
+.feed-panel:hover,
+.notif-card:hover,
+.updates-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: var(--shadow-md) !important;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border)) !important;
+}
+
+/* ═══ قسم الترويسة (section-header) — هرمية اوضح ═══ */
+.section-header h1, .section-header h2 {
+  font-size: 1.22rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.2px !important;
+}
+.section-more {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: var(--primary-light) !important;
+  color: var(--primary-dark) !important;
+  border-radius: var(--radius-pill) !important;
+  padding: 6px 14px !important;
+  font-weight: 800 !important;
+  transition: transform .18s var(--ease-spring), box-shadow .18s ease !important;
+}
+.section-more:hover { transform: translateX(-4px) !important; box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 25%, transparent) !important }
+
+/* ═══ الأزرار — تدرج بهوية الثيم + ردّات لمس ═══ */
+.btn,
+.btn-primary,
+.btn-gold,
+.btn-success,
+.auth-submit,
+button.primary,
+.button-primary {
+  background: var(--grad-brand) !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  min-height: 42px !important;
+  padding: 9px 18px !important;
+  font-size: .9rem !important;
+  font-weight: 700 !important;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--primary) 36%, transparent), 0 1px 0 rgba(255,255,255,.25) inset !important;
+  transition: transform .16s var(--ease-spring), filter .16s ease, box-shadow .16s ease !important;
+}
+.btn-primary:hover,
+.btn-gold:hover,
+.btn-success:hover,
+.auth-submit:hover {
+  transform: translateY(-2px) !important;
+  filter: brightness(1.06) saturate(1.05) !important;
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--primary) 44%, transparent), 0 1px 0 rgba(255,255,255,.3) inset !important;
+}
+.btn:active:not(:disabled),
+.header-btn:active { transform: scale(.94) !important }
+.btn-secondary,
+.btn-outline,
+.btn-light,
+.hero-secondary-link {
+  background: var(--surface) !important;
+  color: var(--primary-dark) !important;
+  border: 1px solid color-mix(in srgb, var(--primary) 45%, var(--border)) !important;
+  border-radius: 12px !important;
+  min-height: 42px !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.7) inset !important;
+  transition: background .18s, border-color .18s, transform .16s var(--ease-spring) !important;
+}
+.btn-secondary:hover,
+.btn-outline:hover {
+  background: var(--primary-light) !important;
+  border-color: var(--primary) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ═══ الحقول — فوكس بوهج الثيم ═══ */
+.form-input, .form-textarea, .form-select,
+input[type="text"], input[type="email"], input[type="password"],
+input[type="url"], input[type="time"], input[type="date"],
+input[type="search"], input[type="tel"], input[type="number"], textarea, select {
+  border-radius: 12px !important;
+  background: var(--surface) !important;
+  border: 1.5px solid var(--border) !important;
+  transition: border-color .18s ease, box-shadow .18s ease !important;
+}
+input:focus, select:focus, textarea:focus,
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--primary) !important;
+  box-shadow: var(--glow) !important;
+  outline: none !important;
+}
+
+/* ═══ الصفوف — أيقونات محفورة كاملة ═══ */
+.list-item { transition: background-color .18s ease !important; border-radius: 12px !important }
+.list-item:hover { background: color-mix(in srgb, var(--primary-light) 38%, transparent) !important }
+.list-item-icon {
+  border-radius: 12px !important;
+  background: linear-gradient(150deg, var(--primary-light), color-mix(in srgb, var(--primary) 12%, #fff)) !important;
+  color: var(--primary-dark) !important;
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border)) !important;
+}
+
+/* ═══ الشارة والطوابع (Tabs/Pills) ═══ */
+.tabs { gap: 8px !important }
+.tab {
+  border-radius: var(--radius-pill) !important;
+  padding: 9px 18px !important;
+  transition: all .2s ease !important;
+}
+.tab.active {
+  background: var(--grad-brand) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 34%, transparent) !important;
+}
+
+/* ═══ Skeleton أنعم ═══ */
+.skeleton {
+  background: linear-gradient(100deg, var(--surface-soft) 35%, color-mix(in srgb, var(--surface) 92%, #fff) 50%, var(--surface-soft) 65%) !important;
+  background-size: 300% 100% !important;
+  border-radius: 10px !important;
+  animation: redesign-shimmer 1.5s var(--ease-out) infinite !important;
+}
+@keyframes redesign-shimmer { from { background-position: 120% 0 } to { background-position: -20% 0 } }
+
+/* ═══ الانتقال بين الصفحات (عند كل تحميل) ═══ */
+.page-content > * { animation: redesign-enter .38s var(--ease-out) both !important }
+@keyframes redesign-enter {
+  from { opacity: 0; transform: translateY(16px) }
+  to { opacity: 1; transform: none }
+}
+
+/* ═══ حالات فاضية — أيقونة نابضة بهوية الثيم ═══ */
+.empty-state {
+  border-radius: 18px !important;
+  border: 1.5px dashed color-mix(in srgb, var(--primary) 30%, var(--border)) !important;
+  background: color-mix(in srgb, var(--primary-light) 45%, var(--surface)) !important;
+  padding: 44px 20px !important;
+}
+
+/* ═══ ترحيب الهوم (home-hero) — نفس المحتوى بمظهر أغنى ═══ */
+.home-hero,
+.welcome-banner,
+.subjects-intro {
+  position: relative !important;
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border)) !important;
+  background: var(--grad-brand-soft) !important;
+  border-radius: 20px !important;
+  box-shadow: var(--shadow) !important;
+  overflow: hidden !important;
+}
+.home-hero::before,
+.welcome-banner::before,
+.subjects-intro::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: radial-gradient(600px 200px at 100% 0%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 60%) !important;
+  pointer-events: none !important;
+}
+.home-hero > *,
+.subjects-intro > * { position: relative !important; z-index: 1 !important }
+
+/* ═══ اختصارات الهوم — أزرار أحلى ═══ */
+.shortcut-icon {
+  border-radius: 12px !important;
+  background: var(--grad-brand) !important;
+  color: #fff !important;
+  border: 0 !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 34%, transparent) !important;
+}
+.shortcut-arrow { color: var(--primary) !important; opacity: .85 !important }
+
+/* ═══ ورود الإشعارات والتحديثات — دعم إضافي للانيميشن ═══ */
+.notif-card, .updates-card { animation-timing-function: var(--ease-out) !important }
+
+/* ═══ ثيم البنات — نفس التعليمات، بس بينقط تلقائي عن طريق var(--primary) الوردي ═══ */
+
+/* ═══ الوضع الليلي — نفس التدرج مع تعميق ═══ */
+:root[data-theme="dark"] .app-header { background: rgba(32, 29, 26, .78) !important }
+:root[data-theme="dark"] .bottom-nav { background: rgba(32, 29, 26, .85) !important }
+:root[data-theme="dark"] ::selection { background: color-mix(in srgb, var(--primary) 45%, transparent) }
+
+/* ═══ Accessibility: تقليل الحركة ═══ */
+@media (prefers-reduced-motion: reduce) {
+  .page-content > *,
+  .notif-card,
+  .updates-card,
+  .bottom-nav a span[data-icon],
+  .card,
+  .btn { animation: none !important; transition: none !important }
+}
+
+@media print {
+  .app-header::after, .bottom-nav { display: none !important }
+}

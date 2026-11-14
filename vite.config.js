@@ -14,10 +14,11 @@ const THEME_HEAD_SNIPPET = `
   <link rel="stylesheet" href="/assets/css/girl-theme.css?v=1" />
 `;
 const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=2"></script>`;
-const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=15" />`;
+const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=16" />`;
 const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=20"></script>`;
 const CHAT_ICON_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/chat-icon.css?v=1" />`;
 const CHAT_ICON_BODY_SNIPPET = `<script type="module" src="/assets/js/chat-icon.js?v=1"></script>`;
+const REDESIGN_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/redesign.css?v=1" />`;
 
 /* رابط الموقع النهائي — من متغيرات Vercel وقت النشر؛ محليًا (Vite preview) يفضل نسبي */
 const SITE_URL = (
@@ -128,6 +129,27 @@ function injectThemePlugin() {
   };
 }
 
+function injectRedesignPlugin() {
+  // تُدرج آخر الجافاكريبت/الـ CSS — بعد neutral-theme — عشان تكسب أي تعادل specificity
+  return {
+    name: 'inject-redesign',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        let out = html;
+        if (!out.includes('redesign.css')) {
+          if (out.includes('</head>')) {
+            out = out.replace('</head>', `${REDESIGN_HEAD_SNIPPET}\n</head>`);
+          } else if (out.includes('<head>')) {
+            out = out.replace('<head>', `<head>${REDESIGN_HEAD_SNIPPET}`);
+          }
+        }
+        return out;
+      }
+    }
+  };
+}
+
 function injectChatIconPlugin() {
   return {
     name: 'inject-chat-icon',
@@ -171,7 +193,7 @@ export default defineConfig(({ mode }) => {
     root: '.',
     publicDir: 'public',
     envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
-    plugins: [injectCairoPlugin(), injectThemePlugin(), injectAiAssistantPlugin(), injectChatIconPlugin(), injectOgPlugin()],
+    plugins: [injectCairoPlugin(), injectThemePlugin(), injectAiAssistantPlugin(), injectChatIconPlugin(), injectOgPlugin(), injectRedesignPlugin()],
     define: {
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(
         env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || ''
