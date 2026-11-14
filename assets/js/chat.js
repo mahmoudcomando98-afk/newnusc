@@ -331,7 +331,6 @@ async function poll() {
 function msgFingerprint(m) {
   return String(m.id || '') + '|' + (m.is_me ? '1' : '0') + '|' + String(m.text || '') +
     '|e:' + (m.edited ? '1' : '') +
-    '|b:' + (m.is_bot ? '1' : '') +
     (state.isAdmin ? '|A' : '') +
     (m.reply_to_id ? (m.reply ? 'r:' + m.reply.author + ':' + m.reply.text : 'r:missing') : '');
 }
@@ -371,11 +370,10 @@ function buildMessageNode(m) {
       '</button>'
     : '';
 
-  const isBot = !!m.is_bot;
   const editedMark = m.edited ? '<span class="chat-edited">متعدلة</span>' : '';
 
   const article = document.createElement('article');
-  article.className = 'chat-msg ' + (mine ? 'me' : 'them') + (isBot ? ' bot' : '');
+  article.className = 'chat-msg ' + (mine ? 'me' : 'them');
   article.dataset.id = String(m.id);
   article.dataset.fp = msgFingerprint(m);
   article.innerHTML =
@@ -384,16 +382,12 @@ function buildMessageNode(m) {
     '</span>' +
     (mine
       ? ''
-      : isBot
-        ? '<div class="chat-avatar chat-avatar-bot" aria-hidden="true"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="8.5" width="15" height="10.5" rx="3"/><path d="M12 8.5V5.5"/><circle cx="12" cy="3.5" r="1.4"/><path d="M9.4 13.6h.01M14.6 13.6h.01"/><path d="M9.5 19v2.4M14.5 19v2.4"/></svg></div>'
-        : '<div class="chat-avatar" style="' + bg + '" aria-hidden="true">' + initial + '</div>'
+      : '<div class="chat-avatar" style="' + bg + '" aria-hidden="true">' + initial + '</div>'
     ) +
     '<div class="chat-bubble">' +
       quote +
       '<div class="chat-meta">' +
-        (mine ? '' : isBot
-          ? '<span class="chat-bot-chip">بوت COMANDO</span>'
-          : '<span class="chat-author">' + author + '</span>') +
+        (mine ? '' : '<span class="chat-author">' + author + '</span>') +
         '<time>' + escapeHtml(time) + '</time>' +
         editedMark +
       '</div>' +

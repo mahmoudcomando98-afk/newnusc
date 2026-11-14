@@ -70,7 +70,6 @@ function nameOf(p: { full_name?: string | null; email?: string | null } | undefi
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const BOT_ID = '00000000-0000-4000-8000-00000000000b';
 const BAN_DURATION_MS = 60 * 60 * 1000; // ساعة
 
 const AR_DIGITS: Record<string, string> = { '٠':'0','١':'1','٢':'2','٣':'3','٤':'4','٥':'5','٦':'6','٧':'7','٨':'8','٩':'9' };
@@ -102,144 +101,6 @@ function findBadWord(norm: string): string | null {
   return null;
 }
 
-function cairoParts(d: Date) {
-  const opts: Intl.DateTimeFormatOptions = { timeZone: 'Africa/Cairo' };
-  const dateStr = new Intl.DateTimeFormat('en-CA', { ...opts, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
-  const weekday = new Intl.DateTimeFormat('en-US', { ...opts, weekday: 'short' }).format(d);
-  const dayIdx = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(weekday);
-  const time = new Intl.DateTimeFormat('ar-EG', { ...opts, hour: '2-digit', minute: '2-digit' }).format(d);
-  const dateHuman = new Intl.DateTimeFormat('ar-EG', { ...opts, weekday: 'long', day: 'numeric', month: 'long' }).format(d);
-  return { dateStr, dayIdx, time, dateHuman };
-}
-
-function fmtDateTime(d: Date): string {
-  return new Intl.DateTimeFormat('ar-EG', { timeZone: 'Africa/Cairo', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).format(d);
-}
-
-// ── بوت الشات: بيرد بس لو عارف حقيقي، لو مش عارف يسكت خالص ─────────────────────
-async function botAnswer(raw: string, admin: ReturnType<typeof createClient>, askerId: string): Promise<string | null> {
-  const norm = normalizeAr(raw);
-  const stripped = norm.replace(/[\s؟!?\.,،؛…\-]+$/g, '').trim();
-
-  // سلام
-  if (/^(ازيك|ازي حالك|كيف حالك|عامل ايه|ايه اخبارك|اخبارك|هاي|اهلا|صباح الخير|مساء الخير)/.test(stripped)) {
-    return 'الحمدلله ربنا كويس، انت اخبارك النهاردة؟';
-  }
-  // مين انت
-  if (/(مين انت|انت مين|مين البوت|ايه ده البوت|انت روبوت)/.test(stripped)) {
-    return 'أنا بوت COMANDO — اسألني عن الواجبات والجدول والامتحانات والإعلانات، ولو مش عارف سؤالك هسكت خالص';
-  }
-  // شكرا
-  if (/^(شكرا|مرسي|تسلم|متشكر)/.test(stripped)) {
-    return 'على الرحب، لو محتاج حاجة تانية قول';
-  }
-
-  const now = new Date();
-  const today = cairoParts(now);
-  const tomorrowDate = new Date(now.getTime() + 24 * 3600 * 1000);
-  const tomorrow = cairoParts(tomorrowDate);
-
-  // الواجبات
-  if (/(واجب|واجبات|assignment|هومورك|homework|تكليف)/.test(norm)) {
-    const { data } = await admin
-      .from('materials')
-      .select('title, due_at, subject_id, subjects(name)')
-      .eq('material_type', 'assignment')
-      .eq('is_published', true)
-      .not('due_at', 'is', null)
-      .gte('due_at', new Date(now.getTime() - 14 * 24 * 3600 * 1000).toISOString())
-      .order('due_at', { ascending: true })
-      .limit(20);
-    const rows = (data || []).map((m: any) => ({ title: m.title, due: new Date(m.due_at), subject: m.subjects?.name || '' }));
-    const dueToday = rows.filter((r: any) => cairoParts(r.due).dateStr === today.dateStr);
-    const dueTomorrow = rows.filter((r: any) => cairoParts(r.due).dateStr === tomorrow.dateStr);
-    const upcoming = rows.filter((r: any) => r.due.getTime() >= now.getTime()).slice(0, 4);
-    const fmt = (r: any) => '• ' + (r.subject ? '[' + r.subject + '] ' : '') + r.title + ' — ' + fmtDateTime(r.due);
-    if (dueToday.length) return 'الواجبات النهاردة:\n' + dueToday.map(fmt).join('\n');
-    if (norm.includes('بكره') || norm.includes('بكرا')) {
-      return dueTomorrow.length
-        ? 'واجبات بكرة:\n' + dueTomorrow.map(fmt).join('\n')
-        : 'مفيش واجبات بكرة الحمدلله';
-    }
-    let msg = 'مفيش واجبات النهاردة الحمدلله';
-    if (upcoming.length) msg += '\nبس في القريب العاجل:\n' + upcoming.map(fmt).join('\n');
-    return msg;
-  }
-
-  // الجدول
-  if (/(جدول|محاضرات?|حصص|حصه|سكاشن|سكشن|online|اونلاين)/.test(norm)) {
-    let targetDay = today.dayIdx;
-    let label = 'النهاردة';
-    if (/(بكره|بكرا)/.test(norm)) { targetDay = tomorrow.dayIdx; label = 'بكرة'; }
-    const { data } = await admin
-      .from('schedule_items')
-      .select('title, event_type, day_of_week, start_time, end_time, location, is_active')
-      .eq('day_of_week', targetDay)
-      .eq('is_active', true)
-      .order('start_time', { ascending: true });
-    const rows = data || [];
-    if (!rows.length) return 'الجدول ' + label + ' فاضي';
-    const typeAr: Record<string, string> = { lecture: 'محاضرة', section: 'سكشن', quiz: 'كويز', exam: 'امتحان', other: 'لقاء' };
-    const lines = rows.map((r: any) => {
-      const t = String(r.start_time || '').slice(0, 5);
-      const end = String(r.end_time || '').slice(0, 5);
-      const loc = r.location ? ' — ' + r.location : '';
-      return '• ' + (t || '؟') + (end ? ' ← ' + end : '') + ' | ' + (typeAr[r.event_type] || 'لقاء') + ' ' + r.title + loc;
-    });
-    return 'جدول ' + label + ':\n' + lines.join('\n');
-  }
-
-  // الامتحانات والكويزات
-  if (/(امتحان|امتحانات|اختبار|كويز|كويزات|ميدترم|ميد ترم|فاينال|التيرم|final|midterm|quiz|exam)/.test(norm)) {
-    const { data } = await admin
-      .from('quizzes')
-      .select('title, start_at, end_at, subject_id, subjects(name)')
-      .eq('is_published', true)
-      .gte('start_at', new Date(now.getTime() - 24 * 3600 * 1000).toISOString())
-      .order('start_at', { ascending: true })
-      .limit(4);
-    const rows = data || [];
-    if (!rows.length) return 'مفيش امتحانات أو كويزات متسجلة الفترة الجاية الحمدلله';
-    const fmt = (q: any) => '• ' + (q.subjects?.name ? '[' + q.subjects.name + '] ' : '') + q.title + ' — ' + fmtDateTime(new Date(q.start_at));
-    return 'أقرب امتحانات/كويزات:\n' + rows.map(fmt).join('\n');
-  }
-
-  // الإعلانات
-  if (/(اعلان|اعلانات|اخبار|آخر الأخبار|جديد المنصه)/.test(norm)) {
-    const { data } = await admin
-      .from('announcements')
-      .select('title, created_at')
-      .eq('is_published', true)
-      .order('created_at', { ascending: false })
-      .limit(3);
-    const rows = data || [];
-    if (!rows.length) return 'مفيش إعلانات جديدة خالص';
-    const fmt = (a: any) => '• ' + a.title;
-    return 'آخر الإعلانات:\n' + rows.map(fmt).join('\n');
-  }
-
-  // مهام المستخدم (خطتي)
-  if (/(مهامي|مزامناتي|خطتي|كام مهمه|عندي مهام|مهامك|مهام النهارده|مهام بكره)/.test(norm)) {
-    const startIso = new Date(today.dateStr + 'T00:00:00+02:00').toISOString();
-    const end = new Date(tomorrow.dateStr + 'T00:00:00+02:00');
-    const endIso = new Date(end.getTime()).toISOString();
-    const { data } = await admin
-      .from('study_tasks')
-      .select('is_done')
-      .eq('user_id', askerId)
-      .gte('due_at', startIso)
-      .lt('due_at', endIso);
-    const rows = data || [];
-    const total = rows.length;
-    const done = rows.filter((r: any) => !!r.is_done).length;
-    if (!total) return 'مفيش مهام في خطتك النهاردة — يوم هادي';
-    const left = total - done;
-    return 'مهامك النهاردة: عندك ' + total + ' مهمة — خلصت ' + done + ' ولسه فاضل ' + left + (left > 0 ? '' : ' — برافو عليك');
-  }
-
-  return null; // مش عارف؟ ما يردش خالص
-}
-
 async function getActiveBan(admin: ReturnType<typeof createClient>, userId: string) {
   const { data } = await admin.from('chat_strikes').select('banned_until').eq('user_id', userId).maybeSingle();
   if (!data?.banned_until) return null;
@@ -261,20 +122,6 @@ async function applyStrike(admin: ReturnType<typeof createClient>, userId: strin
   }
   await admin.from('chat_strikes').upsert({ user_id: userId, strikes, banned_until: null, updated_at: new Date().toISOString() });
   return { banned: false as const, strikes };
-}
-
-async function postBotMessage(admin: ReturnType<typeof createClient>, key: CryptoKey, text: string, replyToId?: string | null) {
-  try {
-    const { iv, ciphertext } = await encrypt(text, key);
-    await admin.from('chat_messages').insert({
-      user_id: BOT_ID,
-      ciphertext: toByteaHex(ciphertext),
-      iv: toByteaHex(iv),
-      reply_to_id: replyToId ?? null
-    });
-  } catch (e) {
-    console.error('[bot] post failed:', e);
-  }
 }
 
 Deno.serve(async (req) => {
@@ -321,7 +168,6 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'حسابك موقوف مؤقتًا.' }, 403);
     }
     const isAdmin = String(profile?.role || '') === 'admin';
-    const firstName = String(profile?.full_name || 'صاحبي').trim().split(/\s+/)[0];
 
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action || 'list');
@@ -392,10 +238,8 @@ Deno.serve(async (req) => {
       if (bad) {
         const s = await applyStrike(admin, user.id);
         if (s.banned) {
-          await postBotMessage(admin, key, 'يا جماعة، ' + firstName + ' اتحظر من الدردشة لمدة ساعة عشان الكلام الغلط — مستنيه يرجع وإحنا أحسن', null);
           return json({ ok: false, error: 'تم حظرك من الدردشة لمدة ساعة بسبب الشتايم.', banned: true, banned_until: s.banned_until, seconds: s.seconds }, 403);
         }
-        await postBotMessage(admin, key, 'يا ' + firstName + '، كمان مرة وانت هتحظر من الدردشة ساعة كاملة — خلينا كويسين مع بعض', null);
         return json({ ok: false, error: 'الشتايم ملهاش محل في الشات يا صاحبي — كمان مرة وهتتحظر ساعة.', struck: true }, 403);
       }
 
@@ -418,12 +262,6 @@ Deno.serve(async (req) => {
         });
       if (insertErr) {
         return json({ ok: false, error: 'تعذر إرسال الرسالة.', detail: insertErr.message }, 500);
-      }
-
-      // البوت يرد لو عارف — لو مش عارف يسكت خالص
-      const botReply = await botAnswer(text, admin, user.id);
-      if (botReply) {
-        await postBotMessage(admin, key, botReply, null);
       }
 
       return json({ ok: true });
@@ -514,7 +352,6 @@ Deno.serve(async (req) => {
           author: sender.name,
           initial: sender.initial,
           is_me: r.user_id === user.id,
-          is_bot: r.user_id === BOT_ID,
           edited: !!r.edited_at,
           text,
           created_at: r.created_at,

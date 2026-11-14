@@ -202,9 +202,11 @@ ${ctx.tasks}
 ملاحظة مهمة: لو الطالب سأل عن جدوله أو مهامه أو إيه اللي مفروض يعمله النهاردة:
 - اعرّفه بالمهام دي بالظبط — دي مهامه الفعلية على المنصة.
 - عدّد المهام باسمائها مع الوقت.
-- لو كل المهام خلصت، قوله «خلصت كل مهامك النهاردة 🎉 علّيك!» واكتب قائمة صغيرة بالمهام اللي خلصها.
+- لو كل المهام خلصت، قوله «خلصت كل مهامك النهاردة! علّيك!» واكتب قائمة صغيرة بالمهام اللي خلصها.
 - لو واحدة خلصت من ثلاث مهام، قوله صراحة: «عندك ٣ مهام أديت منها ١ لسة ٢ — لسا باقي».
 - لو في مهام لسه، قوله عددها صراحة.
+- ممنوع الإيموجيز خالص في ردودك — عربي نظيف بدون رموز.
+- كل الأوقات اللي بتذكرها بتوقيت القاهرة.
 `;
 }
 
@@ -335,10 +337,15 @@ Deno.serve(async (req) => {
       for (const s of subRows || []) subjectIdNames.set(s.id, s.name);
     }
 
+    const cairoFmtDate = (d: string | Date) =>
+      new Intl.DateTimeFormat('ar-EG', { timeZone: 'Africa/Cairo', day: 'numeric', month: 'long' }).format(new Date(d));
+    const cairoFmtDateTime = (d: string | Date) =>
+      new Intl.DateTimeFormat('ar-EG', { timeZone: 'Africa/Cairo', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date(d));
+
     const materialLines = (materials || [])
       .map((m: { title?: string; material_type?: string; subject_id?: string; due_at?: string | null }) =>
         `- [${short(m.material_type || 'ملف', 12)}] ${short(m.title, 70)} (مادة: ${short(subjectIdNames.get(m.subject_id || '') || '?', 35)})` +
-        (m.due_at ? ` — تسليم: ${short(new Date(m.due_at).toLocaleDateString('ar-EG', { day: 'numeric', month: 'long' }), 20)}` : '')
+        (m.due_at ? ` — التسليم: ${short(cairoFmtDate(m.due_at), 20)}` : '')
       )
       .join('\n') || 'لا توجد ملفات منشورة بعد.';
 
@@ -352,12 +359,18 @@ Deno.serve(async (req) => {
       )
       .join('\n') || 'لا توجد إعلانات.';
 
+    const nowMs = Date.now();
     const quizLines = (quizzes || [])
-      .map((q: { title?: string; start_at?: string | null; status?: string; subject_id?: string }) =>
-        `- ${short(q.title, 70)} (مادة: ${short(subjectIdNames.get(q.subject_id || '') || '?', 35)})` +
-        (q.start_at ? ` — البدء: ${short(new Date(q.start_at).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }), 30)}` : '') +
-        ` — ${q.status === 'open' ? 'مفتوح الآن' : q.status === 'upcoming' ? 'قادم' : 'انتهى'}`
-      )
+      .map((q: { title?: string; start_at?: string | null; end_at?: string | null; status?: string; subject_id?: string }) => {
+        const startMs = q.start_at ? new Date(q.start_at).getTime() : 0;
+        const endMs = q.end_at ? new Date(q.end_at).getTime() : 0;
+        // الحالة محسوبة من الوقت نفسه (موثوقة أكتر من عمود status)
+        const state = startMs && nowMs < startMs ? 'قادم' : (startMs && (!endMs || nowMs <= endMs) && nowMs >= startMs ? 'مفتوح الآن' : 'انتهى');
+        const when = q.start_at
+          ? ` — البدء: ${cairoFmtDateTime(q.start_at)}` + (q.end_at ? ` ← ينتهي: ${cairoFmtDateTime(q.end_at)}` : '') + ' (التوقيت قاهرة)'
+          : '';
+        return `- ${short(q.title, 70)} (مادة: ${short(subjectIdNames.get(q.subject_id || '') || '?', 35)})${when} — ${state}`;
+      })
       .join('\n') || 'لا توجد كويزات معلنة.';
 
     const knowledgeLines = (knowledge || [])
@@ -446,7 +459,7 @@ Deno.serve(async (req) => {
       return json({
         ok: true,
         reply: n > 0
-          ? `تم إلغاء ${n === 1 ? 'تذكير واحد' : n + ' تذكيرات'} عندك ✓`
+          ? `تم إلغاء ${n === 1 ? 'تذكير واحد' : n + ' تذكيرات'} عندك.`
           : 'مفيش عندك تذكيرات معلقة أصلاً.'
       });
     }
@@ -464,7 +477,7 @@ Deno.serve(async (req) => {
       if (subs === 0) {
         return json({
           ok: true,
-          reply: `عايز أقولك إني حلو جدًا أرجعلك بمعلومة "${reminder.message}" بعد ${reminder.label} — بس إشعارات المنصة مش مفعلة على الجهاز بتاعك دلوقتي 🔔\n\nلو فعّلتها دلوقتي، هيسجّل التذكير تلقائي وهبعتلك إشعار على التليفون بعد ${reminder.label}.`,
+          reply: `عايز أقولك إني حلو جدًا أرجعلك بمعلومة "${reminder.message}" بعد ${reminder.label} — بس إشعارات المنصة مش مفعلة على الجهاز بتاعك دلوقتي.\n\nلو فعّلتها دلوقتي، هيسجّل التذكير تلقائي وهبعتلك إشعار على التليفون بعد ${reminder.label}.`,
           action: 'enable_notifications',
           pending_reminder: { message: reminder.message, due_at: reminder.dueAt, due_label: reminder.label }
         });
@@ -481,7 +494,7 @@ Deno.serve(async (req) => {
       }
       return json({
         ok: true,
-        reply: `✓ سجّلت تذكير: «${reminder.message}»\nهنبعتلك إشعار على تليفونك بعد ${reminder.label} ⏰`,
+        reply: `سجّلت تذكير: «${reminder.message}»\nهنبعتلك إشعار على تليفونك بعد ${reminder.label}.`,
         reminder: { id: created?.id, due_at: created?.due_at }
       });
     }
