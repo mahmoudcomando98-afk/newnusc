@@ -360,18 +360,29 @@ Deno.serve(async (req) => {
       .join('\n') || 'لا توجد إعلانات.';
 
     const nowMs = Date.now();
+    const quizState = (q: { start_at?: string | null; end_at?: string | null; status?: string }) => {
+      const startMs = q.start_at ? new Date(q.start_at).getTime() : 0;
+      const endMs = q.end_at ? new Date(q.end_at).getTime() : 0;
+      if (startMs && nowMs < startMs) return 'upcoming';
+      if (startMs && nowMs >= startMs) {
+        if (endMs && nowMs <= endMs) return 'open';
+        if (!endMs && q.status === 'open') return 'open';
+        return 'closed';
+      }
+      return 'upcoming';
+    };
+    // الكويزات اللي لسه مفتوح أو قادمين بس — اللي خلصت مش هتدخل في كلام البوت أصلًا
     const quizLines = (quizzes || [])
-      .map((q: { title?: string; start_at?: string | null; end_at?: string | null; status?: string; subject_id?: string }) => {
-        const startMs = q.start_at ? new Date(q.start_at).getTime() : 0;
-        const endMs = q.end_at ? new Date(q.end_at).getTime() : 0;
-        // الحالة محسوبة من الوقت نفسه (موثوقة أكتر من عمود status)
-        const state = startMs && nowMs < startMs ? 'قادم' : (startMs && (!endMs || nowMs <= endMs) && nowMs >= startMs ? 'مفتوح الآن' : 'انتهى');
+      .map((q: any) => ({ q, st: quizState(q) }))
+      .filter((x: { q: any; st: string }) => x.st !== 'closed')
+      .slice(0, 5)
+      .map(({ q, st }: { q: any; st: string }) => {
         const when = q.start_at
           ? ` — البدء: ${cairoFmtDateTime(q.start_at)}` + (q.end_at ? ` ← ينتهي: ${cairoFmtDateTime(q.end_at)}` : '') + ' (التوقيت قاهرة)'
           : '';
-        return `- ${short(q.title, 70)} (مادة: ${short(subjectIdNames.get(q.subject_id || '') || '?', 35)})${when} — ${state}`;
+        return `- ${short(q.title, 70)} (مادة: ${short(subjectIdNames.get(q.subject_id || '') || '?', 35)})${when} — ${st === 'open' ? 'مفتوح الآن' : 'قادم'}`;
       })
-      .join('\n') || 'لا توجد كويزات معلنة.';
+      .join('\n') || 'لا توجد كويزات قادمة حاليًا.';
 
     const knowledgeLines = (knowledge || [])
       .map((k: { title?: string; content?: string }) => `- ${short(k.title || 'معلومة', 60)}: ${short(k.content, 220)}`)

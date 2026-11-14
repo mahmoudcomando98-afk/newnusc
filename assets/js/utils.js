@@ -181,7 +181,8 @@ export function computeQuizStatus(q) {
     const end = start + Number(q.duration_minutes) * 60 * 1000;
     return now <= end ? 'open' : 'closed';
   }
-  return saved === 'closed' ? 'closed' : 'open';
+  // مفيش وقت نهاية — إلا لما يكون الأدمن عامل الحالة "open" صراحة، بنعتبرها انتهت
+  return saved === 'open' ? 'open' : 'closed';
 }
 
 export function createCountdown(targetDate, el) {

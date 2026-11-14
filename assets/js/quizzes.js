@@ -44,10 +44,13 @@ function getQuizStatus(quiz) {
   }
   if (startValue) {
     const start = new Date(startValue).getTime();
-    if (!Number.isNaN(start) && now >= start) return 'open';
+    if (!Number.isNaN(start) && now >= start) {
+      if (!quiz.end_at && !quiz.duration_minutes) return savedStatus === 'open' ? 'open' : 'closed';
+      return 'open';
+    }
   }
   if (quiz.end_at && now <= explicitEnd) return 'open';
-  return savedStatus === 'closed' ? 'closed' : 'open';
+  return savedStatus === 'open' ? 'open' : 'closed';
 }
 
 function getQuizDateText(value) {
