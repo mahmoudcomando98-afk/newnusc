@@ -20,6 +20,19 @@
 .ai-fab:hover { filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.4)) drop-shadow(0 3px 6px rgba(0, 0, 0, 0.24)); }
 .ai-fab:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 14px; }
 .ai-fab svg { width: 100%; height: 100%; display: block; }
+
+/* ترحيب: الروبوت يطلع من تحت الشاشة بسلاسة عند أول دخول */
+.ai-fab.ai-fab-in {
+  animation: ai-fab-in 1s cubic-bezier(.34, 1.56, .64, 1) .4s backwards;
+}
+@keyframes ai-fab-in {
+  from { transform: translateY(135%) scale(.55); opacity: 0 }
+  60% { opacity: 1 }
+  to { transform: none; opacity: 1 }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-fab.ai-fab-in { animation: none }
+}
 /* fallback احترافي بـ CSS لو GSAP مش متاحة: طفو بسيط */
 .ai-robot.css-bob { animation: ai-bot-bob 2.6s ease-in-out infinite; transform-box: view-box; }
 /* حركة الروبوت: طفو + عينين بتومض + لمبة + قلب ينبض */

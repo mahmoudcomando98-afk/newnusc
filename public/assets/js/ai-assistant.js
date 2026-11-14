@@ -539,6 +539,13 @@ function buildPanel() {
   fab.className = 'ai-fab ai-gender-' + theme;
   fab.setAttribute('aria-label', 'المساعد الذكي');
   fab.setAttribute('aria-expanded', 'false');
+  // ترحيب: مرة واحدة في الجلسة — يطلل الروبوت من تحت الشاشة بسلاسة
+  var fabIntroDone = false;
+  try { fabIntroDone = sessionStorage.getItem('comando_fab_welcome_shown') === '1'; } catch (e) {}
+  if (!fabIntroDone) {
+    try { sessionStorage.setItem('comando_fab_welcome_shown', '1'); } catch (e) {}
+    fab.classList.add('ai-fab-in');
+  }
   fab.innerHTML = robot;
   fab.addEventListener('click', function () { togglePanel(); });
   document.body.appendChild(fab);
