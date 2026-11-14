@@ -7,24 +7,75 @@
   <title>الإشعارات | COMANDO</title>
   <link rel="stylesheet" href="/assets/css/main.css?v=comando-2" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-2" />
+  <link rel="stylesheet" href="/assets/css/notifications.css?v=1" />
 </head>
 <body>
-  <header class="app-header">
+  <header class="app-header notif-header">
     <div class="container">
       <a href="/home.html" class="logo">
         <span data-icon="chevronLeft" style="display:flex;width:24px;height:24px"></span>
         <span>الإشعارات</span>
       </a>
-      <button type="button" class="btn btn-sm btn-secondary" id="mark-all">تعيين الكل كمقروء</button>
+      <button type="button" class="btn btn-sm btn-secondary notif-mark-all" id="mark-all">
+        <span data-icon="check" style="display:flex;width:16px;height:16px"></span>
+        تعيين الكل كمقروء
+      </button>
     </div>
   </header>
-  <main class="page">
+
+  <main class="page notif-page">
     <div class="container page-content">
-      <div id="notif-list">
-        <div class="skeleton-card"><div class="skeleton skeleton-title"></div></div>
+
+      <!-- Stats strip — تظهر لما البيانات توصل -->
+      <div class="notif-stats" id="notif-stats" hidden>
+        <div class="notif-stat"><strong id="notif-stat-total">0</strong><span>إجمالي</span></div>
+        <div class="notif-stat notif-stat-unread"><strong id="notif-stat-unread">0</strong><span>جديدة</span></div>
+        <div class="notif-stat"><strong id="notif-stat-announce">0</strong><span>إعلانات</span></div>
+      </div>
+
+      <!-- فلاتر سريعة -->
+      <div class="notif-filters" role="tablist" aria-label="تصفية الإشعارات">
+        <button type="button" class="notif-chip is-active" data-filter="all" role="tab">الكل</button>
+        <button type="button" class="notif-chip" data-filter="unread" role="tab">غير مقروء</button>
+        <button type="button" class="notif-chip" data-filter="announcement" role="tab">الإعلانات</button>
+        <button type="button" class="notif-chip" data-filter="notification" role="tab">التذكيرات</button>
+      </div>
+
+      <!-- القائمة — مجمعة حسب الوقت -->
+      <div id="notif-list" class="notif-groups">
+        <div class="notif-skeleton" aria-hidden="true">
+          <div class="notif-skel-card"></div>
+          <div class="notif-skel-card"></div>
+          <div class="notif-skel-card"></div>
+          <div class="notif-skel-card"></div>
+        </div>
+      </div>
+
+      <!-- حالة فاضية -->
+      <div id="notif-empty" class="notif-empty" hidden>
+        <div class="notif-empty-stage">
+          <div class="notif-empty-ring"></div>
+          <div class="notif-empty-ring-2"></div>
+          <div class="notif-empty-icon">
+            <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+        </div>
+        <h2>مفيش إشعارات دلوقتي</h2>
+        <p>الملفات الجديدة والإعلانات ومواعيد الكويزات — كلها هتظهر هنا أول بأول.</p>
+      </div>
+
+      <!-- حالة الخطأ -->
+      <div id="notif-error" class="notif-error" hidden>
+        <div class="notif-error-icon">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <h2>تعذر تحميل الإشعارات</h2>
+        <p>حصلت مشكلة مؤقتة — حاول تاني.</p>
+        <button type="button" class="btn btn-secondary" id="notif-retry">إعادة المحاولة</button>
       </div>
     </div>
   </main>
+
   <nav class="bottom-nav">
     <a href="/home.html" data-nav="home"><span data-icon="home"></span>الرئيسية</a>
     <a href="/subjects.html" data-nav="subjects"><span data-icon="book"></span>المواد</a>
@@ -36,10 +87,13 @@
   <script type="module">
     import { supabase } from './assets/js/supabase.js';
     import { protectPage } from './assets/js/auth.js';
-    import { escapeHtml, timeAgo, showEmpty, showError, showToast, initIcons } from './assets/js/utils.js';
+    import { escapeHtml, timeAgo, showToast, initIcons } from './assets/js/utils.js';
 
     let profile = null;
     let items = [];
+    let activeFilter = 'all';
+
+    const $ = (id) => document.getElementById(id);
 
     function readKey() {
       return 'comando_read_notifs_' + (profile?.id || 'guest');
@@ -59,70 +113,167 @@
     }
 
     function safeLink(raw) {
-      if (!raw || typeof raw !== 'string') return '/notifications.html';
+      if (!raw || typeof raw !== 'string') return null;
       const v = raw.trim();
       if (v.startsWith('/')) return v;
       try {
         const u = new URL(v);
         if (['http:', 'https:'].includes(u.protocol)) return u.href;
       } catch {}
-      return '/notifications.html';
+      return null;
+    }
+
+    function typeOf(item) {
+      if (item.source === 'announcement') return 'announce';
+      return 'notification';
+    }
+    function iconNameFor(item) {
+      if (item.source === 'announcement') return 'megaphone';
+      return 'bell';
+    }
+
+    function groupOf(ts) {
+      const d = new Date(ts);
+      const now = new Date();
+      const startOfDay = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+      const days = Math.floor((startOfDay(now) - startOfDay(d)) / 86400000);
+      if (days <= 0) return { key: 'today', label: 'النهاردة', order: 1 };
+      if (days === 1) return { key: 'yesterday', label: 'إمبارح', order: 2 };
+      if (days <= 7) return { key: 'week', label: 'هذا الأسبوع', order: 3 };
+      return { key: 'older', label: 'أقدم', order: 4 };
+    }
+
+    function passesFilter(item, read) {
+      if (activeFilter === 'all') return true;
+      if (activeFilter === 'unread') return !read.has(String(item.id));
+      if (activeFilter === 'announcement') return item.source === 'announcement';
+      if (activeFilter === 'notification') return item.source !== 'announcement';
+      return true;
     }
 
     function render() {
-      const el = document.getElementById('notif-list');
-      if (!items.length) {
-        showEmpty(el, 'مفيش إشعارات حالياً');
+      const listEl = $('notif-list');
+      const emptyEl = $('notif-empty');
+      const statsEl = $('notif-stats');
+      const errorEl = $('notif-error');
+      if (errorEl) errorEl.hidden = true;
+
+      const read = getReadIds();
+      const visible = items.filter((item) => passesFilter(item, read));
+
+      // إحصائيات
+      if (statsEl) {
+        $('notif-stat-total').textContent = String(items.length);
+        $('notif-stat-unread').textContent = String(items.filter((i) => !read.has(String(i.id))).length);
+        $('notif-stat-announce').textContent = String(items.filter((i) => i.source === 'announcement').length);
+        statsEl.hidden = items.length === 0;
+      }
+
+      // مفيش نتيجة خالص
+      if (!visible.length) {
+        listEl.innerHTML = '';
+        emptyEl.hidden = items.length !== 0;
+        // لو الفلاتر هي اللي حاملة فاضي
+        if (items.length !== 0) {
+          listEl.innerHTML = '<div class="notif-empty"><p style="margin:0;text-align:center;color:var(--text-muted);padding:24px 12px">مفيش إشعارات في الفلتر ده دلوقتي.</p></div>';
+        }
         return;
       }
-      const read = getReadIds();
-      el.innerHTML = items
-        .map((item) => {
-          const id = String(item.id);
-          const isRead = read.has(id);
-          const href = safeLink(item.link);
-          return `
-          <article class="card notification-card mb-2" data-id="${escapeHtml(id)}" style="${isRead ? 'opacity:.72' : ''}">
-            <div class="flex justify-between items-center gap-1">
-              <h3 class="card-title" style="margin:0">${escapeHtml(item.title || 'إشعار')}</h3>
-              ${!isRead ? '<span class="badge">جديد</span>' : ''}
-            </div>
-            ${item.body ? `<p class="text-sm text-muted mt-1">${escapeHtml(item.body)}</p>` : ''}
-            <p class="text-sm text-muted mt-1">${escapeHtml(timeAgo(item.created_at))}${item.source === 'announcement' ? ' · إعلان' : ''}</p>
-            <div class="mt-2">
-              <a class="btn btn-sm btn-secondary" href="${escapeHtml(href)}">فتح</a>
-            </div>
-          </article>`;
+      emptyEl.hidden = true;
+
+      // جمّع بالترتيب الزمني → مجموعات
+      const groupsMap = new Map();
+      for (const item of visible) {
+        const g = groupOf(item.created_at);
+        if (!groupsMap.has(g.key)) groupsMap.set(g.key, { label: g.label, order: g.order, items: [] });
+        groupsMap.get(g.key).items.push(item);
+      }
+      const groups = [...groupsMap.values()].sort((a, b) => a.order - b.order);
+
+      listEl.innerHTML = groups
+        .map((group) => {
+          const cards = group.items
+            .map((item, idx) => {
+              const id = String(item.id);
+              const isRead = read.has(id);
+              const isAnnounce = item.source === 'announcement';
+              const href = safeLink(item.link);
+              const tagText = isAnnounce ? 'إعلان' : 'تنبيه';
+              const tagClass = isAnnounce ? 'notif-tag notif-tag-announce' : 'notif-tag notif-tag-notification';
+              const iconClass = 'notif-icon ' + (isAnnounce ? 'notif-icon-announce' : 'notif-icon-notification');
+              const style = 'style="animation-delay:' + Math.min(idx * 45, 400) + 'ms"';
+
+              return (
+                '<button type="button" class="notif-card ' + (isRead ? 'notif-card-read' : 'notif-card-unread') +
+                '" data-id="' + escapeHtml(id) + '" data-href="' + escapeHtml(href || '') + '" ' + style + ' aria-label="' + escapeHtml(item.title || 'إشعار') + '">' +
+                  '<span class="' + iconClass + '"><span data-icon="' + iconNameFor(item) + '" style="display:flex;width:22px;height:22px"></span></span>' +
+                  '<span class="notif-card-body">' +
+                    '<span class="notif-topline">' +
+                      '<h3 class="notif-card-title">' + escapeHtml(item.title || 'إشعار') + '</h3>' +
+                      '<span class="' + tagClass + '">' + tagText + '</span>' +
+                    '</span>' +
+                    (item.body ? '<p class="notif-card-text">' + escapeHtml(item.body) + '</p>' : '') +
+                    '<span class="notif-card-meta">' +
+                      '<span>' + escapeHtml(timeAgo(item.created_at)) + '</span>' +
+                      (!isRead ? '<span class="notif-new">جديد</span>' : '') +
+                    '</span>' +
+                  '</span>' +
+                  '<span class="notif-chevron"><span data-icon="chevronLeft" style="display:flex;width:18px;height:18px"></span></span>' +
+                '</button>'
+              );
+            })
+            .join('');
+
+          return (
+            '<section class="notif-group">' +
+              '<div class="notif-group-head">' +
+                '<span class="notif-group-title">' + escapeHtml(group.label) + '</span>' +
+                '<span class="notif-group-count">' + group.items.length + '</span>' +
+              '</div>' +
+              cards +
+            '</section>'
+          );
         })
         .join('');
 
-      el.querySelectorAll('[data-id]').forEach((card) => {
-        card.addEventListener('click', (ev) => {
-          if (ev.target.closest('a')) return;
+      // تفعيل الأيقونات
+      initIcons();
+
+      // تفاعلات الكروت
+      listEl.querySelectorAll('.notif-card').forEach((card) => {
+        card.addEventListener('click', () => {
+          const id = card.dataset.id;
           const ids = getReadIds();
-          ids.add(card.dataset.id);
-          saveReadIds(ids);
-          card.style.opacity = '0.72';
-          const badge = card.querySelector('.badge');
-          if (badge) badge.remove();
+          if (id && !ids.has(id)) {
+            ids.add(id);
+            saveReadIds(ids);
+            card.classList.remove('notif-card-unread');
+            card.classList.add('notif-card-read');
+            const badge = card.querySelector('.notif-new');
+            if (badge) badge.remove();
+            const unreadEl = $('notif-stat-unread');
+            if (unreadEl) {
+              const left = Math.max(0, parseInt(unreadEl.textContent || '0', 10) - 1);
+              unreadEl.textContent = String(left);
+            }
+          }
+          const href = card.dataset.href;
+          if (href) window.location.assign(href);
         });
       });
-      initIcons();
     }
 
     async function load() {
-      const el = document.getElementById('notif-list');
+      const listEl = $('notif-list');
       try {
         const uid = profile?.id;
         let rows = [];
 
-        let notifQuery = supabase
+        const { data: notifs, error: notifErr } = await supabase
           .from('notifications')
           .select('id, title, body, type, link, is_global, user_id, created_at')
           .order('created_at', { ascending: false })
           .limit(50);
-
-        const { data: notifs, error: notifErr } = await notifQuery;
 
         if (!notifErr && notifs) {
           rows = notifs
@@ -153,15 +304,13 @@
 
         rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         items = rows;
-
-        if (!items.length) {
-          showEmpty(el, 'مفيش إشعارات حالياً');
-          return;
-        }
         render();
       } catch (err) {
         console.error(err);
-        showError(el, 'تعذر تحميل الإشعارات. حاول مرة أخرى.');
+        const errorEl = $('notif-error');
+        if (errorEl) errorEl.hidden = false;
+        $('notif-list').innerHTML = '';
+        $('notif-stats')?.setAttribute('hidden', '');
       }
     }
 
@@ -169,12 +318,28 @@
       const result = await protectPage();
       if (!result) return;
       profile = result.profile || null;
-      initIcons();
 
-      document.getElementById('mark-all')?.addEventListener('click', () => {
+      document.querySelectorAll('.notif-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          document.querySelectorAll('.notif-chip').forEach((c) => c.classList.remove('is-active'));
+          chip.classList.add('is-active');
+          activeFilter = chip.dataset.filter || 'all';
+          render();
+        });
+      });
+
+      $('mark-all')?.addEventListener('click', () => {
         saveReadIds(items.map((i) => String(i.id)));
         showToast('تم تعليم الكل كمقروء', 'success');
         render();
+      });
+
+      $('notif-retry')?.addEventListener('click', () => {
+        $('notif-error').hidden = true;
+        // ارجع للهوم لإرجاع هيكل التحميل
+        $('notif-list').innerHTML =
+          '<div class="notif-skeleton" aria-hidden="true"><div class="notif-skel-card"></div><div class="notif-skel-card"></div><div class="notif-skel-card"></div><div class="notif-skel-card"></div></div>';
+        load();
       });
 
       await load();
