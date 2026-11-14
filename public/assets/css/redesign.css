@@ -327,6 +327,58 @@ input:focus, select:focus, textarea:focus,
 
 /* ═══ ثيم البنات — نفس التعليمات، بس بينقط تلقائي عن طريق var(--primary) الوردي ═══ */
 
+/* ═══ الوضع الليلي — اعادة إثبات الألوان بهذا الموقع في السلسلة ═══ */
+:root[data-theme="dark"] {
+  --primary: #e0965f !important;
+  --primary-light: #2b241e !important;
+  --primary-dark: #cf8150 !important;
+  --accent: #e0965f !important;
+  --success: #8fbc9a !important;
+  --danger: #d69a9a !important;
+  --warning: #d8b878 !important;
+  --info: #e0965f !important;
+  --bg: #171512 !important;
+  --surface: #201d1a !important;
+  --surface-soft: #292622 !important;
+  --text: #ede9e3 !important;
+  --text-muted: #a9a499 !important;
+  --border: #322e29 !important;
+  --primary-light: #2b241e !important;
+  --auth-ink: #ede9e3 !important;
+  --auth-muted: #a9a499 !important;
+  --auth-green: #e0965f !important;
+  --auth-green-hover: #cf8150 !important;
+  --auth-gold: #e0965f !important;
+  --auth-line: #322e29 !important;
+  --auth-panel: #201d1a !important;
+  --gray: #d8d4cc !important;
+  --gray-dark: #f0ece6 !important;
+  --gray-light: #292622 !important;
+}
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] h4,
+:root[data-theme="dark"] p,
+:root[data-theme="dark"] span,
+:root[data-theme="dark"] li,
+:root[data-theme="dark"] a,
+:root[data-theme="dark"] td,
+:root[data-theme="dark"] th,
+:root[data-theme="dark"] label {
+  color: var(--text, #ede9e3) !important;
+}
+:root[data-theme="dark"] .text-muted,
+:root[data-theme="dark"] .section-subtitle { color: var(--text-muted, #a9a499) !important }
+:root[data-theme="dark"] .section-kicker { display: block !important; color: var(--primary-light, #f3dcbf) !important }
+:root[data-theme="dark"] .home-hero,
+:root[data-theme="dark"] .welcome-banner,
+:root[data-theme="dark"] .subjects-intro {
+  color: var(--text) !important;
+}
+:root[data-theme="dark"] .card h3 { color: var(--text) !important }
+:root[data-theme="dark"] .badge { color: var(--text) !important }
+
 /* ═══ الوضع الليلي — نفس التدرج مع تعميق ═══ */
 :root[data-theme="dark"] .app-header { background: rgba(32, 29, 26, .78) !important }
 :root[data-theme="dark"] .bottom-nav { background: rgba(32, 29, 26, .85) !important }
