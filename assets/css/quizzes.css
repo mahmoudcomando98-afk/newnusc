@@ -39,7 +39,7 @@
 }
 .quiz-chip.is-active {
   background: var(--primary, #dd6b20); border-color: var(--primary, #dd6b20); color: #fff;
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 35%, transparent);
+  box-shadow: none;
 }
 .quiz-chip.is-active .qc-count {
   background: rgba(255, 255, 255, .22); border-color: rgba(255, 255, 255, .4); color: #fff;
