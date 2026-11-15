@@ -33,6 +33,64 @@
       display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; scrollbar-width: none; padding: 2px;
     }
     .schedule-page .filters::-webkit-scrollbar { display: none }
+    .schedule-page .sched-tabs {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;
+    }
+    .schedule-page .sched-tab {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; border-radius: 16px;
+      background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
+      cursor: pointer; font-family: inherit; text-align: start;
+      transition: border-color .18s ease, background .18s ease, transform .18s ease, box-shadow .18s ease;
+    }
+    .schedule-page .sched-tab:hover {
+      transform: translateY(-1px);
+      border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+    }
+    .schedule-page .sched-tab:focus-visible {
+      outline: 2px solid color-mix(in srgb, var(--primary) 55%, transparent); outline-offset: 2px;
+    }
+    .schedule-page .sched-tab .st-ic {
+      flex: none; width: 42px; height: 42px; border-radius: 12px;
+      display: grid; place-items: center;
+      background: color-mix(in srgb, var(--primary) 13%, var(--surface)); color: var(--primary-dark);
+      transition: background .18s ease, color .18s ease, box-shadow .18s ease;
+    }
+    .schedule-page .sched-tab .st-ic [data-icon],
+    .schedule-page .sched-tab .st-ic svg { width: 21px; height: 21px; display: block; }
+    .schedule-page .sched-tab .st-txt {
+      display: flex; flex-direction: column; gap: 1px; min-width: 0;
+    }
+    .schedule-page .sched-tab .st-txt strong {
+      font-size: .95rem; font-weight: 800; color: var(--text); line-height: 1.3;
+    }
+    .schedule-page .sched-tab .st-txt small { font-size: .68rem; color: var(--text-muted); }
+    .schedule-page .sched-tab .st-count {
+      margin-inline-start: auto; flex: none;
+      border-radius: 999px; padding: 3px 10px;
+      font-size: .72rem; font-weight: 800; font-variant-numeric: tabular-nums;
+      background: var(--surface-soft, #f5f0eb); border: 1px solid var(--border); color: var(--text-muted);
+    }
+    .schedule-page .sched-tab.is-active {
+      border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+      background: linear-gradient(155deg, color-mix(in srgb, var(--primary) 13%, var(--surface)), var(--surface) 72%);
+      box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 16%, transparent);
+    }
+    .schedule-page .sched-tab.is-active .st-ic {
+      background: linear-gradient(150deg, var(--primary), var(--primary-dark)); color: #fff;
+      box-shadow: 0 5px 14px color-mix(in srgb, var(--primary) 45%, transparent);
+    }
+    .schedule-page .sched-tab.is-active .st-txt strong { color: var(--primary-dark); }
+    .schedule-page .sched-tab.is-active .st-count {
+      background: color-mix(in srgb, var(--primary) 18%, var(--surface));
+      border-color: color-mix(in srgb, var(--primary) 35%, var(--border)); color: var(--primary-dark);
+    }
+    @media (max-width: 520px) {
+      .schedule-page .sched-tab { gap: 8px; padding: 9px 10px; border-radius: 14px; }
+      .schedule-page .sched-tab .st-ic { width: 38px; height: 38px; border-radius: 10px; }
+      .schedule-page .sched-tab .st-txt small { display: none; }
+      .schedule-page .sched-tab .st-txt strong { font-size: .86rem; }
+    }
     .schedule-page .flt {
       flex: none; border: 1px solid var(--border); background: var(--surface); border-radius: 999px;
       padding: 8px 18px; font-family: inherit; font-size: .84rem; font-weight: 700; color: var(--text-muted);
@@ -112,17 +170,30 @@
       <section class="schedule-hero" aria-label="الجدول الدراسي">
         <div>
           <h1>الجدول الدراسي</h1>
-          <p>محاضرات وسكاشن موادك — اختار سكشنك من الأعلى وهتشوف مواعيده بس، مع بقاء المحاضرات ظاهرة للكل.</p>
+          <p>المحاضرات والمواعيد المشتركة في مكان، والسكاشن بأرقامها في مكان — كل يوم.</p>
         </div>
         <div class="ph-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         </div>
       </section>
 
-      <div class="filters" id="filters" role="tablist" aria-label="تصفية الجدول">
-        <button type="button" class="flt is-active" data-filter="all" role="tab">الكل</button>
-        <button type="button" class="flt" data-filter="lecture" role="tab">المحاضرات</button>
-        <button type="button" class="flt" data-filter="section" role="tab">السكاشن</button>
+      <div class="sched-tabs" id="filters" role="tablist" aria-label="نوع الجدول">
+        <button type="button" class="sched-tab is-active" data-filter="lecture" role="tab" aria-selected="true">
+          <span class="st-ic" data-icon="book-open" aria-hidden="true"></span>
+          <span class="st-txt">
+            <strong>المحاضرات</strong>
+            <small>المواعيد المشتركة للجميع</small>
+          </span>
+          <span class="st-count" data-count-for="lecture">0</span>
+        </button>
+        <button type="button" class="sched-tab" data-filter="section" role="tab" aria-selected="false">
+          <span class="st-ic" data-icon="users" aria-hidden="true"></span>
+          <span class="st-txt">
+            <strong>السكاشن</strong>
+            <small>مواعيد حسب رقم سكشنك</small>
+          </span>
+          <span class="st-count" data-count-for="section">0</span>
+        </button>
       </div>
       <div class="filters hidden" id="section-filters" role="tablist" aria-label="تصفية الجدول برقم السكشن"></div>
 

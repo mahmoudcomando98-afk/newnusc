@@ -9,7 +9,7 @@ const TYPE_LABEL = { lecture: 'المحاضرة', section: 'السكشن', quiz:
 const CHIP = { lecture: 'chip-lecture', section: 'chip-section', quiz: 'chip-quiz', exam: 'chip-exam', other: 'chip-other' };
 
 let events = [];
-let currentFilter = 'all';
+let currentFilter = 'lecture';
 let currentSection = 'all';
 
 function getSubjectName(ev) {
@@ -45,14 +45,19 @@ function sortEvents(list) {
 
 function filterEvents(list) {
   return list.filter((ev) => {
-    if (currentFilter !== 'all' && (ev.event_type || 'other') !== currentFilter) return false;
-    if (currentSection !== 'all') {
-      /* السكاشن بأرقامها بتتصفّل، والمواعيد من غير سكشن (المحاضرات العامة) بتفضل ظاهرة للكل */
-      const n = ev.section_number;
-      if (n == null) return true;
-      return String(n) === String(currentSection);
+    const t = String(ev.event_type || 'other').toLowerCase();
+    const isSection = t === 'section';
+    if (currentFilter === 'section') {
+      /* تاب السكاشن — الأقسام فقط، ومع فلتر رقم السكشن */
+      if (!isSection) return false;
+      if (currentSection !== 'all') {
+        const n = ev.section_number;
+        return n != null && String(n) === String(currentSection);
+      }
+      return true;
     }
-    return true;
+    /* تاب المحاضرات — كل المواعيد المشتركة (المحاضرات وأي شيء من غير سكشن) */
+    return !isSection;
   });
 }
 
@@ -114,13 +119,18 @@ function render() {
   const list = sortEvents(filterEvents(events));
 
   if (!list.length) {
-    const sectionHint = currentSection !== 'all'
-      ? '<p>السكشن ' + escapeHtml(String(currentSection)) + ' مالوش مواعيد مدرجة دلوقتي — جرّب سكشن تاني أو «الكل».</p>'
-      : '<p>الأستاذ هينزل المحاضرات والسكاشن قريب — تابعها هنا أول بأول.</p>';
+    let msg;
+    if (currentFilter === 'section') {
+      msg = currentSection !== 'all'
+        ? '<p>السكشن ' + escapeHtml(String(currentSection)) + ' مالوش مواعيد مدرجة دلوقتي — جرّب سكشن تاني.</p>'
+        : '<p>لسه ما نزلتش سكاشن — تابعها هنا أول بأول.</p>';
+    } else {
+      msg = '<p>لسه ما نزلتش محاضرات — تابعها هنا أول بأول.</p>';
+    }
     mount.innerHTML =
       '<div class="empty">' +
         '<h2>الجدول فاض لسه</h2>' +
-        sectionHint +
+        msg +
       '</div>';
     return;
   }
@@ -184,12 +194,22 @@ async function loadSchedule() {
       .filter((r) => r.is_active !== false)
       .map((r) => ({ ...r, subject_name: subjectNames[r.subject_id] || '' }));
 
+    updateTabCounts();
     renderSectionFilters();
     render();
   } catch (err) {
     console.error('[NUSC] loadSchedule:', err);
     showError(mount, 'تعذر تحميل الجدول: ' + (err?.message || 'خطأ'));
   }
+}
+
+function updateTabCounts() {
+  const lectureCount = events.filter((e) => String(e.event_type || 'other').toLowerCase() !== 'section').length;
+  const sectionCount = events.filter((e) => String(e.event_type || '').toLowerCase() === 'section').length;
+  const lec = document.querySelector('[data-count-for="lecture"]');
+  const sec = document.querySelector('[data-count-for="section"]');
+  if (lec) lec.textContent = lectureCount;
+  if (sec) sec.textContent = sectionCount;
 }
 
 function uniqueSections() {
@@ -203,7 +223,8 @@ function renderSectionFilters() {
   const row = document.getElementById('section-filters');
   if (!row) return;
   const secs = uniqueSections();
-  if (secs.length < 2) {
+  const show = currentFilter === 'section' && secs.length >= 2;
+  if (!show) {
     row.classList.add('hidden');
     row.innerHTML = '';
     currentSection = 'all';
@@ -222,13 +243,14 @@ function renderSectionFilters() {
 }
 
 function bindTabs() {
-  document.querySelectorAll('#filters .flt').forEach((tab) => {
+  document.querySelectorAll('#filters .sched-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('#filters .flt').forEach((t) => {
+      document.querySelectorAll('#filters .sched-tab').forEach((t) => {
         t.classList.toggle('is-active', t === tab);
         t.setAttribute('aria-selected', String(t === tab));
       });
-      currentFilter = tab.dataset.filter || 'all';
+      currentFilter = tab.dataset.filter || 'lecture';
+      renderSectionFilters();
       render();
     });
   });

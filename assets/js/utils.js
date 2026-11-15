@@ -280,6 +280,7 @@ const ICONS = {
   x: `<svg ${SVG_ATTR}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
   link: `<svg ${SVG_ATTR}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
   clock: `<svg ${SVG_ATTR}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  'users': `<svg ${SVG_ATTR}><circle cx="9" cy="8" r="3.1"/><path d="M3.6 19.2c0-3.2 2.4-5.2 5.4-5.2s5.4 2 5.4 5.2"/><circle cx="16.6" cy="9.2" r="2.6"/><path d="M14.8 14.3c3 .4 5.5 2.5 5.5 5"/></svg>`,
   'wifi-off': `<svg ${SVG_ATTR}><line x1="2" y1="2" x2="22" y2="22"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.82"/><path d="M16.85 11.25a8 8 0 0 1 2.22 1.68"/><path d="M5 13a10 10 0 0 1 5.24-2.85"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>`
 };
 
