@@ -1,32 +1,25 @@
-/* تنقل آمن: حركة خفيفة فقط — بدون تبديل محتوى */
+/* تنقل: حركة خفيفة بدون إخفاء المحتوى */
 
-html.pt-ready body {
+html body {
   opacity: 1;
   transform: none;
-  transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
+html.pt-ready body,
 html.pt-enter body {
   opacity: 1;
-  transform: translateY(0);
-}
-
-html:not(.pt-ready) body {
-  opacity: 0.01;
-}
-
-html.pt-ready:not(.pt-enter):not(.pt-exit) body {
-  opacity: 0;
-  transform: translateY(5px);
+  transform: none;
+  transition: opacity 0.14s ease, transform 0.14s ease;
 }
 
 html.pt-exit body {
-  opacity: 0;
-  transform: translateY(-3px);
+  opacity: 0.35;
+  transform: translateY(-2px);
   pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
-/* شريط تقدّم رفيع أثناء الانتقال */
+/* شريط تقدّم أثناء التنقل الناعم */
 #comando-nav-progress {
   position: fixed;
   inset-block-start: 0;
@@ -51,38 +44,34 @@ html.pt-exit body {
 }
 
 #comando-nav-progress.is-active span {
-  animation: comando-nav-bar 0.75s ease-out forwards;
+  animation: comando-nav-bar 0.7s ease-out forwards;
 }
 
 #comando-nav-progress.is-done span {
   animation: none;
   width: 100%;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.18s ease;
 }
 
 @keyframes comando-nav-bar {
   0% { width: 0%; }
-  45% { width: 60%; }
-  100% { width: 88%; }
+  50% { width: 65%; }
+  100% { width: 90%; }
 }
 
-/* View Transitions (Chrome/Edge) — نعومة إضافية بدون كسر الصفحات */
 @supports (view-transition-name: none) {
   ::view-transition-old(root),
   ::view-transition-new(root) {
-    animation-duration: 0.18s;
+    animation-duration: 0.16s;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html.pt-ready body,
-  html.pt-enter body,
-  html.pt-exit body,
-  html:not(.pt-ready) body {
-    transition: none !important;
+  html.pt-exit body {
     opacity: 1 !important;
     transform: none !important;
+    transition: none !important;
   }
   #comando-nav-progress.is-active span {
     animation: none;
