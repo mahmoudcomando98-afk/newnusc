@@ -53,13 +53,15 @@ async function checkBannedAndGo(uid) {
       return;
     }
   } catch {
-    /* تابع للترحيب */
+    /* تابع للرئيسية */
   }
-  // بعد الدخول: شاشة تجميع كلمة COMANDO ثم التحويل للوجهة
-  const next = resolveNextPath();
-  const welcome =
-    '/welcome.html?next=' + encodeURIComponent(next || '/home.html');
-  window.location.replace(welcome);
+  // بعد تسجيل الدخول: ادخل مباشرة (الأنيميشن عند فتح المنصة من index فقط)
+  try {
+    sessionStorage.setItem('comando_splash_ok', '1');
+  } catch {
+    /* ignore */
+  }
+  window.location.replace(resolveNextPath());
 }
 
 const DEVICE_KEY = 'comando_device_id';
@@ -90,7 +92,6 @@ export async function loginWithCode(code) {
     body: { action: 'login', code: normalized, device_id: getOrCreateDeviceId() || '' }
   });
   if (error) {
-    // supabase-js v2: non-2xx → error.context (Response) — اقرأ الرسالة الحقيقية إن وُجدت
     let detail = null;
     try { detail = await error.context?.json?.(); } catch { /* غير JSON أو غير متاح */ }
     if (detail?.error) throw new Error(detail.error);
@@ -132,6 +133,11 @@ export async function lookupStudentCode(query) {
 export async function logout() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+  try {
+    sessionStorage.removeItem('comando_splash_ok');
+  } catch {
+    /* ignore */
+  }
   window.location.href = '/login.html';
 }
 
@@ -258,7 +264,6 @@ export function initLoginPage() {
     }
   });
 
-  // "هل نسيت الكود الجامعي؟" — إظهار لوحة البحث بالاسم
   if (forgotLink && forgotPanel) {
     forgotLink.addEventListener('click', (e) => {
       e.preventDefault();
@@ -275,7 +280,6 @@ export function initLoginPage() {
       try {
         const results = await lookupStudentCode(lookupInput.value);
         renderLookupResults(lookupResults, results, async (item) => {
-          // الطالب اختار نفسه: سجّل بالكود فورًا
           try {
             await submitCode(item.code);
           } catch (err) {
