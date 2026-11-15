@@ -10,6 +10,7 @@ const CHIP = { lecture: 'chip-lecture', section: 'chip-section', quiz: 'chip-qui
 
 let events = [];
 let currentFilter = 'all';
+let currentSection = 'all';
 
 function getSubjectName(ev) {
   return ev.subject_name || '';
@@ -42,35 +43,17 @@ function sortEvents(list) {
   });
 }
 
-/* دمج السكاشن اللي نفس المادة + نفس اليوم + نفس الوقت + نفس المكان في كارت واحد */
-function groupEvents(list) {
-  const map = new Map();
-  for (const ev of list) {
-    const key = [
-      String(ev.event_type || 'other'),
-      getDay(ev) ?? 'na',
-      String(ev.start_time || ''),
-      String(ev.end_time || ''),
-      String(ev.subject_id || ''),
-      String(ev.title || ''),
-      String(ev.location || ''),
-      String(ev.instructor || '')
-    ].join('|');
-    const g = map.get(key);
-    if (g) g.items.push(ev);
-    else map.set(key, { base: ev, items: [ev] });
-  }
-  const groups = [...map.values()];
-  for (const g of groups) {
-    g.sectionNumbers = [...new Set(g.items.map((i) => i.section_number).filter((n) => n != null))]
-      .sort((a, b) => Number(a) - Number(b));
-  }
-  return groups;
-}
-
 function filterEvents(list) {
-  if (currentFilter === 'all') return list;
-  return list.filter((ev) => (ev.event_type || 'other') === currentFilter);
+  return list.filter((ev) => {
+    if (currentFilter !== 'all' && (ev.event_type || 'other') !== currentFilter) return false;
+    if (currentSection !== 'all') {
+      /* السكاشن بأرقامها بتتصفّل، والمواعيد من غير سكشن (المحاضرات العامة) بتفضل ظاهرة للكل */
+      const n = ev.section_number;
+      if (n == null) return true;
+      return String(n) === String(currentSection);
+    }
+    return true;
+  });
 }
 
 function eventIcon(ev) {
@@ -87,34 +70,22 @@ function chipFor(ev) {
   return '<span class="chip ' + cls + '">' + escapeHtml(label) + '</span>';
 }
 
-function sectionBoxHtml(sections) {
-  const nums = (sections || []).filter((n) => n != null);
-  if (!nums.length) return '';
-  if (nums.length === 1) {
-    return (
-      '<span class="slot-section">' +
-        '<span class="slot-section-label">سكشن</span>' +
-        '<span class="slot-section-num">' + escapeHtml(String(nums[0])) + '</span>' +
-      '</span>'
-    );
-  }
+function sectionBoxHtml(ev) {
+  const n = ev.section_number;
+  if (n == null) return '';
   return (
     '<span class="slot-section">' +
-      '<span class="slot-section-label">سكاشن</span>' +
-      '<span class="slot-section-nums">' + nums.map((n) => escapeHtml(String(n))).join('<i>،</i>') + '</span>' +
+      '<span class="slot-section-label">سكشن</span>' +
+      '<span class="slot-section-num">' + escapeHtml(String(n)) + '</span>' +
     '</span>'
   );
 }
 
-function cardHtml(group) {
-  const ev = group.base;
-  const subs = group.items.map((i) => i.notes).filter(Boolean);
-  const uniqNotes = [...new Set(subs)].join(' · ');
+function cardHtml(ev) {
   const sub = getSubjectName(ev);
   const { start, end } = timePair(ev);
   const range = start && end ? start + ' ← ' + end : (start || '');
   const loc = [ev.location, ev.instructor].filter(Boolean).map(escapeHtml).join(' · ');
-  const multi = (group.sectionNumbers || []).length > 1;
 
   return (
     '<article class="slot" aria-label="' + escapeHtml(ev.title || 'موعد') + '">' +
@@ -127,12 +98,11 @@ function cardHtml(group) {
         '<div class="slot-meta">' +
           chipFor(ev) +
           (sub ? '<span class="chip chip-subject">' + escapeHtml(sub) + '</span>' : '') +
-          (multi ? '<span class="chip chip-section-no">' + group.sectionNumbers.length + ' سكاشن</span>' : '') +
         '</div>' +
         (loc ? '<div class="slot-meta"><span>' + loc + '</span></div>' : '') +
-        (uniqNotes ? '<small style="color:var(--text-muted); font-size:.74rem">' + escapeHtml(uniqNotes) + '</small>' : '') +
+        (ev.notes ? '<small style="color:var(--text-muted); font-size:.74rem">' + escapeHtml(ev.notes) + '</small>' : '') +
       '</div>' +
-      sectionBoxHtml(group.sectionNumbers) +
+      sectionBoxHtml(ev) +
     '</article>'
   );
 }
@@ -142,21 +112,23 @@ function render() {
   if (!mount) return;
 
   const list = sortEvents(filterEvents(events));
-  const groups = groupEvents(list);
 
   if (!list.length) {
+    const sectionHint = currentSection !== 'all'
+      ? '<p>السكشن ' + escapeHtml(String(currentSection)) + ' مالوش مواعيد مدرجة دلوقتي — جرّب سكشن تاني أو «الكل».</p>'
+      : '<p>الأستاذ هينزل المحاضرات والسكاشن قريب — تابعها هنا أول بأول.</p>';
     mount.innerHTML =
       '<div class="empty">' +
         '<h2>الجدول فاض لسه</h2>' +
-        '<p>الأستاذ هينزل المحاضرات والسكاشن قريب — تابعها هنا أول بأول.</p>' +
+        sectionHint +
       '</div>';
     return;
   }
 
   const byDay = Array.from({ length: 7 }, () => []);
-  for (const g of groups) {
-    const d = getDay(g.base);
-    if (d !== null) byDay[d].push(g);
+  for (const ev of list) {
+    const d = getDay(ev);
+    if (d !== null) byDay[d].push(ev);
   }
 
   const sectionsOrder = [0, 1, 2, 3, 4, 5, 6];
@@ -212,11 +184,41 @@ async function loadSchedule() {
       .filter((r) => r.is_active !== false)
       .map((r) => ({ ...r, subject_name: subjectNames[r.subject_id] || '' }));
 
+    renderSectionFilters();
     render();
   } catch (err) {
     console.error('[NUSC] loadSchedule:', err);
     showError(mount, 'تعذر تحميل الجدول: ' + (err?.message || 'خطأ'));
   }
+}
+
+function uniqueSections() {
+  return [...new Set(events.map((e) => e.section_number).filter((n) => n != null))]
+    .map(Number)
+    .filter((n) => Number.isFinite(n))
+    .sort((a, b) => a - b);
+}
+
+function renderSectionFilters() {
+  const row = document.getElementById('section-filters');
+  if (!row) return;
+  const secs = uniqueSections();
+  if (secs.length < 2) {
+    row.classList.add('hidden');
+    row.innerHTML = '';
+    currentSection = 'all';
+    return;
+  }
+  row.classList.remove('hidden');
+  row.innerHTML =
+    '<button type="button" class="flt' + (currentSection === 'all' ? ' is-active' : '') + '" data-section="all" role="tab" aria-selected="' + String(currentSection === 'all') + '">الكل</button>' +
+    secs
+      .map((n) =>
+        '<button type="button" class="flt' + (String(currentSection) === String(n) ? ' is-active' : '') +
+        '" data-section="' + escapeHtml(String(n)) + '" role="tab" aria-selected="' +
+        String(String(currentSection) === String(n)) + '">سكشن ' + escapeHtml(String(n)) + '</button>'
+      )
+      .join('');
 }
 
 function bindTabs() {
@@ -230,6 +232,20 @@ function bindTabs() {
       render();
     });
   });
+  const row = document.getElementById('section-filters');
+  if (row) {
+    row.addEventListener('click', (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest('.flt') : null;
+      if (!btn) return;
+      currentSection = btn.dataset.section || 'all';
+      row.querySelectorAll('.flt').forEach((t) => {
+        const active = t === btn;
+        t.classList.toggle('is-active', active);
+        t.setAttribute('aria-selected', String(active));
+      });
+      render();
+    });
+  }
 }
 
 async function init() {

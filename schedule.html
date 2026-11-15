@@ -81,12 +81,6 @@
     .schedule-page .slot-section { min-width: 58px; text-align: center; }
     .schedule-page .slot-section-label { font-size: .66rem; letter-spacing: .6px; color: var(--text-muted); font-weight: 800; }
     .schedule-page .slot-section-num { font-size: 1.35rem; font-weight: 800; color: var(--primary-dark, #82621a); line-height: 1; }
-    .schedule-page .slot-section-nums {
-      display: flex; flex-wrap: wrap; gap: 1px 5px; justify-content: center;
-      font-size: .88rem; font-weight: 800; color: var(--primary-dark, #82621a);
-      line-height: 1.45; max-width: 132px; margin-top: 2px;
-    }
-    .schedule-page .slot-section-nums i { font-style: normal; color: var(--text-muted); font-weight: 700; }
 
     .schedule-page .empty {
       text-align: center; padding: 48px 16px; color: var(--text-muted);
@@ -118,7 +112,7 @@
       <section class="schedule-hero" aria-label="الجدول الدراسي">
         <div>
           <h1>الجدول الدراسي</h1>
-          <p>محاضرات وسكاشن موادك — السكاشن اللي نفس المادة والوقت بيتجمعوا في كارت واحد بأرقام سكاشنها، كل يوم.</p>
+          <p>محاضرات وسكاشن موادك — اختار سكشنك من الأعلى وهتشوف مواعيده بس، مع بقاء المحاضرات ظاهرة للكل.</p>
         </div>
         <div class="ph-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -130,6 +124,7 @@
         <button type="button" class="flt" data-filter="lecture" role="tab">المحاضرات</button>
         <button type="button" class="flt" data-filter="section" role="tab">السكاشن</button>
       </div>
+      <div class="filters hidden" id="section-filters" role="tablist" aria-label="تصفية الجدول برقم السكشن"></div>
 
       <div id="schedule-root">
         <div id="schedule-content" aria-live="polite">
@@ -147,6 +142,6 @@
     <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
 
-  <script type="module" src="/assets/js/schedule.js?v=sched-v3"></script>
+  <script type="module" src="/assets/js/schedule.js?v=sched-v4"></script>
 </body>
 </html>
