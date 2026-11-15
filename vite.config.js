@@ -10,10 +10,10 @@ const CAIRO_HEAD_SNIPPET = `
    الافتراضي دائمًا نهاري — الطالب يقدر يبدّل بنفسه ويحفظ اختياره */
 const THEME_HEAD_SNIPPET = `
   <script id="comando-theme-init">(function(){try{var t=localStorage.getItem('comando-theme');if(t!=='dark'&&t!=='light'){t='light';}}catch(e){t='light';}document.documentElement.setAttribute('data-theme',t);try{var p=localStorage.getItem('comando-palette');var path=(window.location.pathname||'').toLowerCase();var skip=/login|register|signup|sign-up/.test(path);if(p==='girl'&&!skip){document.documentElement.setAttribute('data-palette','girl');}}catch(e){}})();</script>
-  <link rel="stylesheet" href="/assets/css/dark-theme.css?v=3" />
+  <link rel="stylesheet" href="/assets/css/dark-theme.css?v=4" />
   <link rel="stylesheet" href="/assets/css/girl-theme.css?v=2" />
 `;
-const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=2"></script>`;
+const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=3"></script>`;
 const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=16" />`;
 const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=20"></script>`;
 const CHAT_ICON_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/chat-icon.css?v=1" />`;

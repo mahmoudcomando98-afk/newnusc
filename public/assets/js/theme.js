@@ -59,11 +59,41 @@ function applyTheme(theme, { animate = false } = {}) {
   updateToggle(theme);
 }
 
-export function toggleTheme() {
+/* إحداثيات زر التبديل لتوسّع الدائرة في View Transition */
+function setViewTransitionOrigin(originEl) {
+  const root = document.documentElement;
+  const w = window.innerWidth || 360;
+  const h = window.innerHeight || 640;
+  let x = w / 2;
+  let y = h / 3;
+  const rect = originEl?.getBoundingClientRect?.();
+  if (rect) {
+    x = rect.left + rect.width / 2;
+    y = rect.top + rect.height / 2;
+  }
+  /* نصف القطر = أبعد زاوية في الشاشة عن نقطة الضغط */
+  const r = Math.hypot(Math.max(x, w - x), Math.max(y, h - y));
+  root.style.setProperty('--vt-x', `${Math.round(x)}px`);
+  root.style.setProperty('--vt-y', `${Math.round(y)}px`);
+  root.style.setProperty('--vt-r', `${Math.ceil(r)}px`);
+}
+
+export function toggleTheme(event) {
   const next = currentTheme() === 'dark' ? 'light' : 'dark';
-  applyTheme(next, { animate: true });
-  const btns = document.querySelectorAll('.theme-toggle-header');
-  if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const origin = event?.currentTarget || document.querySelector('.theme-toggle-header');
+
+  /* المسار الحديث: View Transitions — snapshot واحد للصفحة، دائرة تتوسع من الزر.
+     انتقال مركّب على الـ GPU بدون إعادة حساب أنماط كل عنصر = صفر تقطيع */
+  if (typeof document.startViewTransition === 'function' && !reduceMotion) {
+    setViewTransitionOrigin(origin);
+    document.startViewTransition(() => applyTheme(next));
+  } else {
+    applyTheme(next, { animate: true });
+  }
+
+  if (!reduceMotion) {
+    const btns = document.querySelectorAll('.theme-toggle-header');
     btns.forEach((btn) => {
       btn.classList.remove('pulse');
       // إعادة التشغيل القسري للأنيميشن

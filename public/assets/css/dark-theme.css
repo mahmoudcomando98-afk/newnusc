@@ -321,11 +321,44 @@
   100% { transform: scale(1); }
 }
 
-/* انتقال ناعم لكل الألوان أثناء تبديل الثيم */
+/* انتقال ناعم للثيم عبر View Transitions — دائرة تتوسع من زر التبديل.
+   المتصفح بياخد snapshot للصفحة كلها ويعمل الانتقال على الـ GPU بدون
+   إعادة حساب أنماط كل عنصر كل frame — صفر تقطيع */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
+  animation: theme-circle-reveal 0.5s var(--ease-spring, ease-in-out);
+}
+
+@keyframes theme-circle-reveal {
+  from {
+    clip-path: circle(0px at var(--vt-x, 50%) var(--vt-y, 33%));
+  }
+  to {
+    clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 50%) var(--vt-y, 33%));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+/* Fallback للمتصفحات القديمة (بدون View Transitions): انتقال أخف —
+   ألوان وحدود فقط بدون box-shadow (أغلى حاجة في الرسم) ولمدة أقصر */
 html.theme-anim,
 html.theme-anim * {
-  transition: background-color 0.45s ease, color 0.45s ease,
-    border-color 0.45s ease, box-shadow 0.45s ease, fill 0.45s ease !important;
+  transition: background-color 0.35s ease, color 0.35s ease,
+    border-color 0.35s ease !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
