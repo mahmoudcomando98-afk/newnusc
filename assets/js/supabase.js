@@ -1,6 +1,5 @@
 import './cairo-font.js';
 import './egyptian-ar.js';
-import './page-transitions.js';
 
 /**
  * COMANDO Student Hub - Supabase Client
@@ -465,8 +464,7 @@ function profileFromAuthUser(user) {
     college: meta.college || null,
     academic_year: meta.academic_year || null,
     avatar_url: meta.avatar_url || null,
-    // لا نثق في user_metadata.role لمنح أدمن — الصلاحية من جدول profiles فقط
-    role: 'student',
+    role: meta.role === 'admin' || meta.role === 'moderator' ? meta.role : 'student',
     is_active: true,
     created_at: user.created_at || null,
     _from_auth_fallback: true

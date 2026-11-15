@@ -55,16 +55,12 @@ async function checkBannedAndGo(uid) {
   } catch {
     /* تابع للرئيسية */
   }
-  try {
-    sessionStorage.setItem('comando_splash_ok', '1');
-  } catch {
-    /* ignore */
-  }
   window.location.replace(resolveNextPath());
 }
 
 const DEVICE_KEY = 'comando_device_id';
 
+/** معرّف جهاز ثابت لكل متصفح/جهاز — يُستخدم لقفل الحساب على جهاز واحد */
 export function getOrCreateDeviceId() {
   try {
     let id = localStorage.getItem(DEVICE_KEY);
@@ -81,6 +77,7 @@ export function getOrCreateDeviceId() {
   }
 }
 
+/** الدخول (أو التسجيل تلقائيًا) بالكود الجامعي */
 export async function loginWithCode(code) {
   const normalized = String(code || '').trim().replace(/\s+/g, ' ').toUpperCase();
   if (!normalized) throw new Error('اكتب الكود الجامعي أولًا.');
@@ -89,6 +86,7 @@ export async function loginWithCode(code) {
     body: { action: 'login', code: normalized, device_id: getOrCreateDeviceId() || '' }
   });
   if (error) {
+    // supabase-js v2: non-2xx → error.context (Response) — اقرأ الرسالة الحقيقية إن وُجدت
     let detail = null;
     try { detail = await error.context?.json?.(); } catch { /* غير JSON أو غير متاح */ }
     if (detail?.error) throw new Error(detail.error);
@@ -109,6 +107,7 @@ export async function loginWithCode(code) {
   return { ...verifyData, fullName: data.full_name, role: data.role };
 }
 
+/** البحث عن كود جامعي بالاسم — للذين نسوا كودهم */
 export async function lookupStudentCode(query) {
   const q = String(query || '').trim();
   if (q.length < 3) throw new Error('اكتب 3 أحرف على الأقل من اسمك.');
@@ -129,11 +128,6 @@ export async function lookupStudentCode(query) {
 export async function logout() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
-  try {
-    sessionStorage.removeItem('comando_splash_ok');
-  } catch {
-    /* ignore */
-  }
   window.location.href = '/login.html';
 }
 
@@ -159,35 +153,7 @@ export async function protectPage({ adminOnly = false } = {}) {
     window.location.replace('/login.html');
     return null;
   }
-  let profile = await getProfile(session.user.id);
-
-  // ضمان ظهور اسم الطالب حتى لو تأخرت قاعدة البيانات
-  try {
-    const meta = session.user?.user_metadata || {};
-    const metaName =
-      (typeof meta.full_name === 'string' && meta.full_name.trim()) ||
-      (typeof meta.name === 'string' && meta.name.trim()) ||
-      '';
-    if (profile) {
-      if ((!profile.full_name || profile.full_name === 'طالب') && metaName) {
-        profile = { ...profile, full_name: metaName };
-      }
-      if (!profile.email && session.user?.email) {
-        profile = { ...profile, email: session.user.email };
-      }
-    } else if (metaName || session.user?.email) {
-      profile = {
-        id: session.user.id,
-        full_name: metaName || (session.user.email || '').split('@')[0] || 'طالب',
-        email: session.user.email || '',
-        role: 'student',
-        is_active: true,
-        _from_auth_fallback: true
-      };
-    }
-  } catch {
-    /* ignore */
-  }
+  const profile = await getProfile(session.user.id);
 
   if (profile && profile.is_active === false && !adminOnly) {
     const path = (window.location.pathname || '').toLowerCase();
@@ -243,10 +209,10 @@ function renderLookupResults(container, results, onPick) {
 
 function escapeHtmlSafe(value) {
   return String(value ?? '')
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 export function initLoginPage() {
@@ -288,6 +254,7 @@ export function initLoginPage() {
     }
   });
 
+  // "هل نسيت الكود الجامعي؟" — إظهار لوحة البحث بالاسم
   if (forgotLink && forgotPanel) {
     forgotLink.addEventListener('click', (e) => {
       e.preventDefault();
@@ -304,6 +271,7 @@ export function initLoginPage() {
       try {
         const results = await lookupStudentCode(lookupInput.value);
         renderLookupResults(lookupResults, results, async (item) => {
+          // الطالب اختار نفسه: سجّل بالكود فورًا
           try {
             await submitCode(item.code);
           } catch (err) {

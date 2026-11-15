@@ -16,7 +16,7 @@ import {
 } from './utils.js';
 import { supabase, readProfileCache } from './supabase.js';
 import { freshnessBadgesHtml, touchLastVisit } from './freshness.js';
-import { cachedStaleWhileRevalidate } from './cache.js';
+import { cachedStaleWhileRevalidate, cacheRemove } from './cache.js';
 import {
   fetchSubjects,
   fetchAnnouncements,
@@ -26,16 +26,17 @@ import {
   fetchSubjectNames
 } from './data-api.js';
 
-const TTL = 5 * 60 * 1000;
+const TTL = 3 * 60 * 1000;
 const ANN_LIMIT = 12;
 let profile = null;
 
 async function init() {
   try {
+    /* الاسم يظهر فورًا من كاش آخر بروفايل — البيانات مبقتش تستنى الشبكة */
     try {
       const cached = readProfileCache();
       const welcomeEarly = document.getElementById('welcome-name');
-      if (cached?.full_name && welcomeEarly) {
+      if (cached?.full_name && welcomeEarly && welcomeEarly.textContent === 'مرحبًا') {
         welcomeEarly.textContent = 'أهلاً، ' + cached.full_name;
       }
     } catch {
@@ -52,8 +53,7 @@ async function init() {
       const banner = document.getElementById('offline-banner');
       if (banner) banner.classList.toggle('hidden', online);
     });
-    const meta = result.user?.user_metadata || {};
-    const name = (profile?.full_name || profile?.name || meta.full_name || meta.name || 'طالب').toString().trim() || 'طالب';
+    const name = (profile?.full_name || profile?.name || 'طالب').trim() || 'طالب';
     const welcomeName = document.getElementById('welcome-name');
     if (welcomeName) welcomeName.textContent = 'أهلاً، ' + name;
     const welcomeText = document.getElementById('welcome-text');
@@ -66,14 +66,15 @@ async function init() {
       loadSubjects(),
       loadImportantNotice(),
       loadLiveOnlineSections(),
-      loadDueReminders(),
-      loadLectures(),
-      loadQuizzes(),
-      loadMaterials(),
-      loadNotifCount()
+      loadDueReminders()
     ]);
-    import('./due-reminders.js').then((m) => m.runDueRemindersOnce()).catch(() => {});
-    import('./weekly-report.js').then((m) => m.runWeeklyReportOnce()).catch(() => {});
+    await Promise.all([loadLectures(), loadQuizzes(), loadMaterials(), loadNotifCount()]);
+    import('./due-reminders.js')
+      .then((m) => m.runDueRemindersOnce())
+      .catch(() => {});
+    import('./weekly-report.js')
+      .then((m) => m.runWeeklyReportOnce())
+      .catch(() => {});
   } catch (error) {
     console.error('[NUSC] home init:', error);
   }
@@ -190,6 +191,7 @@ async function loadDueReminders() {
   const el = document.getElementById('due-reminders');
   if (!el) return;
   try {
+    cacheRemove('home:due_assignments');
     const pack = await cachedStaleWhileRevalidate(
       'home:due_assignments_v2',
       async () => {
@@ -331,10 +333,12 @@ async function loadLectures() {
   const el = document.getElementById('lectures-list');
   if (!el) return;
   try {
-    const data = await cachedStaleWhileRevalidate('home:lectures_v3', () => fetchLectureFeed(8), {
-      ttlMs: TTL,
-      onUpdate: renderLectures
-    });
+    cacheRemove('home:lectures');
+    const data = await cachedStaleWhileRevalidate(
+      'home:lectures_v3',
+      () => fetchLectureFeed(8),
+      { ttlMs: TTL, onUpdate: renderLectures }
+    );
     renderLectures(data);
   } catch (error) {
     console.error('[NUSC] loadLectures:', error);
@@ -401,7 +405,9 @@ async function loadImportantNotice() {
   const box = document.getElementById('important-notice');
   if (!box) return;
   try {
-    const data = await cachedStaleWhileRevalidate('home:announcements', announcementsLoader, { ttlMs: TTL });
+    const data = await cachedStaleWhileRevalidate('home:announcements', announcementsLoader, {
+      ttlMs: TTL
+    });
     const visible = (data || []).filter((n) => n && n.is_published !== false);
     let notice = visible.find((n) => {
       const level = String(n.importance || n.priority || '');
@@ -419,7 +425,9 @@ async function loadImportantNotice() {
     if (t) t.textContent = notice.title || 'إشعار مهم';
     if (c) c.textContent = notice.content || notice.body || '';
     if (tm) tm.textContent = timeAgo(notice.created_at);
-    try { initIcons(); } catch {}
+    try {
+      initIcons();
+    } catch {}
   } catch (error) {
     console.warn('[NUSC] loadImportantNotice:', error);
   }
@@ -534,7 +542,9 @@ async function loadLiveOnlineSections() {
           return (
             '<a class="list-item" href="' +
             escapeHtml(href) +
-            '" style="text-decoration:none;color:inherit"><div class="list-item-icon" data-icon="video"></div><div class="list-item-body"><div class="list-item-title">' +
+            '" ' +
+            (r.join_url ? 'target="_blank" rel="noopener"' : '') +
+            ' style="text-decoration:none;color:inherit"><div class="list-item-body"><div class="list-item-title">' +
             escapeHtml(r.course_name || 'سكشن') +
             '</div><div class="list-item-desc">' +
             escapeHtml(r.instructor || '') +
@@ -544,7 +554,6 @@ async function loadLiveOnlineSections() {
         })
         .join('') +
       '</div>';
-    initIcons();
   } catch (error) {
     console.warn('[NUSC] loadLiveOnlineSections:', error);
     el.classList.add('hidden');
@@ -552,17 +561,18 @@ async function loadLiveOnlineSections() {
 }
 
 async function loadNotifCount() {
-  const badge = document.getElementById('notif-dot');
+  const badge = document.getElementById('notif-badge');
   if (!badge) return;
   try {
     const { count, error } = await supabase
       .from('notifications')
       .select('id', { count: 'exact', head: true })
-      .eq('is_read', false);
+      .or('is_global.eq.true,user_id.eq.' + (profile?.id || '00000000-0000-0000-0000-000000000000'));
     if (error) throw error;
-    if (count && count > 0) {
+    const n = count || 0;
+    if (n > 0) {
+      badge.textContent = n > 99 ? '99+' : String(n);
       badge.classList.remove('hidden');
-      badge.textContent = count > 9 ? '9+' : String(count);
     } else {
       badge.classList.add('hidden');
     }

@@ -1,32 +1,15 @@
 import { defineConfig, loadEnv } from 'vite';
 import { resolve } from 'path';
-import { readdirSync } from 'fs';
-
-function collectHtml(dir, base = '') {
-  const out = {};
-  for (const name of readdirSync(dir, { withFileTypes: true })) {
-    if (name.name === 'node_modules' || name.name === 'dist' || name.name === 'public' || name.name === '.git') {
-      continue;
-    }
-    const rel = base ? `${base}/${name.name}` : name.name;
-    const full = resolve(dir, name.name);
-    if (name.isDirectory()) {
-      Object.assign(out, collectHtml(full, rel));
-    } else if (name.name.endsWith('.html')) {
-      const key = rel.replace(/\.html$/, '').replace(/[\\/]/g, '-');
-      out[key] = full;
-    }
-  }
-  return out;
-}
 
 const CAIRO_HEAD_SNIPPET = `
   <link rel="stylesheet" href="/comando-cairo.css?v=3" />
   <style id="comando-cairo-boot">html,body,button,input,select,textarea{font-family:"Cairo",Tahoma,Arial,sans-serif!important}</style>
 `;
 
+/* يُحقن في كل صفحة: سكربت تهيئة الوضع الليلي (قبل الرسم لمنع الوميض) + ملف أنماطه + سكربت الزر
+   الافتراضي دائمًا نهاري — الطالب يقدر يبدّل بنفسه ويحفظ اختياره */
 const THEME_HEAD_SNIPPET = `
-  <script id="comando-theme-init">(function(){try{var t=localStorage.getItem('comando-theme');if(t!=='dark'&&t!=='light'){t='light';}}catch(e){t='light';}document.documentElement.setAttribute('data-theme',t);try{var p=localStorage.getItem('comando-palette');var path=(window.location.pathname||'').toLowerCase();var skip=/login|register|signup|sign-up|welcome/.test(path);if(p==='girl'&&!skip){document.documentElement.setAttribute('data-palette','girl');}}catch(e){}})();</script>
+  <script id="comando-theme-init">(function(){try{var t=localStorage.getItem('comando-theme');if(t!=='dark'&&t!=='light'){t='light';}}catch(e){t='light';}document.documentElement.setAttribute('data-theme',t);try{var p=localStorage.getItem('comando-palette');var path=(window.location.pathname||'').toLowerCase();var skip=/login|register|signup|sign-up/.test(path);if(p==='girl'&&!skip){document.documentElement.setAttribute('data-palette','girl');}}catch(e){}})();</script>
   <link rel="stylesheet" href="/assets/css/dark-theme.css?v=4" />
   <link rel="stylesheet" href="/assets/css/girl-theme.css?v=2" />
 `;
@@ -37,6 +20,7 @@ const CHAT_ICON_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/chat-ic
 const CHAT_ICON_BODY_SNIPPET = `<script type="module" src="/assets/js/chat-icon.js?v=1"></script>`;
 const REDESIGN_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/redesign.css?v=12" />`;
 
+/* رابط الموقع النهائي — من متغيرات Vercel وقت النشر؛ محليًا (Vite preview) يفضل نسبي */
 const SITE_URL = (
   process.env.SITE_URL ||
   (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '') ||
@@ -69,10 +53,11 @@ function buildOgBlock(siteUrl, pagePath) {
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${OG_DEFAULT_TITLE}" />`,
     `<meta name="twitter:description" content="${OG_DEFAULT_DESC}" />`,
-    `<meta name="twitter:image" content="${image}" />`
+    `<meta name="twitter:image" content="${image}" />`,
   ].join('\n  ');
 }
 
+/* يضمن إن og:image مطلق (مطلوب للمعاينة في واتساب) + يضيف og tags افتراضية للصفحات اللي معندهاش */
 function injectOgPlugin() {
   return {
     name: 'inject-og-absolute',
@@ -80,17 +65,22 @@ function injectOgPlugin() {
       let out = html;
       const pagePath = pagePathFromFilename(ctx?.filename);
       if (SITE_URL) {
-        out = out.replace(/(<meta property="og:image" content=")\/([^\"]+)(")/g, `$1${SITE_URL}/$2$3`);
-        out = out.replace(/(<meta name="twitter:image" content=")\/([^\"]+)(")/g, `$1${SITE_URL}/$2$3`);
+        out = out.replace(/(<meta property="og:image" content=")\/([^"]+)(")/g, `$1${SITE_URL}/$2$3`);
+        out = out.replace(/(<meta name="twitter:image" content=")\/([^"]+)(")/g, `$1${SITE_URL}/$2$3`);
+        /* og:url — أضفه إن كان ناقصًا */
         if (/<meta property="og:image"/.test(out) && !/property="og:url"/.test(out)) {
           out = out.replace('</head>', `  <meta property="og:url" content="${SITE_URL}${pagePath}" />\n</head>`);
         }
       }
       if (!out.includes('og:title')) {
         const block = buildOgBlock(SITE_URL, pagePath);
-        if (out.includes('</head>')) out = out.replace('</head>', `  ${block}\n</head>`);
-        else if (out.includes('<head>')) out = out.replace('<head>', `<head>${block}`);
+        if (out.includes('</head>')) {
+          out = out.replace('</head>', `  ${block}\n</head>`);
+        } else if (out.includes('<head>')) {
+          out = out.replace('<head>', `<head>${block}`);
+        }
       }
+      /* twitter:card لازم summary_large_image دايمًا */
       if (!/name="twitter:card"/.test(out) && /og:title/.test(out)) {
         out = out.replace('</head>', '  <meta name="twitter:card" content="summary_large_image" />\n</head>');
       }
@@ -105,8 +95,11 @@ function injectAiAssistantPlugin() {
     transformIndexHtml(html) {
       let out = html;
       if (!out.includes('ai-assistant.css')) {
-        if (out.includes('</head>')) out = out.replace('</head>', `${AI_ASSISTANT_HEAD_SNIPPET}\n</head>`);
-        else if (out.includes('<head>')) out = out.replace('<head>', `<head>${AI_ASSISTANT_HEAD_SNIPPET}`);
+        if (out.includes('</head>')) {
+          out = out.replace('</head>', `${AI_ASSISTANT_HEAD_SNIPPET}\n</head>`);
+        } else if (out.includes('<head>')) {
+          out = out.replace('<head>', `<head>${AI_ASSISTANT_HEAD_SNIPPET}`);
+        }
       }
       if (!out.includes('/assets/js/ai-assistant.js') && out.includes('</body>')) {
         out = out.replace('</body>', `${AI_ASSISTANT_BODY_SNIPPET}\n</body>`);
@@ -122,8 +115,11 @@ function injectThemePlugin() {
     transformIndexHtml(html) {
       let out = html;
       if (!out.includes('comando-theme-init')) {
-        if (out.includes('<head>')) out = out.replace('<head>', `<head>${THEME_HEAD_SNIPPET}`);
-        else if (out.includes('<head ')) out = out.replace(/<head([^>]*)>/i, `<head$1>${THEME_HEAD_SNIPPET}`);
+        if (out.includes('<head>')) {
+          out = out.replace('<head>', `<head>${THEME_HEAD_SNIPPET}`);
+        } else if (out.includes('<head ')) {
+          out = out.replace(/<head([^>]*)>/i, `<head$1>${THEME_HEAD_SNIPPET}`);
+        }
       }
       if (!out.includes('/assets/js/theme.js') && out.includes('</body>')) {
         out = out.replace('</body>', `${THEME_BODY_SNIPPET}\n</body>`);
@@ -134,6 +130,7 @@ function injectThemePlugin() {
 }
 
 function injectRedesignPlugin() {
+  // تُدرج آخر الجافاكريبت/الـ CSS — بعد neutral-theme — عشان تكسب أي تعادل specificity
   return {
     name: 'inject-redesign',
     transformIndexHtml: {
@@ -141,8 +138,11 @@ function injectRedesignPlugin() {
       handler(html) {
         let out = html;
         if (!out.includes('redesign.css')) {
-          if (out.includes('</head>')) out = out.replace('</head>', `${REDESIGN_HEAD_SNIPPET}\n</head>`);
-          else if (out.includes('<head>')) out = out.replace('<head>', `<head>${REDESIGN_HEAD_SNIPPET}`);
+          if (out.includes('</head>')) {
+            out = out.replace('</head>', `${REDESIGN_HEAD_SNIPPET}\n</head>`);
+          } else if (out.includes('<head>')) {
+            out = out.replace('<head>', `<head>${REDESIGN_HEAD_SNIPPET}`);
+          }
         }
         return out;
       }
@@ -156,8 +156,11 @@ function injectChatIconPlugin() {
     transformIndexHtml(html) {
       let out = html;
       if (!out.includes('chat-icon.css')) {
-        if (out.includes('</head>')) out = out.replace('</head>', `${CHAT_ICON_HEAD_SNIPPET}\n</head>`);
-        else if (out.includes('<head>')) out = out.replace('<head>', `<head>${CHAT_ICON_HEAD_SNIPPET}`);
+        if (out.includes('</head>')) {
+          out = out.replace('</head>', `${CHAT_ICON_HEAD_SNIPPET}\n</head>`);
+        } else if (out.includes('<head>')) {
+          out = out.replace('<head>', `<head>${CHAT_ICON_HEAD_SNIPPET}`);
+        }
       }
       if (!out.includes('/assets/js/chat-icon.js') && out.includes('</body>')) {
         out = out.replace('</body>', `${CHAT_ICON_BODY_SNIPPET}\n</body>`);
@@ -172,8 +175,12 @@ function injectCairoPlugin() {
     name: 'inject-cairo-font',
     transformIndexHtml(html) {
       if (html.includes('comando-cairo.css')) return html;
-      if (html.includes('<head>')) return html.replace('<head>', `<head>${CAIRO_HEAD_SNIPPET}`);
-      if (html.includes('<head ')) return html.replace(/<head([^>]*)>/i, `<head$1>${CAIRO_HEAD_SNIPPET}`);
+      if (html.includes('<head>')) {
+        return html.replace('<head>', `<head>${CAIRO_HEAD_SNIPPET}`);
+      }
+      if (html.includes('<head ')) {
+        return html.replace(/<head([^>]*)>/i, `<head$1>${CAIRO_HEAD_SNIPPET}`);
+      }
       return html;
     }
   };
@@ -181,20 +188,12 @@ function injectCairoPlugin() {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), ['VITE_', 'NEXT_PUBLIC_']);
-  const input = collectHtml(resolve(import.meta.dirname));
 
   return {
     root: '.',
     publicDir: 'public',
     envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
-    plugins: [
-      injectCairoPlugin(),
-      injectThemePlugin(),
-      injectAiAssistantPlugin(),
-      injectChatIconPlugin(),
-      injectOgPlugin(),
-      injectRedesignPlugin()
-    ],
+    plugins: [injectCairoPlugin(), injectThemePlugin(), injectAiAssistantPlugin(), injectChatIconPlugin(), injectOgPlugin(), injectRedesignPlugin()],
     define: {
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(
         env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -210,8 +209,66 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       emptyOutDir: true,
-      rollupOptions: { input }
+      rollupOptions: {
+        input: {
+          main: resolve(import.meta.dirname, 'index.html'),
+          '404': resolve(import.meta.dirname, '404.html'),
+          '500': resolve(import.meta.dirname, '500.html'),
+          offline: resolve(import.meta.dirname, 'offline.html'),
+          banned: resolve(import.meta.dirname, 'banned.html'),
+          'devtools-blocked': resolve(import.meta.dirname, 'devtools-blocked.html'),
+          'chrome-required': resolve(import.meta.dirname, 'chrome-required.html'),
+          about: resolve(import.meta.dirname, 'about.html'),
+          contact: resolve(import.meta.dirname, 'contact.html'),
+          privacy: resolve(import.meta.dirname, 'privacy.html'),
+          login: resolve(import.meta.dirname, 'login.html'),
+          home: resolve(import.meta.dirname, 'home.html'),
+          'study-plan': resolve(import.meta.dirname, 'study-plan.html'),
+          'chat': resolve(import.meta.dirname, 'chat.html'),
+          subjects: resolve(import.meta.dirname, 'subjects.html'),
+          'past-exams': resolve(import.meta.dirname, 'past-exams.html'),
+          'past-exam-subject': resolve(import.meta.dirname, 'past-exam-subject.html'),
+          'subject-details': resolve(import.meta.dirname, 'subject-details.html'),
+          'file-view': resolve(import.meta.dirname, 'file-view.html'),
+          'lecture-details': resolve(import.meta.dirname, 'lecture-details.html'),
+          quizzes: resolve(import.meta.dirname, 'quizzes.html'),
+          'quiz-take': resolve(import.meta.dirname, 'quiz-take.html'),
+          'quiz-rules': resolve(import.meta.dirname, 'quiz-rules.html'),
+          schedule: resolve(import.meta.dirname, 'schedule.html'),
+          'online-sections': resolve(import.meta.dirname, 'online-sections.html'),
+          'online-schedule': resolve(import.meta.dirname, 'online-schedule.html'),
+          notifications: resolve(import.meta.dirname, 'notifications.html'),
+          updates: resolve(import.meta.dirname, 'updates.html'),
+          favorites: resolve(import.meta.dirname, 'favorites.html'),
+          faq: resolve(import.meta.dirname, 'faq.html'),
+          profile: resolve(import.meta.dirname, 'profile.html'),
+          'teacher-upload': resolve(import.meta.dirname, 'teacher-upload.html'),
+          'maintenance-mode': resolve(import.meta.dirname, 'maintenance-mode.html'),
+          maintenance: resolve(import.meta.dirname, 'maintenance.html'),
+          'admin-index': resolve(import.meta.dirname, 'admin/index.html'),
+          'admin-codes': resolve(import.meta.dirname, 'admin/codes.html'),
+          'admin-statistics': resolve(import.meta.dirname, 'admin/statistics.html'),
+          'admin-subjects': resolve(import.meta.dirname, 'admin/subjects.html'),
+          'admin-materials': resolve(import.meta.dirname, 'admin/materials.html'),
+          'admin-teacher-links': resolve(import.meta.dirname, 'admin/teacher-links.html'),
+          'admin-quizzes': resolve(import.meta.dirname, 'admin/quizzes.html'),
+          'admin-quiz-questions': resolve(import.meta.dirname, 'admin/quiz-questions.html'),
+          'admin-quiz-results': resolve(import.meta.dirname, 'admin/quiz-results.html'),
+          'admin-schedule': resolve(import.meta.dirname, 'admin/schedule.html'),
+          'admin-online-sections': resolve(import.meta.dirname, 'admin/online-sections.html'),
+          'admin-online-schedule': resolve(import.meta.dirname, 'admin/online-schedule.html'),
+          'admin-announcements': resolve(import.meta.dirname, 'admin/announcements.html'),
+          'admin-notifications': resolve(import.meta.dirname, 'admin/notifications.html'),
+          'admin-ai': resolve(import.meta.dirname, 'admin/ai.html'),
+          'admin-faq': resolve(import.meta.dirname, 'admin/faq.html'),
+          'admin-settings': resolve(import.meta.dirname, 'admin/settings.html'),
+          'admin-hackers': resolve(import.meta.dirname, 'admin/hackers.html')
+        }
+      }
     },
-    server: { port: 5173, open: true }
+    server: {
+      port: 5173,
+      open: true
+    }
   };
 });
