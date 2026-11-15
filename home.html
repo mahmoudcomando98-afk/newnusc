@@ -18,6 +18,8 @@
   <link rel="icon" href="/nusc.png.jpeg" type="image/jpeg" />
   <link rel="apple-touch-icon" href="/nusc.png.jpeg" />
   <title>الرئيسية | COMANDO</title>
+  <link rel="dns-prefetch" href="https://bmqqacvgtevogcuqfryq.supabase.co" />
+  <link rel="preconnect" href="https://bmqqacvgtevogcuqfryq.supabase.co" crossorigin />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -127,7 +129,7 @@
             <strong>فعّل إشعارات التليفون</strong>
             <p class="text-sm text-muted" style="margin:4px 0 0">لو مش مفعّلة، مش هيوصلك تنبيه على شريط الإشعارات. اضغط تفعيل عشان يوصلك المهم أول بأول.</p>
           </div>
-          <button type="button" class="btn-sm btn-primary" id="enable-push-btn">تفعيل</button>
+          <button type="button" class="btn btn-sm btn-primary" id="enable-push-btn">تفعيل</button>
         </div>
       </section>
 
@@ -194,9 +196,10 @@
     <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
     <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
-  <script src="/assets/js/splash-guard.js?v=1"></script>
+  <link rel="modulepreload" href="/assets/js/home.js?v=fast-3" />
+  <script src="/assets/js/splash-guard.js?v=2"></script>
   <script type="module" src="/assets/js/native-app.js?v=2"></script>
-  <script type="module" src="/assets/js/home.js?v=fast-2"></script>
+  <script type="module" src="/assets/js/home.js?v=fast-3"></script>
   <script type="module">
     import { onConnectivityChange } from '/assets/js/utils.js?v=fast-3';
     import { setupInstallPrompt } from '/assets/js/install-prompt.js?v=4';
