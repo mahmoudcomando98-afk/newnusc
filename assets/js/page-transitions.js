@@ -1,13 +1,21 @@
 /**
- * تنقل المنصة:
- * - soft-nav: تبديل الصفحة بدون reload كامل
- * - prefetch عند اللمس/المرور
- * - شريط تقدّم رفيع أثناء التبديل
+ * تنقل ناعم بين صفحات المنصة (MPA).
+ * - دخول الصفحة: fade + حركة خفيفة
+ * - الضغط على رابط داخلي: خروج قصير ثم الانتقال
+ * - prefetch لروابط الشريط السفلي عند اللمس/المرور
+ * يحترم prefers-reduced-motion
  */
 
-import { softNavigate } from './soft-nav.js';
-
+const EXIT_MS = 160;
 const PREFETCHED = new Set();
+
+function reducedMotion() {
+  try {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    return false;
+  }
+}
 
 function sameOrigin(href) {
   try {
@@ -26,7 +34,6 @@ function isNavigableLink(a) {
   if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return false;
   if (href.startsWith('javascript:')) return false;
   if (!sameOrigin(href)) return false;
-  if (/\.(pdf|zip|png|jpe?g|gif|webp)(\?|$)/i.test(href)) return false;
   return true;
 }
 
@@ -47,12 +54,16 @@ function markEnter() {
   });
 }
 
-async function navigateWithTransition(href) {
-  try {
-    await softNavigate(href);
-  } catch {
+function navigateWithTransition(href) {
+  if (reducedMotion()) {
     window.location.href = href;
+    return;
   }
+  document.documentElement.classList.add('pt-exit');
+  document.documentElement.classList.remove('pt-enter');
+  window.setTimeout(() => {
+    window.location.href = href;
+  }, EXIT_MS);
 }
 
 function prefetch(href) {
@@ -66,19 +77,6 @@ function prefetch(href) {
     link.href = abs;
     link.as = 'document';
     document.head.appendChild(link);
-    fetch(abs, { credentials: 'same-origin', headers: { Accept: 'text/html' } })
-      .then((r) => (r.ok ? r.text() : ''))
-      .then((html) => {
-        if (!html) return;
-        const m = html.match(/<script[^>]+type=["']module["'][^>]+src=["']([^"']+)["']/i);
-        if (m && m[1]) {
-          const s = document.createElement('link');
-          s.rel = 'modulepreload';
-          s.href = m[1];
-          document.head.appendChild(s);
-        }
-      })
-      .catch(() => {});
   } catch {
     /* ignore */
   }
@@ -108,29 +106,17 @@ function onPrefetchIntent(e) {
   prefetch(a.href);
 }
 
-function ensureStyles() {
-  if (document.getElementById('comando-pt-css')) return;
-  const link = document.createElement('link');
-  link.id = 'comando-pt-css';
-  link.rel = 'stylesheet';
-  link.href = '/assets/css/page-transitions.css?v=soft-2';
-  document.head.appendChild(link);
-}
-
 function init() {
   if (typeof document === 'undefined') return;
-  ensureStyles();
   markEnter();
   document.addEventListener('click', onClick, true);
   document.addEventListener('pointerdown', onPrefetchIntent, { passive: true, capture: true });
   document.addEventListener('mouseover', onPrefetchIntent, { passive: true, capture: true });
 
   try {
-    document
-      .querySelectorAll('.bottom-nav a[href], .app-header a[href], .desktop-nav a[href], .dashboard-shortcuts a[href]')
-      .forEach((a) => {
-        if (isNavigableLink(a)) prefetch(a.href);
-      });
+    document.querySelectorAll('.bottom-nav a[href], .app-header a[href]').forEach((a) => {
+      if (isNavigableLink(a)) prefetch(a.href);
+    });
   } catch {
     /* ignore */
   }
@@ -144,4 +130,4 @@ if (typeof document !== 'undefined') {
   }
 }
 
-export { navigateWithTransition, prefetch, softNavigate };
+export { navigateWithTransition, prefetch };
