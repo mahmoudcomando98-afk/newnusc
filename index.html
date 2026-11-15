@@ -14,8 +14,11 @@
   <meta name="twitter:image" content="/nusc.png.jpeg" />
   <link rel="icon" href="/nusc.png.jpeg" type="image/jpeg" />
   <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/nusc.png.jpeg" />
   <title>COMANDO</title>
   <link rel="stylesheet" href="/comando-cairo.css?v=3" />
+  <link rel="prefetch" href="/home.html" as="document" />
+  <link rel="prefetch" href="/login.html" as="document" />
   <style>
     :root {
       --bg: #faf9f7;
@@ -36,7 +39,14 @@
       font-family: "Cairo", Tahoma, Arial, sans-serif;
       overflow: hidden;
     }
-    body { display: grid; place-items: center; position: relative; }
+    body {
+      display: grid;
+      place-items: center;
+      position: relative;
+      opacity: 1;
+      transition: opacity 0.32s ease;
+    }
+    body.is-leaving { opacity: 0; pointer-events: none; }
     .stage { position: relative; z-index: 2; text-align: center; padding: 24px; }
     .word {
       display: inline-flex;
@@ -84,6 +94,15 @@
       transform: translateY(8px);
     }
     .tagline.show { animation: fade-up 0.5s ease forwards 0.15s; }
+    .status {
+      margin-top: 14px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: color-mix(in srgb, var(--ink) 42%, transparent);
+      opacity: 0;
+      min-height: 1.2em;
+    }
+    .status.show { animation: fade-up 0.45s ease forwards; }
     @keyframes fade-up { to { opacity: 1; transform: translateY(0); } }
     .glow {
       position: absolute;
@@ -101,21 +120,30 @@
     @keyframes glow-in { to { opacity: 1; transform: scale(1); } }
     .skip {
       position: fixed;
-      inset-inline-end: 16px;
-      inset-block-end: 18px;
+      inset-inline-end: max(12px, env(safe-area-inset-right));
+      inset-block-end: max(14px, env(safe-area-inset-bottom));
       z-index: 5;
-      border: 0;
-      background: transparent;
-      color: color-mix(in srgb, var(--ink) 45%, transparent);
+      border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+      background: color-mix(in srgb, var(--bg) 88%, transparent);
+      color: color-mix(in srgb, var(--ink) 55%, transparent);
       font: inherit;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 600;
-      padding: 8px 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
       cursor: pointer;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      min-height: 40px;
     }
-    .skip:hover { color: var(--ink); }
+    .skip:hover, .skip:focus-visible {
+      color: var(--ink);
+      border-color: color-mix(in srgb, var(--primary) 35%, transparent);
+      outline: none;
+    }
     @media (prefers-reduced-motion: reduce) {
-      .letter, .letter.in, .tagline, .tagline.show, .glow, .glow.show {
+      body { transition: none; }
+      .letter, .letter.in, .tagline, .tagline.show, .status, .status.show, .glow, .glow.show {
         animation: none !important;
         opacity: 1 !important;
         transform: none !important;
@@ -137,6 +165,7 @@
   <main class="stage" aria-label="ترحيب COMANDO">
     <div class="word" id="word" aria-label="COMANDO"></div>
     <p class="tagline" id="tagline">منصة COMANDO التعليمية</p>
+    <p class="status" id="status" aria-live="polite"></p>
   </main>
   <button type="button" class="skip" id="skip">تخطي</button>
 
@@ -158,10 +187,21 @@
 
     const word = document.getElementById('word');
     const tagline = document.getElementById('tagline');
+    const status = document.getElementById('status');
     const glow = document.getElementById('glow');
     const skip = document.getElementById('skip');
     let finished = false;
     let target = LOGIN;
+
+    function prefetch(url) {
+      try {
+        const link = document.createElement('link');
+        link.rel = 'prefetch';
+        link.as = 'document';
+        link.href = url;
+        document.head.appendChild(link);
+      } catch (e) {}
+    }
 
     LETTERS.forEach((ch, i) => {
       const span = document.createElement('span');
@@ -178,6 +218,12 @@
       glow.classList.add('show');
       Array.from(word.children).forEach((el) => el.classList.add('in'));
       window.setTimeout(() => tagline.classList.add('show'), 520);
+      window.setTimeout(() => {
+        if (status) {
+          status.textContent = 'جاري فتح المنصة…';
+          status.classList.add('show');
+        }
+      }, 1100);
     });
 
     function markSplashDone() {
@@ -188,8 +234,18 @@
       if (finished) return;
       finished = true;
       markSplashDone();
-      window.location.replace(target);
+      if (status) status.textContent = target === HOME ? 'مرحبًا بيك' : 'جاري تسجيل الدخول…';
+      document.body.classList.add('is-leaving');
+      const delay = reduceMotion ? 0 : 280;
+      window.setTimeout(() => {
+        window.location.replace(target);
+      }, delay);
     }
+
+    let reduceMotion = false;
+    try {
+      reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch (e) {}
 
     (async () => {
       try {
@@ -202,14 +258,10 @@
       } catch {
         target = LOGIN;
       }
+      prefetch(target);
     })();
 
-    let reduce = false;
-    try {
-      reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    } catch (e) {}
-
-    const total = reduce ? 350 : 2800;
+    const total = reduceMotion ? 320 : 2600;
     const timer = window.setTimeout(go, total);
     skip.addEventListener('click', () => {
       window.clearTimeout(timer);
