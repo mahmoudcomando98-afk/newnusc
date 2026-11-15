@@ -63,15 +63,7 @@ function pathOnly(href) {
   }
 }
 
-function ensureStyles() {
-  if (document.getElementById('comando-pt-css')) return;
-  const link = document.createElement('link');
-  link.id = 'comando-pt-css';
-  link.rel = 'stylesheet';
-  link.href = '/assets/css/page-transitions.css?v=safe-4';
-  document.head.appendChild(link);
-}
-
+/* الـ CSS بتاع الترحيب بقى متدمج جوه bundle main.css (كان هنا حقن link خام بيعمل 404) */
 function ensureProgressBar() {
   if (document.getElementById('comando-nav-progress')) return;
   const el = document.createElement('div');
@@ -185,7 +177,6 @@ function prefetchMainRoutes() {
 
 function init() {
   if (typeof document === 'undefined') return;
-  ensureStyles();
   ensureProgressBar();
   markEnter();
   document.addEventListener('click', onClick, true);

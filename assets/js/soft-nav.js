@@ -114,6 +114,22 @@ function syncStylesheets(doc) {
     document.head.appendChild(link);
     have.add(path);
   });
+  /* انسخ كمان أي <style> inline في الصفحة الجديدة — صفحة الجدول والأدمن صفحات
+     كبيرة من التنسيق inline، ولولا النسخ هنا هتظهر بدون أي تنسيق بعد التنقل الناعم.
+     Dedup بالمحتوى مقابل كل الـ styles الموجودة أصلاً (مش بس المنسوخة) */
+  const existing = new Set(
+    [...document.querySelectorAll('style')].map((s) => (s.textContent || '').trim())
+  );
+  doc.querySelectorAll('style').forEach((node) => {
+    const css = (node.textContent || '').trim();
+    if (!css || existing.has(css)) return;
+    existing.add(css);
+    const style = document.createElement('style');
+    if (node.id) style.id = node.id;
+    style.setAttribute('data-soft-keep', '1');
+    style.textContent = css;
+    document.head.appendChild(style);
+  });
 }
 
 async function bootPage(path, doc) {
