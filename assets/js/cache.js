@@ -6,7 +6,7 @@
 const PREFIX = 'comando_cache:';
 const LEGACY_PREFIX = 'nusc_cache:';
 /* مدة أطول = تنقل أسرع بين الصفحات مع تحديث في الخلفية */
-const DEFAULT_TTL_MS = 3 * 60 * 1000;
+const DEFAULT_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_MAX_STALE_MS = 45 * 60 * 1000;
 
 function key(name) {
@@ -104,28 +104,22 @@ export function cacheRemove(name) {
   }
 }
 
-export function cacheClear(prefix = '') {
+export function cacheClearAll() {
   try {
-    const prefixes = [PREFIX + prefix, LEGACY_PREFIX + prefix];
-    const toRemove = [];
+    const keys = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && prefixes.some((p) => k.startsWith(p))) toRemove.push(k);
+      if (k && (k.startsWith(PREFIX) || k.startsWith(LEGACY_PREFIX))) keys.push(k);
     }
-    toRemove.forEach((k) => localStorage.removeItem(k));
+    keys.forEach((k) => localStorage.removeItem(k));
   } catch {
     /* ignore */
   }
 }
 
-export async function cached(name, loader, ttlMs = DEFAULT_TTL_MS) {
-  const hit = cacheGet(name);
-  if (hit !== null && hit !== undefined) return hit;
-  const data = await loader();
-  if (data !== null && data !== undefined) cacheSet(name, data, ttlMs);
-  return data;
-}
-
+/**
+ * Stale-while-revalidate: return soft cache immediately, refresh in background.
+ */
 export async function cachedStaleWhileRevalidate(
   name,
   loader,
