@@ -34,15 +34,38 @@ function timePair(ev) {
   return { start: fmt(ev.start_time), end: ev.end_time ? fmt(ev.end_time) : '' };
 }
 
-function eventKey(ev) {
-  return Number(ev.day_of_week ?? 9) + ':' + String(ev.start_time || '') + ':' + String(ev.title || '');
-}
 function sortEvents(list) {
   return [...list].sort((a, b) => {
     const da = getDay(a), db = getDay(b);
     if (da !== null && db !== null && da !== db) return da - db;
     return String(a.start_time || '').localeCompare(String(b.start_time || ''));
   });
+}
+
+/* دمج السكاشن اللي نفس المادة + نفس اليوم + نفس الوقت + نفس المكان في كارت واحد */
+function groupEvents(list) {
+  const map = new Map();
+  for (const ev of list) {
+    const key = [
+      String(ev.event_type || 'other'),
+      getDay(ev) ?? 'na',
+      String(ev.start_time || ''),
+      String(ev.end_time || ''),
+      String(ev.subject_id || ''),
+      String(ev.title || ''),
+      String(ev.location || ''),
+      String(ev.instructor || '')
+    ].join('|');
+    const g = map.get(key);
+    if (g) g.items.push(ev);
+    else map.set(key, { base: ev, items: [ev] });
+  }
+  const groups = [...map.values()];
+  for (const g of groups) {
+    g.sectionNumbers = [...new Set(g.items.map((i) => i.section_number).filter((n) => n != null))]
+      .sort((a, b) => Number(a) - Number(b));
+  }
+  return groups;
 }
 
 function filterEvents(list) {
@@ -64,23 +87,34 @@ function chipFor(ev) {
   return '<span class="chip ' + cls + '">' + escapeHtml(label) + '</span>';
 }
 
-function sectionBoxHtml(ev) {
-  const n = ev.section_number;
-  if (n == null) return '';
+function sectionBoxHtml(sections) {
+  const nums = (sections || []).filter((n) => n != null);
+  if (!nums.length) return '';
+  if (nums.length === 1) {
+    return (
+      '<span class="slot-section">' +
+        '<span class="slot-section-label">سكشن</span>' +
+        '<span class="slot-section-num">' + escapeHtml(String(nums[0])) + '</span>' +
+      '</span>'
+    );
+  }
   return (
     '<span class="slot-section">' +
-      '<span class="slot-section-label">سكشن</span>' +
-      '<span class="slot-section-num">' + escapeHtml(String(n)) + '</span>' +
+      '<span class="slot-section-label">سكاشن</span>' +
+      '<span class="slot-section-nums">' + nums.map((n) => escapeHtml(String(n))).join('<i>،</i>') + '</span>' +
     '</span>'
   );
 }
 
-function cardHtml(ev) {
+function cardHtml(group) {
+  const ev = group.base;
+  const subs = group.items.map((i) => i.notes).filter(Boolean);
+  const uniqNotes = [...new Set(subs)].join(' · ');
   const sub = getSubjectName(ev);
   const { start, end } = timePair(ev);
-  const time = start + (end ? '' : '');
   const range = start && end ? start + ' ← ' + end : (start || '');
   const loc = [ev.location, ev.instructor].filter(Boolean).map(escapeHtml).join(' · ');
+  const multi = (group.sectionNumbers || []).length > 1;
 
   return (
     '<article class="slot" aria-label="' + escapeHtml(ev.title || 'موعد') + '">' +
@@ -93,11 +127,12 @@ function cardHtml(ev) {
         '<div class="slot-meta">' +
           chipFor(ev) +
           (sub ? '<span class="chip chip-subject">' + escapeHtml(sub) + '</span>' : '') +
+          (multi ? '<span class="chip chip-section-no">' + group.sectionNumbers.length + ' سكاشن</span>' : '') +
         '</div>' +
         (loc ? '<div class="slot-meta"><span>' + loc + '</span></div>' : '') +
-        (ev.notes ? '<small style="color:var(--text-muted); font-size:.74rem">' + escapeHtml(ev.notes) + '</small>' : '') +
+        (uniqNotes ? '<small style="color:var(--text-muted); font-size:.74rem">' + escapeHtml(uniqNotes) + '</small>' : '') +
       '</div>' +
-      sectionBoxHtml(ev) +
+      sectionBoxHtml(group.sectionNumbers) +
     '</article>'
   );
 }
@@ -107,6 +142,7 @@ function render() {
   if (!mount) return;
 
   const list = sortEvents(filterEvents(events));
+  const groups = groupEvents(list);
 
   if (!list.length) {
     mount.innerHTML =
@@ -118,9 +154,9 @@ function render() {
   }
 
   const byDay = Array.from({ length: 7 }, () => []);
-  for (const ev of list) {
-    const d = getDay(ev);
-    if (d !== null) byDay[d].push(ev);
+  for (const g of groups) {
+    const d = getDay(g.base);
+    if (d !== null) byDay[d].push(g);
   }
 
   const sectionsOrder = [0, 1, 2, 3, 4, 5, 6];
