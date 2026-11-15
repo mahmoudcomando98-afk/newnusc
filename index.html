@@ -10,8 +10,6 @@
   <meta property="og:description" content="ملفات المواد، مواعيد الكويزات، والإعلانات في مكان واحد." />
   <meta property="og:image" content="/nusc.png.jpeg" />
   <meta property="og:type" content="website" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:image" content="/nusc.png.jpeg" />
   <link rel="icon" href="/nusc.png.jpeg" type="image/jpeg" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/nusc.png.jpeg" />
@@ -21,14 +19,16 @@
   <link rel="prefetch" href="/login.html" as="document" />
   <style>
     :root {
-      --bg: #faf9f7;
+      --bg: #f7f4ef;
       --ink: #2c2a28;
       --primary: #dd6b20;
+      --muted: #8a837a;
     }
     html[data-theme='dark'] {
-      --bg: #141312;
+      --bg: #121110;
       --ink: #f3eee8;
       --primary: #f0903c;
+      --muted: #a39b92;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -42,113 +42,77 @@
     body {
       display: grid;
       place-items: center;
-      position: relative;
-      opacity: 1;
-      transition: opacity 0.32s ease;
+      transition: opacity 0.35s ease;
     }
     body.is-leaving { opacity: 0; pointer-events: none; }
-    .stage { position: relative; z-index: 2; text-align: center; padding: 24px; }
-    .word {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.06em;
-      font-weight: 800;
-      font-size: clamp(2.4rem, 12vw, 4.6rem);
-      letter-spacing: 0.04em;
-      line-height: 1;
+    .stage { text-align: center; padding: 28px 20px; max-width: 92vw; }
+    .brand {
       direction: ltr;
       unicode-bidi: isolate;
-    }
-    .letter {
-      display: inline-block;
+      font-weight: 800;
+      font-size: clamp(2.6rem, 11vw, 4.2rem);
+      letter-spacing: 0.08em;
+      line-height: 1;
       color: var(--primary);
+      display: inline-flex;
+      gap: 0.05em;
+    }
+    .brand span {
+      display: inline-block;
       opacity: 0;
-      transform: translate3d(var(--dx, 0), var(--dy, 0), 0) scale(0.35) rotate(var(--rot, 0deg));
-      filter: blur(6px);
-      will-change: transform, opacity, filter;
+      transform: translateY(18px);
+      animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      animation-delay: var(--d, 0ms);
     }
-    .letter.in {
-      animation: letter-in 0.72s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-      animation-delay: var(--delay, 0ms);
+    @keyframes rise {
+      to { opacity: 1; transform: translateY(0); }
     }
-    @keyframes letter-in {
-      0% {
-        opacity: 0;
-        transform: translate3d(var(--dx, 0), var(--dy, 0), 0) scale(0.35) rotate(var(--rot, 0deg));
-        filter: blur(6px);
-      }
-      70% { opacity: 1; filter: blur(0); }
-      100% {
-        opacity: 1;
-        transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
-        filter: blur(0);
-      }
+    .line {
+      width: 48px;
+      height: 2px;
+      margin: 18px auto 14px;
+      background: color-mix(in srgb, var(--primary) 55%, transparent);
+      border-radius: 2px;
+      opacity: 0;
+      transform: scaleX(0.4);
+      animation: line-in 0.45s ease forwards 0.55s;
+    }
+    @keyframes line-in {
+      to { opacity: 1; transform: scaleX(1); }
     }
     .tagline {
-      margin-top: 18px;
-      font-size: 0.95rem;
+      font-size: 0.98rem;
       font-weight: 600;
-      color: color-mix(in srgb, var(--ink) 55%, transparent);
+      color: var(--muted);
       opacity: 0;
-      transform: translateY(8px);
+      animation: fade 0.45s ease forwards 0.7s;
     }
-    .tagline.show { animation: fade-up 0.5s ease forwards 0.15s; }
     .status {
-      margin-top: 14px;
+      margin-top: 16px;
       font-size: 0.8rem;
-      font-weight: 500;
-      color: color-mix(in srgb, var(--ink) 42%, transparent);
+      color: color-mix(in srgb, var(--muted) 85%, transparent);
       opacity: 0;
       min-height: 1.2em;
     }
-    .status.show { animation: fade-up 0.45s ease forwards; }
-    @keyframes fade-up { to { opacity: 1; transform: translateY(0); } }
-    .glow {
-      position: absolute;
-      width: min(70vw, 420px);
-      height: min(70vw, 420px);
-      border-radius: 50%;
-      background: radial-gradient(circle, color-mix(in srgb, var(--primary) 22%, transparent) 0%, transparent 68%);
-      filter: blur(8px);
-      z-index: 1;
-      pointer-events: none;
-      opacity: 0;
-      transform: scale(0.7);
-    }
-    .glow.show { animation: glow-in 1.1s ease forwards; }
-    @keyframes glow-in { to { opacity: 1; transform: scale(1); } }
+    .status.show { animation: fade 0.35s ease forwards; }
+    @keyframes fade { to { opacity: 1; } }
     .skip {
       position: fixed;
       inset-inline-end: max(12px, env(safe-area-inset-right));
       inset-block-end: max(14px, env(safe-area-inset-bottom));
-      z-index: 5;
       border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
-      background: color-mix(in srgb, var(--bg) 88%, transparent);
-      color: color-mix(in srgb, var(--ink) 55%, transparent);
+      background: color-mix(in srgb, var(--bg) 90%, transparent);
+      color: var(--muted);
       font: inherit;
       font-size: 0.82rem;
       font-weight: 600;
       padding: 10px 14px;
       border-radius: 999px;
       cursor: pointer;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      min-height: 40px;
-    }
-    .skip:hover, .skip:focus-visible {
-      color: var(--ink);
-      border-color: color-mix(in srgb, var(--primary) 35%, transparent);
-      outline: none;
     }
     @media (prefers-reduced-motion: reduce) {
+      .brand span, .line, .tagline, .status { animation: none !important; opacity: 1 !important; transform: none !important; }
       body { transition: none; }
-      .letter, .letter.in, .tagline, .tagline.show, .status, .status.show, .glow, .glow.show {
-        animation: none !important;
-        opacity: 1 !important;
-        transform: none !important;
-        filter: none !important;
-      }
     }
   </style>
   <script>
@@ -161,10 +125,10 @@
   </script>
 </head>
 <body>
-  <div class="glow" id="glow" aria-hidden="true"></div>
   <main class="stage" aria-label="ترحيب COMANDO">
-    <div class="word" id="word" aria-label="COMANDO"></div>
-    <p class="tagline" id="tagline">منصة COMANDO التعليمية</p>
+    <div class="brand" id="word" aria-label="COMANDO"></div>
+    <div class="line" aria-hidden="true"></div>
+    <p class="tagline">منصة COMANDO التعليمية</p>
     <p class="status" id="status" aria-live="polite"></p>
   </main>
   <button type="button" class="skip" id="skip">تخطي</button>
@@ -173,73 +137,34 @@
     const LOGIN = '/login.html';
     const HOME = '/home.html';
     const SPLASH_KEY = 'comando_splash_ok';
-
     const LETTERS = 'COMANDO'.split('');
-    const offsets = [
-      { dx: '-42px', dy: '28px', rot: '-18deg' },
-      { dx: '36px', dy: '-34px', rot: '14deg' },
-      { dx: '-28px', dy: '-40px', rot: '10deg' },
-      { dx: '48px', dy: '22px', rot: '-12deg' },
-      { dx: '-18px', dy: '36px', rot: '16deg' },
-      { dx: '30px', dy: '-22px', rot: '-8deg' },
-      { dx: '-34px', dy: '18px', rot: '11deg' }
-    ];
-
     const word = document.getElementById('word');
-    const tagline = document.getElementById('tagline');
     const status = document.getElementById('status');
-    const glow = document.getElementById('glow');
     const skip = document.getElementById('skip');
     let finished = false;
     let target = LOGIN;
 
-    function prefetch(url) {
-      try {
-        const link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.as = 'document';
-        link.href = url;
-        document.head.appendChild(link);
-      } catch (e) {}
-    }
-
     LETTERS.forEach((ch, i) => {
       const span = document.createElement('span');
-      span.className = 'letter';
       span.textContent = ch;
-      span.style.setProperty('--dx', offsets[i].dx);
-      span.style.setProperty('--dy', offsets[i].dy);
-      span.style.setProperty('--rot', offsets[i].rot);
-      span.style.setProperty('--delay', i * 90 + 'ms');
+      span.style.setProperty('--d', 80 + i * 70 + 'ms');
       word.appendChild(span);
     });
 
-    requestAnimationFrame(() => {
-      glow.classList.add('show');
-      Array.from(word.children).forEach((el) => el.classList.add('in'));
-      window.setTimeout(() => tagline.classList.add('show'), 520);
-      window.setTimeout(() => {
-        if (status) {
-          status.textContent = 'جاري فتح المنصة…';
-          status.classList.add('show');
-        }
-      }, 1100);
-    });
-
-    function markSplashDone() {
+    function markDone() {
       try { sessionStorage.setItem(SPLASH_KEY, '1'); } catch (e) {}
     }
 
     function go() {
       if (finished) return;
       finished = true;
-      markSplashDone();
-      if (status) status.textContent = target === HOME ? 'مرحبًا بيك' : 'جاري تسجيل الدخول…';
+      markDone();
+      if (status) {
+        status.textContent = target === HOME ? 'مرحبًا بيك' : 'جاري فتح الدخول…';
+        status.classList.add('show');
+      }
       document.body.classList.add('is-leaving');
-      const delay = reduceMotion ? 0 : 280;
-      window.setTimeout(() => {
-        window.location.replace(target);
-      }, delay);
+      window.setTimeout(() => location.replace(target), reduceMotion ? 0 : 260);
     }
 
     let reduceMotion = false;
@@ -252,16 +177,22 @@
         const mod = await import('./assets/js/supabase.js');
         const session = await Promise.race([
           mod.getSession(),
-          new Promise((resolve) => setTimeout(() => resolve(null), 2200))
+          new Promise((resolve) => setTimeout(() => resolve(null), 2000))
         ]);
         target = session ? HOME : LOGIN;
       } catch {
         target = LOGIN;
       }
-      prefetch(target);
+      try {
+        const l = document.createElement('link');
+        l.rel = 'prefetch';
+        l.as = 'document';
+        l.href = target;
+        document.head.appendChild(l);
+      } catch (e) {}
     })();
 
-    const total = reduceMotion ? 320 : 2600;
+    const total = reduceMotion ? 280 : 1800;
     const timer = window.setTimeout(go, total);
     skip.addEventListener('click', () => {
       window.clearTimeout(timer);
