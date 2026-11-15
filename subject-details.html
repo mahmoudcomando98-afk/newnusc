@@ -9,6 +9,33 @@
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=feat-7" />
   <link rel="stylesheet" href="/assets/css/material-cards.css?v=1" />
   <link rel="stylesheet" href="/assets/css/features-polish.css?v=1" />
+  <style>
+    #fav-btn {
+      color: var(--text-muted);
+      transition: transform .18s var(--ease-spring, cubic-bezier(.34,1.56,.64,1)), color .18s ease;
+    }
+    #fav-btn:hover { color: var(--primary); }
+    #fav-btn:active { transform: scale(.88); }
+    #fav-btn [data-icon] svg {
+      fill: none;
+      stroke: currentColor;
+      transition: fill .2s ease, stroke .2s ease;
+    }
+    #fav-btn.is-fav { color: var(--primary); }
+    #fav-btn.is-fav [data-icon] svg {
+      fill: var(--primary);
+      stroke: var(--primary);
+      animation: fav-pop .4s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes fav-pop {
+      0% { transform: scale(.4) }
+      55% { transform: scale(1.35) }
+      100% { transform: scale(1) }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #fav-btn, #fav-btn.is-fav [data-icon] svg { animation: none !important; transition: none !important; }
+    }
+  </style>
 </head>
 <body class="subject-details-page">
   <header class="app-header">
