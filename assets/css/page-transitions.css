@@ -1,0 +1,41 @@
+/* تنقل ناعم بين الصفحات — خفيف على الموبايل وبدون تقطيع */
+html.pt-ready body {
+  opacity: 1;
+  transform: none;
+}
+
+html.pt-ready body {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  will-change: opacity, transform;
+}
+
+html.pt-enter body {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+html:not(.pt-ready) body {
+  opacity: 0.01;
+}
+
+html.pt-ready:not(.pt-enter):not(.pt-exit) body {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+html.pt-exit body {
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.pt-ready body,
+  html.pt-enter body,
+  html.pt-exit body,
+  html:not(.pt-ready) body {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
