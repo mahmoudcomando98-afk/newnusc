@@ -1,15 +1,12 @@
 /**
- * تنقل ناعم وآمن بين صفحات المنصة (MPA).
- * - لا يبدّل DOM ولا يعيد تشغيل السكربتات يدويًا (عشان ماينكسرش أي عنصر)
- * - حركة خروج/دخول خفيفة + شريط تقدّم رفيع
- * - prefetch للمستندات والـ modules قبل الضغط
- * - View Transitions عبر المتصفح عند التوفر
+ * تنقل المنصة: soft-nav فوري + prefetch.
+ * لا يخفي محتوى الصفحة.
  */
 
-const EXIT_MS = 140;
+import { softNavigate } from './soft-nav.js';
+
 const PREFETCHED = new Set();
 
-/** مسارات الصفحات الشائعة → سكربت الصفحة (للـ modulepreload) */
 const PAGE_MODULES = {
   '/home.html': '/assets/js/home.js',
   '/subjects.html': '/assets/js/subjects.js',
@@ -20,7 +17,6 @@ const PAGE_MODULES = {
   '/profile.html': '/assets/js/profile.js',
   '/notifications.html': '/assets/js/notifications.js',
   '/updates.html': '/assets/js/updates.js',
-  '/login.html': '/assets/js/auth.js',
   '/past-exams.html': '/assets/js/past-exams.js',
   '/online-sections.html': '/assets/js/online-sections.js',
   '/online-schedule.html': '/assets/js/online-schedule.js',
@@ -30,18 +26,9 @@ const PAGE_MODULES = {
   '/store.html': '/assets/js/store.js'
 };
 
-function reducedMotion() {
-  try {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  } catch {
-    return false;
-  }
-}
-
 function sameOrigin(href) {
   try {
-    const u = new URL(href, window.location.href);
-    return u.origin === window.location.origin;
+    return new URL(href, window.location.href).origin === window.location.origin;
   } catch {
     return false;
   }
@@ -81,59 +68,30 @@ function ensureStyles() {
   const link = document.createElement('link');
   link.id = 'comando-pt-css';
   link.rel = 'stylesheet';
-  link.href = '/assets/css/page-transitions.css?v=safe-3';
+  link.href = '/assets/css/page-transitions.css?v=safe-4';
   document.head.appendChild(link);
 }
 
-function ensureViewTransitionMeta() {
-  if (document.querySelector('meta[name="view-transition"]')) return;
-  const meta = document.createElement('meta');
-  meta.name = 'view-transition';
-  meta.content = 'same-origin';
-  document.head.appendChild(meta);
-}
-
 function ensureProgressBar() {
-  let el = document.getElementById('comando-nav-progress');
-  if (el) return el;
-  el = document.createElement('div');
+  if (document.getElementById('comando-nav-progress')) return;
+  const el = document.createElement('div');
   el.id = 'comando-nav-progress';
   el.setAttribute('aria-hidden', 'true');
   el.innerHTML = '<span></span>';
   document.documentElement.appendChild(el);
-  return el;
-}
-
-function showProgress() {
-  const el = ensureProgressBar();
-  el.classList.remove('is-done');
-  el.classList.add('is-active');
 }
 
 function markEnter() {
-  document.documentElement.classList.add('pt-ready');
+  document.documentElement.classList.add('pt-ready', 'pt-enter');
   document.documentElement.classList.remove('pt-exit');
-  requestAnimationFrame(() => {
-    document.documentElement.classList.add('pt-enter');
-  });
-  const bar = document.getElementById('comando-nav-progress');
-  if (bar) {
-    bar.classList.add('is-done');
-    window.setTimeout(() => bar.classList.remove('is-active', 'is-done'), 220);
-  }
 }
 
-function navigateWithTransition(href) {
-  showProgress();
-  if (reducedMotion()) {
+async function navigateWithTransition(href) {
+  try {
+    await softNavigate(href);
+  } catch {
     window.location.href = href;
-    return;
   }
-  document.documentElement.classList.add('pt-exit');
-  document.documentElement.classList.remove('pt-enter');
-  window.setTimeout(() => {
-    window.location.href = href;
-  }, EXIT_MS);
 }
 
 function modulepreload(src) {
@@ -155,17 +113,13 @@ function prefetch(href) {
     if (PREFETCHED.has(abs)) return;
     if (abs === window.location.href) return;
     PREFETCHED.add(abs);
-
     const link = document.createElement('link');
     link.rel = 'prefetch';
     link.href = abs;
     link.as = 'document';
     document.head.appendChild(link);
-
     const path = pathOnly(abs);
-    if (PAGE_MODULES[path]) {
-      modulepreload(PAGE_MODULES[path]);
-    }
+    if (PAGE_MODULES[path]) modulepreload(PAGE_MODULES[path]);
   } catch {
     /* ignore */
   }
@@ -186,7 +140,6 @@ function onClick(e) {
   }
 
   e.preventDefault();
-  // جهّز الصفحة قبل الانتقال مباشرة
   prefetch(a.href);
   navigateWithTransition(a.href);
 }
@@ -224,16 +177,15 @@ function prefetchMainRoutes() {
     }
   };
   if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(run, { timeout: 1800 });
+    window.requestIdleCallback(run, { timeout: 1500 });
   } else {
-    window.setTimeout(run, 400);
+    window.setTimeout(run, 350);
   }
 }
 
 function init() {
   if (typeof document === 'undefined') return;
   ensureStyles();
-  ensureViewTransitionMeta();
   ensureProgressBar();
   markEnter();
   document.addEventListener('click', onClick, true);
@@ -250,4 +202,4 @@ if (typeof document !== 'undefined') {
   }
 }
 
-export { navigateWithTransition, prefetch };
+export { navigateWithTransition, prefetch, softNavigate };
