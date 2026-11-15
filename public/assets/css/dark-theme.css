@@ -5,14 +5,14 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --primary: #e0965f !important;
+  --primary: #f0903c !important;
   --primary-light: #2b241e !important;
-  --primary-dark: #cf8150 !important;
-  --accent: #e0965f !important;
+  --primary-dark: #d2791f !important;
+  --accent: #f0903c !important;
   --success: #8fbc9a !important;
   --danger: #d69a9a !important;
   --warning: #d8b878 !important;
-  --info: #e0965f !important;
+  --info: #f0903c !important;
 
   --bg: #171512 !important;
   --surface: #201d1a !important;
@@ -25,9 +25,9 @@
 
   --auth-ink: #ede9e3 !important;
   --auth-muted: #a9a499 !important;
-  --auth-green: #e0965f !important;
-  --auth-green-hover: #cf8150 !important;
-  --auth-gold: #e0965f !important;
+  --auth-green: #f0903c !important;
+  --auth-green-hover: #d2791f !important;
+  --auth-gold: #f0903c !important;
   --auth-line: #322e29 !important;
   --auth-panel: #201d1a !important;
 
@@ -307,7 +307,7 @@
   color: #fff;
 }
 :root[data-theme="dark"] :focus-visible {
-  outline-color: #e0965f !important;
+  outline-color: #f0903c !important;
 }
 
 /* ============================================================
@@ -418,7 +418,7 @@ html.theme-anim * {
 .theme-toggle-header .icon-sun { transform: translate(-50%, -50%) rotate(0) scale(1); opacity: 1; }
 .theme-toggle-header .icon-moon { transform: translate(-50%, -50%) rotate(90deg) scale(0.4); opacity: 0; }
 :root[data-theme="dark"] .theme-toggle-header .icon-sun { transform: translate(-50%, -50%) rotate(-90deg) scale(0.4); opacity: 0; }
-:root[data-theme="dark"] .theme-toggle-header .icon-moon { transform: translate(-50%, -50%) rotate(0) scale(1); opacity: 1; color: #e0965f; }
+:root[data-theme="dark"] .theme-toggle-header .icon-moon { transform: translate(-50%, -50%) rotate(0) scale(1); opacity: 1; color: #f0903c; }
 @media (prefers-reduced-motion: reduce) {
   .theme-toggle-header { transition: none !important; }
   .theme-toggle-header .theme-icon { transition: none !important; }

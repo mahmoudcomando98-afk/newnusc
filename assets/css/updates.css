@@ -65,8 +65,8 @@
 }
 .updates-chip:active { transform: scale(.96) }
 .updates-chip.is-active {
-  background: var(--primary, #c56a3a);
-  border-color: var(--primary, #c56a3a);
+  background: var(--primary, #dd6b20);
+  border-color: var(--primary, #dd6b20);
   color: #fff;
 }
 
@@ -115,7 +115,7 @@
   animation: updates-in .4s ease backwards;
 }
 @keyframes updates-in { from { opacity: 0; transform: translateY(14px) } }
-.updates-card:hover { border-color: var(--primary, #c56a3a); box-shadow: 0 6px 18px rgba(0, 0, 0, .08) }
+.updates-card:hover { border-color: var(--primary, #dd6b20); box-shadow: 0 6px 18px rgba(0, 0, 0, .08) }
 .updates-card:active { transform: scale(.985) }
 
 .updates-tile {
@@ -157,7 +157,7 @@
   font-weight: 800;
   letter-spacing: .3px;
 }
-.updates-kind-file { color: var(--primary, #c56a3a) }
+.updates-kind-file { color: var(--primary, #dd6b20) }
 .updates-kind-announce { color: #cf7a16 }
 .updates-card-meta {
   display: flex;
@@ -200,11 +200,11 @@
 .updates-expand-hint {
   font-size: .64rem;
   font-weight: 700;
-  color: var(--primary, #c56a3a);
+  color: var(--primary, #dd6b20);
   margin-top: 2px;
 }
 .updates-chevron { flex: none; align-self: center; color: var(--text-muted, #7a736c) }
-.updates-pin { color: var(--primary, #c56a3a); margin-inline-end: 4px }
+.updates-pin { color: var(--primary, #dd6b20); margin-inline-end: 4px }
 
 /* Skeleton */
 .updates-skeleton { display: flex; flex-direction: column; gap: 10px; margin-top: 16px }
@@ -226,7 +226,7 @@
 .updates-empty-stage { position: relative; width: 112px; height: 112px; margin: 0 auto 16px }
 .updates-empty-ring, .updates-empty-ring-2 {
   position: absolute; inset: 0; border-radius: 50%;
-  border: 2px solid rgba(197, 106, 58, .26);
+  border: 2px solid rgba(221, 107, 32, .26);
   animation: updates-ring 2.6s ease-in-out infinite;
 }
 .updates-empty-ring-2 { inset: 14px; animation-delay: .9s; opacity: .6 }
@@ -237,9 +237,9 @@
 }
 .updates-empty-icon {
   position: absolute; inset: 24px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, var(--primary, #c56a3a), var(--primary-dark, #9a4f2b) 78%);
+  background: radial-gradient(circle at 35% 30%, var(--primary, #dd6b20), var(--primary-dark, #b04a12) 78%);
   color: #fff; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 10px 28px rgba(197, 106, 58, .35);
+  box-shadow: 0 10px 28px rgba(221, 107, 32, .35);
 }
 .updates-empty h2 { font-size: 1.02rem; margin: 0 0 6px; color: var(--text, #2c2a28) }
 .updates-empty p { margin: 0; color: var(--text-muted, #7a736c); font-size: .83rem; line-height: 1.7 }
@@ -252,7 +252,7 @@
 
 /* الوضع الليلي والثيم الوردي */
 :root[data-theme="dark"] .updates-header { background: #1f1c19 }
-:root[data-theme="dark"] .updates-card:hover { border-color: #e0965f }
+:root[data-theme="dark"] .updates-card:hover { border-color: #f0903c }
 :root[data-theme="dark"] .updates-empty-ring, :root[data-theme="dark"] .updates-empty-ring-2 { border-color: rgba(224, 150, 95, .3) }
 :root[data-theme="dark"] .updates-kind-announce { color: #f5c76a }
 :root[data-theme="dark"] .updates-error-icon { background: #2e1d1d }

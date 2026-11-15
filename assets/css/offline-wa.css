@@ -49,7 +49,7 @@
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: #f8efe8;
+  background: #fdefe0;
   border: 1px solid #eee0d5;
   font-size: 1.4rem;
 }
@@ -193,6 +193,6 @@
   line-height: 1.5;
 }
 
-.offline-overlay-icon svg { width: 26px; height: 26px; color: #9a4f2b; }
+.offline-overlay-icon svg { width: 26px; height: 26px; color: #b04a12; }
 :root[data-theme="dark"] .offline-overlay-icon { background: var(--surface-soft) !important; border-color: var(--border) !important; }
 :root[data-theme="dark"] .offline-overlay-icon svg { color: var(--primary); }

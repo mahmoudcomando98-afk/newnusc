@@ -48,7 +48,7 @@
   font-weight: 800;
 }
 .notif-stat span { font-size: .66rem; color: var(--text-muted, #7a736c); font-weight: 700 }
-.notif-stat-unread strong { color: var(--primary, #c56a3a) }
+.notif-stat-unread strong { color: var(--primary, #dd6b20) }
 
 /* ═══ فلاتر ═══ */
 .notif-filters {
@@ -75,8 +75,8 @@
 }
 .notif-chip:active { transform: scale(.96) }
 .notif-chip.is-active {
-  background: var(--primary, #c56a3a);
-  border-color: var(--primary, #c56a3a);
+  background: var(--primary, #dd6b20);
+  border-color: var(--primary, #dd6b20);
   color: #fff;
 }
 
@@ -125,11 +125,11 @@
   animation: notif-in .4s ease backwards;
 }
 @keyframes notif-in { from { opacity: 0; transform: translateY(14px) } }
-.notif-card:hover { border-color: var(--primary, #c56a3a); box-shadow: 0 6px 18px rgba(0, 0, 0, .08) }
+.notif-card:hover { border-color: var(--primary, #dd6b20); box-shadow: 0 6px 18px rgba(0, 0, 0, .08) }
 .notif-card:active { transform: scale(.985) }
 .notif-card-unread {
-  background: var(--primary-light, #f8efe8);
-  border-inline-start: 3px solid var(--primary, #c56a3a);
+  background: var(--primary-light, #fdefe0);
+  border-inline-start: 3px solid var(--primary, #dd6b20);
 }
 .notif-card-read { opacity: .72 }
 
@@ -184,7 +184,7 @@
   margin-top: 2px;
 }
 .notif-new {
-  background: var(--primary, #c56a3a);
+  background: var(--primary, #dd6b20);
   color: #fff;
   border-radius: 999px;
   padding: 1px 8px;
@@ -220,7 +220,7 @@
 }
 .notif-empty-ring, .notif-empty-ring-2 {
   position: absolute; inset: 0; border-radius: 50%;
-  border: 2px solid rgba(197, 106, 58, .28);
+  border: 2px solid rgba(221, 107, 32, .28);
   animation: notif-ring 2.6s ease-in-out infinite;
 }
 .notif-empty-ring-2 { inset: 14px; animation-delay: .9s; opacity: .6 }
@@ -232,10 +232,10 @@
 .notif-empty-icon {
   position: absolute; inset: 26px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, var(--primary, #c56a3a), var(--primary-dark, #9a4f2b) 78%);
+  background: radial-gradient(circle at 35% 30%, var(--primary, #dd6b20), var(--primary-dark, #b04a12) 78%);
   color: #fff;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 10px 28px rgba(197, 106, 58, .35);
+  box-shadow: 0 10px 28px rgba(221, 107, 32, .35);
 }
 .notif-empty h2 { font-size: 1.05rem; margin: 0 0 6px; color: var(--text, #2c2a28) }
 .notif-empty p { margin: 0; color: var(--text-muted, #7a736c); font-size: .84rem; line-height: 1.7 }
@@ -260,7 +260,7 @@
 .notif-error button { margin-top: 4px }
 
 /* ═══ الوضع الليلي والثيم الوردي ═══ */
-:root[data-theme="dark"] .notif-card-unread { border-inline-start-color: #e0965f }
+:root[data-theme="dark"] .notif-card-unread { border-inline-start-color: #f0903c }
 :root[data-theme="dark"] .notif-header { background: #1f1c19 }
 :root[data-theme="dark"] .notif-tag-notification { color: #7db8ff }
 :root[data-theme="dark"] .notif-tag-announce { color: #f5c76a }

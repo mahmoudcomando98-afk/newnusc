@@ -240,7 +240,7 @@
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.ai-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(197, 106, 58, 0.15); }
+.ai-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(221, 107, 32, 0.15); }
 .ai-input::placeholder { color: var(--text-muted); }
 .ai-send {
   width: 44px;

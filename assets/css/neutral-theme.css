@@ -3,14 +3,14 @@
 /* NUSC — white + soft orange identity, practical student-tool UI */
 :root {
   color-scheme: light;
-  --primary: #c56a3a !important;
-  --primary-light: #f8efe8 !important;
-  --primary-dark: #9a4f2b !important;
-  --accent: #c56a3a !important;
+  --primary: #dd6b20 !important;
+  --primary-light: #fdefe0 !important;
+  --primary-dark: #b04a12 !important;
+  --accent: #dd6b20 !important;
   --success: #5a7a5a !important;
   --danger: #a55a5a !important;
   --warning: #b08a4a !important;
-  --info: #c56a3a !important;
+  --info: #dd6b20 !important;
   --bg: #faf9f7 !important;
   --surface: #ffffff !important;
   --surface-soft: #f5f0eb !important;
@@ -31,16 +31,16 @@
   --space-6: 32px;
   --auth-ink: #2c2a28 !important;
   --auth-muted: #7a736c !important;
-  --auth-green: #c56a3a !important;
-  --auth-green-hover: #9a4f2b !important;
-  --auth-gold: #c56a3a !important;
+  --auth-green: #dd6b20 !important;
+  --auth-green-hover: #b04a12 !important;
+  --auth-gold: #dd6b20 !important;
   --auth-line: #ebe6e1 !important;
 }
 
 html, body { background: var(--bg) !important; color: var(--text) !important; }
 body { font-family: var(--font) !important; font-size: 0.9375rem !important; line-height: 1.65 !important; -webkit-font-smoothing: antialiased; }
 a { color: var(--primary); }
-:focus-visible { outline: 2px solid #d4a078 !important; outline-offset: 2px !important; }
+:focus-visible { outline: 2px solid #e2a05c !important; outline-offset: 2px !important; }
 
 .app-header { background: #fff !important; border-bottom: 1px solid var(--border) !important; box-shadow: none !important; backdrop-filter: none !important; min-height: var(--header-h) !important; }
 .app-header .container { min-height: var(--header-h) !important; gap: 12px !important; }
@@ -176,7 +176,7 @@ button, .btn, .header-btn, input, select, textarea { box-shadow: none; }
   background: #fff !important; color: var(--text) !important; border: 1px solid var(--border) !important; border-radius: 7px !important; box-shadow: none !important; min-height: 42px;
 }
 .form-input:focus, .form-select:focus, .form-textarea:focus, input:focus, textarea:focus, select:focus {
-  border-color: #d4a078 !important; box-shadow: 0 0 0 2px rgba(197, 106, 58, 0.12) !important; outline: none !important;
+  border-color: #e2a05c !important; box-shadow: 0 0 0 2px rgba(221, 107, 32, 0.12) !important; outline: none !important;
 }
 
 .badge, .pill, .tag, .tab.active {

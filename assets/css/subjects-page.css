@@ -85,8 +85,8 @@
 }
 
 .subjects-page .subjects-toolbar .search-box:focus-within {
-  border-color: #d4a078;
-  box-shadow: 0 0 0 2px rgba(197, 106, 58, 0.12);
+  border-color: #e2a05c;
+  box-shadow: 0 0 0 2px rgba(221, 107, 32, 0.12);
 }
 
 .subjects-page .subjects-toolbar .search-box input {
@@ -150,9 +150,9 @@
   max-width: calc(100% - 32px);
   padding: 3px 8px;
   border-radius: 6px;
-  background: var(--primary-light, #f8efe8);
+  background: var(--primary-light, #fdefe0);
   border: 1px solid var(--border, #ebe6e1);
-  color: var(--primary-dark, #9a4f2b);
+  color: var(--primary-dark, #b04a12);
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 1.35;
@@ -172,7 +172,7 @@
   border-radius: 8px;
   background: var(--surface-soft, #f5f0eb);
   border: 1px solid var(--border, #ebe6e1);
-  color: var(--primary-dark, #9a4f2b);
+  color: var(--primary-dark, #b04a12);
 }
 
 .subjects-page .subject-tile-icon svg {

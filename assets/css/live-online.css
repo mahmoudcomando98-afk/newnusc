@@ -9,7 +9,7 @@
   border: 1px solid var(--border, #ebe6e1);
   border-radius: 10px;
   padding: 12px 14px;
-  border-right: 3px solid var(--primary, #c56a3a);
+  border-right: 3px solid var(--primary, #dd6b20);
 }
 
 .live-os-head {

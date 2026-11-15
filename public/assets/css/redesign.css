@@ -332,34 +332,34 @@ input:focus, select:focus, textarea:focus,
 
 /* ═══ استعادة بنتيتش — اللون الدافئ الرسمى — عشان ما تسقطش تحت CSS السلسلة الأونلاين ═══ */
 :root {
-  --primary: #c56a3a !important;
-  --primary-light: #f8efe8 !important;
-  --primary-dark: #9a4f2b !important;
-  --accent: #c56a3a !important;
+  --primary: #dd6b20 !important;
+  --primary-light: #fdefe0 !important;
+  --primary-dark: #b04a12 !important;
+  --accent: #dd6b20 !important;
   --bg: #faf9f7 !important;
   --surface: #ffffff !important;
   --surface-soft: #f5f0eb !important;
   --text: #2c2a28 !important;
   --text-muted: #7a736c !important;
   --border: #ebe6e1 !important;
-  --primary-light: #f8efe8 !important;
-  --primary-dark: #9a4f2b !important;
-  --auth-green: #c56a3a !important;
-  --auth-green-hover: #9a4f2b !important;
-  --auth-gold: #c56a3a !important;
+  --primary-light: #fdefe0 !important;
+  --primary-dark: #b04a12 !important;
+  --auth-green: #dd6b20 !important;
+  --auth-green-hover: #b04a12 !important;
+  --auth-gold: #dd6b20 !important;
   --auth-line: #ebe6e1 !important;
   --auth-ink: #2c2a28 !important;
   --auth-muted: #7a736c !important;
 }
 :root[data-theme="dark"] {
-  --primary: #e0965f !important;
+  --primary: #f0903c !important;
   --primary-light: #2b241e !important;
-  --primary-dark: #cf8150 !important;
-  --accent: #e0965f !important;
+  --primary-dark: #d2791f !important;
+  --accent: #f0903c !important;
   --success: #8fbc9a !important;
   --danger: #d69a9a !important;
   --warning: #d8b878 !important;
-  --info: #e0965f !important;
+  --info: #f0903c !important;
   --bg: #171512 !important;
   --surface: #201d1a !important;
   --surface-soft: #292622 !important;
@@ -369,9 +369,9 @@ input:focus, select:focus, textarea:focus,
   --primary-light: #2b241e !important;
   --auth-ink: #ede9e3 !important;
   --auth-muted: #a9a499 !important;
-  --auth-green: #e0965f !important;
-  --auth-green-hover: #cf8150 !important;
-  --auth-gold: #e0965f !important;
+  --auth-green: #f0903c !important;
+  --auth-green-hover: #d2791f !important;
+  --auth-gold: #f0903c !important;
   --auth-line: #322e29 !important;
   --auth-panel: #201d1a !important;
   --gray: #d8d4cc !important;

@@ -27,8 +27,8 @@
   padding: 4px 10px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--primary-dark, #9a4f2b);
-  background: var(--primary-light, #f8efe8);
+  color: var(--primary-dark, #b04a12);
+  background: var(--primary-light, #fdefe0);
   border-radius: 999px;
 }
 
@@ -51,7 +51,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 10px 14px;
-  background: var(--primary, #c56a3a);
+  background: var(--primary, #dd6b20);
   color: #fff;
 }
 
@@ -104,7 +104,7 @@
 .os-time-end {
   font-size: 0.88rem;
   font-weight: 700;
-  color: var(--primary, #c56a3a);
+  color: var(--primary, #dd6b20);
   font-variant-numeric: tabular-nums;
   line-height: 1.3;
   white-space: nowrap;
