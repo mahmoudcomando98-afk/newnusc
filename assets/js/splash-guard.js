@@ -1,8 +1,8 @@
 /**
  * شاشة ترحيب COMANDO:
- * - أي فتح للمنصة من غير ما يعدّي على index → يتحوّل للأنيميشن
- * - التطبيق المثبّت (PWA / standalone): كل فتح جديد (مفيش referrer داخلي)
- *   يظهر الأنيميشن حتى لو الجلسة لسه مفتوحة
+ * - فتح المنصة من غير index → تحويل للأنيميشن
+ * - التطبيق المثبّت: كل فتح جديد يظهر الترحيب
+ * - إخفاء الصفحة لحظيًا قبل التحويل عشان ما يحصلش وميض
  */
 (function () {
   var path = (location.pathname || '').toLowerCase();
@@ -20,7 +20,7 @@
       if (window.matchMedia('(display-mode: minimal-ui)').matches) return true;
     } catch (e) {}
     try {
-      if (window.navigator.standalone === true) return true; // iOS Safari
+      if (window.navigator.standalone === true) return true;
     } catch (e) {}
     try {
       if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
@@ -40,6 +40,14 @@
     }
   }
 
+  function hideAndGo(url) {
+    try {
+      document.documentElement.style.background = '#faf9f7';
+      document.documentElement.style.visibility = 'hidden';
+    } catch (e) {}
+    location.replace(url);
+  }
+
   var hasOk = false;
   try {
     hasOk = sessionStorage.getItem('comando_splash_ok') === '1';
@@ -47,16 +55,15 @@
     hasOk = false;
   }
 
-  // فتح التطبيق المثبّت من الأيقونة (مش تنقل جوه المنصة) → أنيميشن دائمًا
   if (isInstalledApp() && isColdOpen()) {
     try {
       sessionStorage.removeItem('comando_splash_ok');
     } catch (e) {}
-    location.replace('/index.html?from=app');
+    hideAndGo('/index.html?from=app');
     return;
   }
 
   if (!hasOk) {
-    location.replace('/index.html');
+    hideAndGo('/index.html');
   }
 })();
