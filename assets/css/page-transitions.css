@@ -1,8 +1,12 @@
-/* تنقل ناعم + شريط تقدّم أثناء soft-nav */
+/* تنقل ناعم بين الصفحات — خفيف على الموبايل وبدون تقطيع */
 html.pt-ready body {
   opacity: 1;
   transform: none;
-  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+html.pt-ready body {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  will-change: opacity, transform;
 }
 
 html.pt-enter body {
@@ -16,58 +20,13 @@ html:not(.pt-ready) body {
 
 html.pt-ready:not(.pt-enter):not(.pt-exit) body {
   opacity: 0;
-  transform: translateY(4px);
+  transform: translateY(6px);
 }
 
 html.pt-exit body {
   opacity: 0;
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   pointer-events: none;
-}
-
-html.soft-nav-busy {
-  cursor: progress;
-}
-
-/* شريط رفيع أعلى الشاشة أثناء التبديل */
-#comando-nav-progress {
-  position: fixed;
-  inset-block-start: 0;
-  inset-inline: 0;
-  height: 2px;
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0;
-  background: transparent;
-}
-
-#comando-nav-progress.is-active {
-  opacity: 1;
-}
-
-#comando-nav-progress span {
-  display: block;
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #dd6b20, #f0903c);
-  border-radius: 0 2px 2px 0;
-}
-
-#comando-nav-progress.is-active span {
-  animation: comando-nav-bar 0.9s ease-out forwards;
-}
-
-#comando-nav-progress.is-done span {
-  animation: none;
-  width: 100%;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-
-@keyframes comando-nav-bar {
-  0% { width: 0%; }
-  40% { width: 55%; }
-  100% { width: 85%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -78,9 +37,5 @@ html.soft-nav-busy {
     transition: none !important;
     opacity: 1 !important;
     transform: none !important;
-  }
-  #comando-nav-progress.is-active span {
-    animation: none;
-    width: 70%;
   }
 }
