@@ -8,6 +8,7 @@
   <title>الكويزات | COMANDO</title>
   <link rel="stylesheet" href="/assets/css/main.css?v=comando-2" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-2" />
+  <link rel="stylesheet" href="/assets/css/quizzes.css?v=1" />
 </head>
 <body class="quizzes-page">
   <header class="app-header">
@@ -28,15 +29,27 @@
   </header>
   <main class="page">
     <div class="container page-content">
-      <div class="section-header"><h1>الكويزات</h1></div>
-      <div class="tabs" id="tabs" role="tablist">
-        <button type="button" class="tab" data-status="upcoming" role="tab">قادمة</button>
-        <button type="button" class="tab" data-status="open" role="tab">مفتوحة</button>
-        <button type="button" class="tab" data-status="closed" role="tab">منتهية</button>
-        <button type="button" class="tab active" data-status="all" role="tab">الكل</button>
+      <section class="quizzes-hero" aria-label="الكويزات">
+        <div>
+          <h1>الكويزات</h1>
+          <p>كويزات موادك ومواعيدها وتعليماتها ودرجاتك — كله في مكان واحد.</p>
+        </div>
+        <div class="qh-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 12l2 2 4-4"/></svg>
+        </div>
+      </section>
+      <div class="quiz-filters" id="tabs" role="tablist" aria-label="تصفية الكويزات">
+        <button type="button" class="quiz-chip is-active" data-status="all" role="tab">الكل <span class="qc-count" data-count-for="all">0</span></button>
+        <button type="button" class="quiz-chip" data-status="open" role="tab">مفتوحة <span class="qc-count" data-count-for="open">0</span></button>
+        <button type="button" class="quiz-chip" data-status="upcoming" role="tab">قادمة <span class="qc-count" data-count-for="upcoming">0</span></button>
+        <button type="button" class="quiz-chip" data-status="closed" role="tab">منتهية <span class="qc-count" data-count-for="closed">0</span></button>
       </div>
-      <div id="quizzes-list" class="card-grid mt-2" aria-live="polite">
-        <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>
+      <div id="quizzes-list" aria-live="polite">
+        <div class="quiz-skeleton" aria-hidden="true">
+          <div class="quiz-skel-card"></div>
+          <div class="quiz-skel-card"></div>
+          <div class="quiz-skel-card"></div>
+        </div>
       </div>
     </div>
   </main>
@@ -47,6 +60,6 @@
     <a href="/schedule.html" data-nav="schedule"><span data-icon="calendar"></span>الجدول</a>
     <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
-  <script type="module" src="/assets/js/quizzes.js"></script>
+  <script type="module" src="/assets/js/quizzes.js?v=quiz-v2"></script>
 </body>
 </html>

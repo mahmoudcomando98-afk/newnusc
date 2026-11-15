@@ -8,7 +8,6 @@ import { protectPage } from './auth.js';
 import {
   escapeHtml,
   formatDate,
-  showEmpty,
   showError,
   initIcons,
   setActiveNav,
@@ -64,28 +63,13 @@ function getQuizDateText(value) {
   });
 }
 
-function ensureTabs() {
-  if (document.getElementById('tabs')) return;
-  const list = document.getElementById('quizzes-list');
-  if (!list || !list.parentNode) return;
-  const tabs = document.createElement('div');
-  tabs.id = 'tabs';
-  tabs.className = 'tabs';
-  tabs.setAttribute('role', 'tablist');
-  tabs.innerHTML = `
-    <button type="button" class="tab" data-status="upcoming" role="tab">قادمة</button>
-    <button type="button" class="tab" data-status="open" role="tab">مفتوحة</button>
-    <button type="button" class="tab" data-status="closed" role="tab">منتهية</button>
-    <button type="button" class="tab active" data-status="all" role="tab">الكل</button>
-  `;
-  list.parentNode.insertBefore(tabs, list);
-}
-
 function bindTabs() {
-  document.querySelectorAll('#tabs .tab[data-status]').forEach((tab) => {
+  document.querySelectorAll('#tabs .quiz-chip[data-status]').forEach((tab) => {
     tab.addEventListener('click', () => {
-      document.querySelectorAll('#tabs .tab').forEach((item) => item.classList.remove('active'));
-      tab.classList.add('active');
+      document.querySelectorAll('#tabs .quiz-chip').forEach((item) => {
+        item.classList.toggle('is-active', item === tab);
+        item.setAttribute('aria-selected', String(item === tab));
+      });
       currentStatus = tab.dataset.status || 'all';
       renderQuizzes();
     });
@@ -139,6 +123,17 @@ function renderQuizzes() {
   const el = document.getElementById('quizzes-list');
   if (!el) return;
 
+  /* عدّادات الرقائق */
+  const counts = { all: quizzes.length, open: 0, upcoming: 0, closed: 0 };
+  for (const quiz of quizzes) {
+    const s = getQuizStatus(quiz);
+    counts[s] = (counts[s] || 0) + 1;
+  }
+  for (const [key, val] of Object.entries(counts)) {
+    const node = document.querySelector('[data-count-for="' + key + '"]');
+    if (node) node.textContent = val;
+  }
+
   const filtered =
     currentStatus === 'all'
       ? quizzes
@@ -151,15 +146,22 @@ function renderQuizzes() {
       closed: 'لا توجد كويزات منتهية',
       all: 'لا توجد كويزات منشورة.'
     };
-    showEmpty(el, messages[currentStatus] || 'لا توجد كويزات');
+    el.innerHTML =
+      '<div class="quiz-empty"><span data-icon="clipboard"></span>' +
+      '<h2>' + escapeHtml(messages[currentStatus] || 'لا توجد كويزات') + '</h2>' +
+      '<p>أي كويز جديد بينزل، هتلاقيه هنا أول بأول — تابع التعليمات من الإدارة.</p>' +
+      '</div>';
+    initIcons();
     return;
   }
 
   el.innerHTML = filtered
     .map((quiz) => {
       const status = getQuizStatus(quiz);
-      const badgeClass =
-        status === 'open' ? 'badge-success' : status === 'closed' ? 'badge-danger' : 'badge-info';
+      const statusClass =
+        status === 'open' ? 'quiz-card--open' : status === 'upcoming' ? 'quiz-card--upcoming' : 'quiz-card--closed';
+      const statusPill =
+        status === 'open' ? 'quiz-status--open' : status === 'upcoming' ? 'quiz-status--upcoming' : 'quiz-status--closed';
       const startDate = getStartDate(quiz);
       const instructions = quiz.instructions || quiz.rules || '';
       const subjectName = quiz.subjects?.name || quiz.subject_name || '';
@@ -169,19 +171,20 @@ function renderQuizzes() {
       const canReveal = !!quiz.can_reveal;
 
       return `
-      <article class="card quiz-card mb-2">
-        <div class="flex justify-between items-center flex-wrap gap-1">
-          <h3 class="card-title" style="margin:0">${escapeHtml(quiz.title || 'كويز')}</h3>
-          <span class="badge ${badgeClass}">${escapeHtml(quizStatusLabel(status))}</span>
+      <article class="quiz-card ${statusClass}">
+        <div class="quiz-top">
+          ${subjectName ? `<span class="quiz-subject">${escapeHtml(subjectName)}</span>` : '<span></span>'}
+          <span class="quiz-status ${statusPill}"><span class="quiz-dot"></span>${escapeHtml(quizStatusLabel(status))}</span>
         </div>
-        ${subjectName ? `<p class="text-sm text-muted mt-1">${escapeHtml(subjectName)}</p>` : ''}
-        ${startDate ? `<p class="text-sm mt-1"><strong>يفتح:</strong> ${escapeHtml(getQuizDateText(startDate))}</p>` : ''}
-        ${quiz.end_at ? `<p class="text-sm mt-1"><strong>يقفل:</strong> ${escapeHtml(getQuizDateText(quiz.end_at))}</p>` : ''}
-        ${quiz.duration_minutes ? `<p class="text-sm mt-1">مدة الحل: ${Number(quiz.duration_minutes)} دقيقة من لحظة البدء</p>` : ''}
-        ${quiz.description ? `<p class="text-sm text-muted mt-1">${escapeHtml(quiz.description)}</p>` : ''}
-        ${instructions ? `<p class="text-sm mt-1"><strong>التعليمات:</strong> ${escapeHtml(instructions)}</p>` : ''}
-        ${done ? `<p class="text-sm mt-1"><strong>درجتك:</strong> ${quiz.my_score} / ${quiz.my_max_score ?? '—'}</p>` : ''}
-        <div class="mt-2 flex flex-wrap gap-1">
+        <h3 class="quiz-title">${escapeHtml(quiz.title || 'كويز')}</h3>
+        ${quiz.description ? `<p class="quiz-desc">${escapeHtml(quiz.description)}</p>` : ''}
+        ${instructions ? `<p class="quiz-desc"><strong>التعليمات:</strong> ${escapeHtml(instructions)}</p>` : ''}
+        <div class="quiz-meta">
+          ${startDate ? `<div class="quiz-meta-row"><span data-icon="calendar"></span><span class="quiz-meta-label">يفتح:</span><span class="quiz-meta-value">${escapeHtml(getQuizDateText(startDate))}</span></div>` : ''}
+          ${quiz.end_at ? `<div class="quiz-meta-row"><span data-icon="clock"></span><span class="quiz-meta-label">يقفل:</span><span class="quiz-meta-value">${escapeHtml(getQuizDateText(quiz.end_at))}</span></div>` : ''}
+          ${quiz.duration_minutes ? `<div class="quiz-meta-row"><span data-icon="clock"></span><span class="quiz-meta-label">المدة:</span><span class="quiz-meta-value">${Number(quiz.duration_minutes)} دقيقة</span></div>` : ''}
+        </div>
+        <div class="quiz-foot">
           ${
             interactive && status === 'open' && !done
               ? `<a class="btn btn-primary" href="/quiz-take.html?id=${encodeURIComponent(quiz.id)}">ابدأ الكويز</a>`
@@ -199,6 +202,7 @@ function renderQuizzes() {
           }
           ${quiz.quiz_url ? `<a class="btn ${interactive ? 'btn-secondary' : 'btn-primary'}" href="${escapeHtml(quiz.quiz_url)}" target="_blank" rel="noopener noreferrer">رابط خارجي</a>` : ''}
           ${hasSolution && (status === 'closed' || canReveal) ? `<button type="button" class="btn btn-secondary" data-solution="${escapeHtml(encodeURIComponent(quiz.solution_image_path || ''))}">عرض الحل</button>` : ''}
+          ${done ? `<span class="quiz-score"><span data-icon="check"></span>درجتك: ${quiz.my_score} / ${quiz.my_max_score ?? '—'}</span>` : ''}
         </div>
       </article>`;
     })
@@ -216,7 +220,7 @@ async function loadQuizzes() {
   if (!el) return;
 
   el.innerHTML =
-    '<div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div></div>';
+    '<div class="quiz-skeleton" aria-hidden="true"><div class="quiz-skel-card"></div><div class="quiz-skel-card"></div><div class="quiz-skel-card"></div></div>';
 
   try {
     let data = null;
@@ -294,7 +298,6 @@ async function init() {
     if (!result) return;
 
     setActiveNav('quizzes');
-    ensureTabs();
     bindTabs();
     initIcons();
     await loadQuizzes();
