@@ -72,55 +72,80 @@ export function getOrCreateDeviceId() {
       id =
         typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
           ? crypto.randomUUID()
-          : 'dev-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+          : String(Date.now()) + '-' + Math.random().toString(36).slice(2);
       localStorage.setItem(DEVICE_KEY, id);
     }
     return id;
   } catch {
-    return 'dev-fallback';
+    return null;
   }
 }
 
+/** الدخول (أو التسجيل تلقائيًا) بالكود الجامعي */
 export async function loginWithCode(code) {
-  const normalized = String(code || '').trim();
-  if (!normalized) throw new Error('اكتب الكود الجامعي.');
+  const normalized = String(code || '').trim().replace(/\s+/g, ' ').toUpperCase();
+  if (!normalized) throw new Error('اكتب الكود الجامعي أولًا.');
 
   const { data, error } = await supabase.functions.invoke('code-login', {
     body: { action: 'login', code: normalized, device_id: getOrCreateDeviceId() || '' }
   });
-  if (error) throw new Error(getErrorMessage(error));
-  if (data?.error) throw new Error(data.error);
-
-  const tokenHash = data?.token_hash;
-  if (!tokenHash) throw new Error('تعذر إكمال تسجيل الدخول.');
+  if (error) {
+    // supabase-js v2: non-2xx → error.context (Response) — اقرأ الرسالة الحقيقية إن وُجدت
+    let detail = null;
+    try { detail = await error.context?.json?.(); } catch { /* غير JSON أو غير متاح */ }
+    if (detail?.error) throw new Error(detail.error);
+    throw new Error(getErrorMessage(error, 'تعذر تسجيل الدخول. حاول مرة أخرى.'));
+  }
+  if (data?.error) {
+    const err = new Error(data.error);
+    err.status = data.status || 400;
+    throw err;
+  }
+  if (!data?.token_hash) throw new Error('رد غير متوقع من الخدمة. حاول مرة أخرى.');
 
   const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
-    token_hash: tokenHash,
+    token_hash: data.token_hash,
     type: 'magiclink'
   });
-  if (verifyError) throw new Error(getErrorMessage(verifyError, 'تعذر تأكيد الجلسة.'));
-
-  return {
-    session: verifyData?.session || null,
-    user: verifyData?.user || null,
-    fullName: data?.full_name || verifyData?.user?.user_metadata?.full_name || ''
-  };
+  if (verifyError) throw new Error(getErrorMessage(verifyError, 'تعذر إنشاء الجلسة. حاول مرة أخرى.'));
+  return { ...verifyData, fullName: data.full_name, role: data.role };
 }
 
-export async function lookupCodesByName(name) {
-  const q = String(name || '').trim();
-  if (q.length < 2) return [];
+/** البحث عن كود جامعي بالاسم — للذين نسوا كودهم */
+export async function lookupStudentCode(query) {
+  const q = String(query || '').trim();
+  if (q.length < 3) throw new Error('اكتب 3 أحرف على الأقل من اسمك.');
+
   const { data, error } = await supabase.functions.invoke('code-login', {
-    body: { action: 'lookup', name: q }
+    body: { action: 'lookup', query: q }
   });
-  if (error) throw new Error(getErrorMessage(error));
+  if (error) {
+    let detail = null;
+    try { detail = await error.context?.json?.(); } catch { /* غير JSON */ }
+    if (detail?.error) throw new Error(detail.error);
+    throw new Error(getErrorMessage(error, 'تعذر البحث الآن. حاول مرة أخرى.'));
+  }
   if (data?.error) throw new Error(data.error);
   return Array.isArray(data?.results) ? data.results : [];
 }
 
-export async function requireAuth() {
-  const session = await getSession();
-  if (!session?.user) {
+export async function logout() {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+  window.location.href = '/login.html';
+}
+
+export async function protectPage({ adminOnly = false } = {}) {
+  let session = await getSession();
+  if (!session) {
+    try {
+      const { data } = await supabase.auth.refreshSession();
+      session = data?.session || null;
+    } catch {
+      /* ignore */
+    }
+  }
+  if (!session) {
     try {
       const next = (window.location.pathname || '') + (window.location.search || '');
       if (next && next.startsWith('/') && !next.startsWith('//') && !/login\.html/i.test(next)) {
@@ -132,40 +157,39 @@ export async function requireAuth() {
     window.location.replace('/login.html');
     return null;
   }
-  return session;
-}
-
-export async function protectPage({ adminOnly = false } = {}) {
-  const session = await requireAuth();
-  if (!session) return null;
-
   const profile = await getProfile(session.user.id);
-  if (profile && profile.is_active === false) {
-    window.location.replace('/banned.html');
+
+  if (profile && profile.is_active === false && !adminOnly) {
+    const path = (window.location.pathname || '').toLowerCase();
+    if (!path.endsWith('/banned.html')) {
+      window.location.replace('/banned.html');
+    }
     return null;
   }
 
   if (adminOnly) {
-    const role = profile?.role;
-    if (role !== 'admin' && role !== 'moderator') {
-      window.location.replace('/home.html');
+    const isAuthorizedAdmin = !!profile && profile.role === 'admin' && profile.is_active === true;
+    if (!isAuthorizedAdmin) {
+      window.location.replace(session?.user ? '/home.html' : '/login.html');
       return null;
     }
+    document.documentElement.classList.remove('admin-auth-pending');
   }
-
+  try {
+    const uid = session.user?.id || profile?.id;
+    if (uid && !adminOnly) {
+      import('./push.js')
+        .then((m) => m.initPushNotifications(uid))
+        .catch(() => {});
+    }
+  } catch {
+    /* ignore */
+  }
   return { session, user: session.user, profile };
 }
 
 export async function protectAdminPage() {
-  return protectPage({ adminOnly: true });
-}
-
-function escapeHtmlSafe(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"');
+  return await protectPage({ adminOnly: true });
 }
 
 function renderLookupResults(container, results, onPick) {
@@ -179,16 +203,20 @@ function renderLookupResults(container, results, onPick) {
     row.type = 'button';
     row.className = 'auth-lookup-item';
     row.innerHTML =
-      '<span class="auth-lookup-name">' +
-      escapeHtmlSafe(item.full_name) +
-      '</span>' +
-      '<span class="auth-lookup-code" dir="ltr">' +
-      escapeHtmlSafe(item.code) +
-      '</span>';
-    row.setAttribute('aria-label', 'تسجيل الدخول باسم ' + (item.full_name || ''));
+      '<span class="auth-lookup-name">' + escapeHtmlSafe(item.full_name) + '</span>' +
+      '<span class="auth-lookup-code" dir="ltr">' + escapeHtmlSafe(item.code) + '</span>';
+    row.setAttribute('aria-label', 'تسجيل الدخول باسم ' + item.full_name);
     row.addEventListener('click', () => onPick(item));
     container.appendChild(row);
   }
+}
+
+function escapeHtmlSafe(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"');
 }
 
 export function initLoginPage() {
@@ -230,35 +258,53 @@ export function initLoginPage() {
     }
   });
 
+  // "هل نسيت الكود الجامعي؟" — إظهار لوحة البحث بالاسم
   if (forgotLink && forgotPanel) {
     forgotLink.addEventListener('click', (e) => {
       e.preventDefault();
-      forgotPanel.classList.toggle('hidden');
+      forgotPanel.hidden = !forgotPanel.hidden;
+      if (!forgotPanel.hidden && lookupInput) lookupInput.focus();
     });
   }
 
   if (lookupBtn && lookupInput && lookupResults) {
-    lookupBtn.addEventListener('click', async () => {
+    const runLookup = async () => {
+      lookupBtn.disabled = true;
+      lookupBtn.textContent = '...';
       lookupResults.innerHTML = '';
       try {
-        await withLoading(lookupBtn, async () => {
-          const results = await lookupCodesByName(lookupInput.value);
-          renderLookupResults(lookupResults, results, (item) => {
-            if (codeInput) codeInput.value = item.code || '';
-            forgotPanel?.classList.add('hidden');
-            showToast('اتحط الكود، اضغط دخول', 'success');
-          });
+        const results = await lookupStudentCode(lookupInput.value);
+        renderLookupResults(lookupResults, results, async (item) => {
+          // الطالب اختار نفسه: سجّل بالكود فورًا
+          try {
+            await submitCode(item.code);
+          } catch (err) {
+            showError(getErrorMessage(err, 'تعذر تسجيل الدخول. حاول تاني.'));
+          }
         });
       } catch (err) {
-        showError(getErrorMessage(err, 'تعذر البحث بالاسم.'));
+        lookupResults.innerHTML =
+          '<p class="auth-lookup-empty">' + escapeHtmlSafe(getErrorMessage(err, 'تعذر البحث.')) + '</p>';
+      } finally {
+        lookupBtn.disabled = false;
+        lookupBtn.textContent = 'بحث';
+      }
+    };
+    lookupBtn.addEventListener('click', runLookup);
+    lookupInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        runLookup();
       }
     });
   }
 }
 
-export {
+export default {
   loginWithCode,
-  lookupCodesByName,
-  getErrorMessage,
-  resolveNextPath
+  lookupStudentCode,
+  logout,
+  protectPage,
+  protectAdminPage,
+  initLoginPage
 };
