@@ -1,6 +1,7 @@
-/* COMANDO Service Worker — push + installability (desktop/mobile) */
+/* COMANDO Service Worker — push + installability + شبكة ثابتة على الموبايل */
 const ICON_PATH = '/nusc.png.jpeg';
-const SW_VERSION = 'comando-sw-v2';
+const SW_VERSION = 'comando-sw-v3';
+const RUNTIME_CACHE = 'comando-runtime-v3';
 
 function iconUrl() {
   try {
@@ -15,22 +16,73 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      /* نمسح أي كاش قديم من نسخ سابقة عشان ميتلخبطش كاش قديم مع جديد */
+      const names = await caches.keys();
+      await Promise.all(
+        names.filter((n) => n !== RUNTIME_CACHE).map((n) => caches.delete(n))
+      );
+      await self.clients.claim();
+    })()
+  );
 });
 
-/* Required for installability on many Chromium builds */
+/* ملفات البناء المهدومة (hashed) — أولوية الكاش: ثابتة المحتوى واسم الملف بيتبدل مع كل نسخة */
+const HASHED_ASSET = /\/assets\/.+-[A-Za-z0-9_-]{8}\.(?:js|css|woff2?|png|jpe?g|svg|webp|ico)$/i;
+
+async function cacheFirst(req) {
+  const cache = await caches.open(RUNTIME_CACHE);
+  const hit = await cache.match(req);
+  if (hit) return hit;
+  try {
+    const res = await fetch(req);
+    if (res && res.ok) cache.put(req, res.clone());
+    return res;
+  } catch {
+    return new Response('', { status: 503, statusText: 'Offline' });
+  }
+}
+
+async function networkFirst(req, { cachePage = false } = {}) {
+  const cache = await caches.open(RUNTIME_CACHE);
+  try {
+    const res = await fetch(req);
+    if (res && res.ok && cachePage) cache.put(req, res.clone());
+    return res;
+  } catch {
+    const hit = await cache.match(req);
+    if (hit) return hit;
+    if (req.mode === 'navigate') {
+      return new Response(
+        '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>COMANDO</title></head><body style="font-family:sans-serif;text-align:center;padding:40px"><h1>لا يوجد اتصال</h1><p>اتأكد من الشبكة ثم أعد المحاولة.</p></body></html>',
+        { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+      );
+    }
+    return new Response('', { status: 503, statusText: 'Offline' });
+  }
+}
+
+/* بدل الـ 503 الفاضي على أي هزّة في النت: كاش احتياطي يخلي المنصة تشتغل وتجيب بيانات المستخدم دايمًا */
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request).catch(() => {
-      if (event.request.mode === 'navigate') {
-        return new Response(
-          '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>COMANDO</title></head><body style="font-family:sans-serif;text-align:center;padding:40px"><h1>لا يوجد اتصال</h1><p>اتأكد من الشبكة ثم أعد المحاولة.</p></body></html>',
-          { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
-        );
-      }
-      return new Response('', { status: 503, statusText: 'Offline' });
-    })
-  );
+  const req = event.request;
+  /* غير GET (تسجيل دخول، تحديث بيانات...) يعدّي عادي */
+  if (req.method !== 'GET') return;
+
+  let url;
+  try {
+    url = new URL(req.url);
+  } catch {
+    return;
+  }
+  /* طلبات خارجية (Supabase, fonts...) تعدّي عادي */
+  if (url.origin !== self.location.origin) return;
+
+  if (HASHED_ASSET.test(url.pathname) || url.pathname.startsWith('/assets/js/')) {
+    event.respondWith(cacheFirst(req));
+    return;
+  }
+  event.respondWith(networkFirst(req, { cachePage: req.mode === 'navigate' }));
 });
 
 self.addEventListener('push', (event) => {

@@ -472,8 +472,12 @@ function profileFromAuthUser(user) {
 }
 
 export async function getProfile(userId = null) {
-  const authUser = await getCurrentUser();
-  const uid = userId || authUser?.id;
+  /* الـ uid معروف غالبًا من الجلسة — نداء getUser الشبكي بيبقى لازمة فقط لو محتاجينه فعلًا */
+  let uid = userId;
+  if (!uid) {
+    const authUser = await getCurrentUser();
+    uid = authUser?.id;
+  }
   if (!uid) return null;
 
   try {
@@ -486,11 +490,13 @@ export async function getProfile(userId = null) {
       8000
     );
     if (!error && data) {
-      if (!data.full_name && authUser?.id === uid) {
-        const fb = profileFromAuthUser(authUser);
-        if (fb?.full_name) data.full_name = fb.full_name;
+      if (!data.full_name || !data.email) {
+        const authUser = await getCurrentUser();
+        const fb = authUser?.id === uid ? profileFromAuthUser(authUser) : null;
+        if (!data.full_name && fb?.full_name) data.full_name = fb.full_name;
+        if (!data.email && authUser?.email) data.email = authUser.email;
       }
-      if (!data.email && authUser?.email) data.email = authUser.email;
+      saveProfileCache(data);
       return data;
     }
     if (error) console.warn('[COMANDO] profile:', error.message);
@@ -498,12 +504,21 @@ export async function getProfile(userId = null) {
     console.warn('[COMANDO] getProfile:', err?.message || err);
   }
 
-  if (authUser?.id === uid) return profileFromAuthUser(authUser);
+  const authUser = await getCurrentUser();
+  if (authUser?.id === uid) {
+    const fb = profileFromAuthUser(authUser);
+    saveProfileCache(fb);
+    return fb;
+  }
   try {
     const {
       data: { user }
     } = await supabase.auth.getUser();
-    if (user?.id === uid) return profileFromAuthUser(user);
+    if (user?.id === uid) {
+      const fb = profileFromAuthUser(user);
+      saveProfileCache(fb);
+      return fb;
+    }
   } catch {
     /* ignore */
   }
@@ -515,6 +530,52 @@ export async function getProfile(userId = null) {
     is_active: true,
     _from_auth_fallback: true
   };
+}
+
+/* كاش محلي لآخر بروفايل — بيخلي البيانات تظهر فورًا حتى قبل ما الشبكة ترد */
+const PROFILE_CACHE_KEY = 'comando-last-profile';
+const PROFILE_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+
+function saveProfileCache(profile) {
+  try {
+    if (!profile || profile._from_auth_fallback) return;
+    localStorage.setItem(
+      PROFILE_CACHE_KEY,
+      JSON.stringify({ t: Date.now(), profile })
+    );
+  } catch {
+    /* private mode */
+  }
+}
+
+export function readProfileCache() {
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.profile) return null;
+    if (Date.now() - (parsed.t || 0) > PROFILE_CACHE_TTL) {
+      localStorage.removeItem(PROFILE_CACHE_KEY);
+      return null;
+    }
+    return parsed.profile;
+  } catch {
+    return null;
+  }
+}
+
+/* ترقيع الكاش بحقول إضافية (زي الكود الجامعي) من الصفحات اللي بتجيبها */
+export function patchProfileCache(patch) {
+  try {
+    const current = readProfileCache();
+    if (!current?.id) return;
+    localStorage.setItem(
+      PROFILE_CACHE_KEY,
+      JSON.stringify({ t: Date.now(), profile: { ...current, ...patch } })
+    );
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function isAdmin() {

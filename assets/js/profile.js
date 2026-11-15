@@ -2,7 +2,7 @@
  * NUSC Student Hub - Profile
  */
 
-import { supabase, signOut } from './supabase.js';
+import { supabase, signOut, readProfileCache, patchProfileCache } from './supabase.js';
 import { protectPage } from './auth.js';
 import {
   escapeHtml,
@@ -14,6 +14,22 @@ import {
 } from './utils.js';
 
 let profile = null;
+let cachedProfileShown = false;
+
+/* ارسم البروفايل من الكاش المحلي فورًا — البيانات مش بتستنى الشبكة */
+function showCachedProfile() {
+  try {
+    const cached = readProfileCache();
+    if (!cached?.id || cachedProfileShown) return;
+    profile = { ...profile, ...cached, code: cached.code || profile?.code || null };
+    renderProfile();
+    document.getElementById('full_name').value = profile.full_name || '';
+    document.getElementById('email').value = profile.code || '—';
+    cachedProfileShown = true;
+  } catch {
+    /* ignore */
+  }
+}
 
 async function fetchMyCode() {
   try {
@@ -29,6 +45,8 @@ async function fetchMyCode() {
 }
 
 async function init() {
+  /* البيانات تظهر فورًا من الكاش المحلي قبل أي نداء شبكة */
+  showCachedProfile();
   const result = await protectPage();
   if (!result) return;
   profile = result.profile || null;
@@ -46,6 +64,7 @@ async function init() {
   setActiveNav('profile');
   initIcons();
   profile.code = await fetchMyCode();
+  if (profile.code) patchProfileCache({ code: profile.code });
   renderProfile();
   setupForms();
 

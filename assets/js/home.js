@@ -14,7 +14,7 @@ import {
   quizStatusLabel,
   computeQuizStatus
 } from './utils.js';
-import { supabase } from './supabase.js';
+import { supabase, readProfileCache } from './supabase.js';
 import { freshnessBadgesHtml, touchLastVisit } from './freshness.js';
 import { cachedStaleWhileRevalidate, cacheRemove } from './cache.js';
 import {
@@ -32,6 +32,16 @@ let profile = null;
 
 async function init() {
   try {
+    /* الاسم يظهر فورًا من كاش آخر بروفايل — البيانات مبقتش تستنى الشبكة */
+    try {
+      const cached = readProfileCache();
+      const welcomeEarly = document.getElementById('welcome-name');
+      if (cached?.full_name && welcomeEarly && welcomeEarly.textContent === 'مرحبًا') {
+        welcomeEarly.textContent = 'أهلاً، ' + cached.full_name;
+      }
+    } catch {
+      /* ignore */
+    }
     const result = await protectPage();
     if (!result) return;
     profile = result.profile || null;
