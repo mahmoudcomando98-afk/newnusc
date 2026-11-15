@@ -3,7 +3,7 @@
   "name": "COMANDO — منصة COMANDO التعليمية",
   "short_name": "COMANDO",
   "description": "منصة COMANDO التعليمية — ملفات المواد والكويزات والإعلانات",
-  "start_url": "/index.html",
+  "start_url": "/index.html?from=app",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
