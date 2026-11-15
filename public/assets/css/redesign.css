@@ -77,14 +77,17 @@ html, body {
 .header-btn:hover { transform: translateY(-2px) !important; border-color: var(--primary) !important; color: var(--primary-dark) !important }
 .header-btn:active { transform: scale(.92) !important }
 
-/* ═══ شريط التنقل السفلي — عريض وطاير من فوق حافة الشاشة ═══ */
+/* ═══ شريط التنقل السفلي — عائم وممركز أفقياً في نص الشاشة ═══ */
 @media (max-width: 899px) {
   .bottom-nav {
     position: fixed !important;
     bottom: calc(18px + env(safe-area-inset-bottom)) !important;
-    left: 10px !important;
-    right: 10px !important;
-    inset-inline: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: min(560px, calc(100vw - 20px)) !important;
+    max-width: none !important;
+    margin-inline: auto !important;
+    transform: none !important;
     height: 66px !important;
     border-radius: 22px !important;
     border: 1px solid color-mix(in srgb, var(--border) 72%, transparent) !important;

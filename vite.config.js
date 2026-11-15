@@ -18,7 +18,7 @@ const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-a
 const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=20"></script>`;
 const CHAT_ICON_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/chat-icon.css?v=1" />`;
 const CHAT_ICON_BODY_SNIPPET = `<script type="module" src="/assets/js/chat-icon.js?v=1"></script>`;
-const REDESIGN_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/redesign.css?v=4" />`;
+const REDESIGN_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/redesign.css?v=8" />`;
 
 /* رابط الموقع النهائي — من متغيرات Vercel وقت النشر؛ محليًا (Vite preview) يفضل نسبي */
 const SITE_URL = (
