@@ -110,22 +110,30 @@
 }
 
 /* ---------- home / subjects / features surfaces ---------- */
-:root[data-theme="dark"] .important-notice,
-:root[data-theme="dark"] .notice-icon-wrap,
-:root[data-theme="dark"] .notice-open,
+:root[data-theme="dark"] .important-notice {
+  background:
+    radial-gradient(130% 160% at 100% -20%, color-mix(in srgb, var(--primary) 22%, transparent) 0%, transparent 55%),
+    var(--surface) !important;
+  border-color: var(--border) !important;
+}
 :root[data-theme="dark"] a.home-subject-card,
 :root[data-theme="dark"] a.home-subject-card:hover,
 :root[data-theme="dark"] .subjects-page .subjects-toolbar .search-box,
 :root[data-theme="dark"] .subjects-page .subject-tile,
-:root[data-theme="dark"] .subjects-page .subject-tile-btn,
+:root[data-theme="dark"] .subjects-page .subject-tile-btn {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+:root[data-theme="dark"] .subjects-page .subject-tile-btn:hover {
+  background: var(--surface-soft) !important;
+}
 :root[data-theme="dark"] .due-reminders-card,
 :root[data-theme="dark"] .due-reminders-item {
   background: var(--surface) !important;
   border-color: var(--border) !important;
 }
-:root[data-theme="dark"] .notice-open:hover,
-:root[data-theme="dark"] .subjects-page .subject-tile-btn:hover {
-  background: var(--surface-soft) !important;
+:root[data-theme="dark"] .notice-open:hover {
+  filter: brightness(1.08) !important;
 }
 :root[data-theme="dark"] .subjects-page .subjects-count {
   background: var(--surface-soft) !important;

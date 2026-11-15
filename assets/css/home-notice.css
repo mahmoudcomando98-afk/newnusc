@@ -1,65 +1,103 @@
-/* Home important-notice card — simple and clean */
+/* Home important-notice — الإشعار المهم في الرئيسية (دافئ، مبني على الألوان الأصلية للثيم) */
 .important-notice {
+  position: relative;
   display: flex !important;
-  align-items: flex-start !important;
+  align-items: center !important;
   gap: 12px !important;
-  padding: 14px 14px 14px 12px !important;
-  margin: 0 0 14px !important;
-  background: #fff !important;
-  border: 1px solid var(--border, #e8e4df) !important;
-  border-radius: 10px !important;
-  box-shadow: none !important;
+  padding: 14px 14px !important;
+  margin: 0 0 16px !important;
+  overflow: hidden;
+  background:
+    radial-gradient(130% 160% at 100% -20%, color-mix(in srgb, var(--primary) 20%, transparent) 0%, transparent 55%),
+    var(--surface, #fff) !important;
+  border: 1px solid color-mix(in srgb, var(--primary) 26%, var(--border, #e8e4df)) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--shadow-md, 0 8px 24px rgba(70, 50, 20, .10)) !important;
+}
+/* شريط Accent على جنب البداية (يمين في RTL) */
+.important-notice::before {
+  content: "";
+  position: absolute;
+  inset-block: 12px;
+  inset-inline-start: 0;
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--primary), var(--primary-dark));
 }
 .important-notice.hidden {
   display: none !important;
 }
 .notice-icon-wrap {
   flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
+  width: 46px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f2ee;
-  border: 1px solid var(--border, #e8e4df);
-  border-radius: 8px;
-  color: #5c564f;
+  background: linear-gradient(150deg, var(--primary), var(--primary-dark)) !important;
+  border: none !important;
+  border-radius: 14px !important;
+  color: #fff !important;
+  box-shadow:
+    0 6px 16px color-mix(in srgb, var(--primary) 42%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, .35);
 }
 .notice-icon-wrap .notice-icon,
 .notice-icon-wrap [data-icon],
 .notice-icon-wrap svg {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   display: block;
+  color: #fff;
 }
 .notice-body {
   flex: 1 1 auto;
   min-width: 0;
 }
 .notice-kicker {
-  display: block !important;
-  margin: 0 0 2px !important;
-  font-size: 0.7rem !important;
-  font-weight: 600 !important;
-  color: var(--text-muted, #6b645c) !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px !important;
+  padding: 3px 10px;
+  font-size: 0.66rem !important;
+  font-weight: 800 !important;
+  letter-spacing: .02em;
+  width: max-content;
+  color: var(--primary-dark, #7a4a2b) !important;
+  background: color-mix(in srgb, var(--primary) 13%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, transparent);
+  border-radius: 999px;
+}
+.notice-kicker::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: notice-pulse 2.1s ease-in-out infinite;
+}
+@keyframes notice-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(.7); opacity: .45; }
 }
 .notice-title,
 .important-notice #notice-title {
   display: block;
-  margin: 0 0 4px !important;
-  font-size: 0.95rem !important;
-  font-weight: 700 !important;
-  line-height: 1.35 !important;
+  margin: 0 0 3px !important;
+  font-size: 0.98rem !important;
+  font-weight: 800 !important;
+  line-height: 1.4 !important;
   color: var(--text, #2c2a28) !important;
 }
 .notice-text,
 .important-notice #notice-text {
   margin: 0 !important;
   font-size: 0.84rem !important;
-  line-height: 1.55 !important;
+  line-height: 1.6 !important;
   color: var(--text-muted, #6b645c) !important;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -68,27 +106,64 @@
   align-self: center;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  font-size: 0.8rem !important;
-  font-weight: 600 !important;
-  color: var(--text, #2c2a28) !important;
+  gap: 6px;
+  padding: 9px 16px !important;
+  font-size: 0.82rem !important;
+  font-weight: 800 !important;
+  color: #fff !important;
   text-decoration: none !important;
-  background: #f7f5f2 !important;
-  border: 1px solid var(--border, #e8e4df) !important;
-  border-radius: 8px !important;
   white-space: nowrap;
+  background: linear-gradient(160deg, var(--primary), var(--primary-dark)) !important;
+  border: none !important;
+  border-radius: 999px !important;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--primary) 38%, transparent), inset 0 1px 0 rgba(255, 255, 255, .3) !important;
+  transition: transform .18s ease, filter .18s ease;
 }
 .notice-open:hover {
-  background: #f0ebe4 !important;
+  transform: translateY(-1px);
+  filter: brightness(1.07);
+}
+.notice-open:active {
+  transform: scale(.96);
+}
+@media (prefers-reduced-motion: reduce) {
+  .notice-kicker::before,
+  .notice-open,
+  .notice-icon-wrap {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 @media (max-width: 520px) {
   .important-notice {
     flex-wrap: wrap !important;
+    align-items: flex-start !important;
     gap: 10px !important;
+    padding: 12px !important;
+    border-radius: 16px !important;
+    margin-bottom: 12px !important;
+  }
+  .notice-icon-wrap {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px !important;
+  }
+  .notice-icon-wrap .notice-icon,
+  .notice-icon-wrap [data-icon],
+  .notice-icon-wrap svg {
+    width: 20px;
+    height: 20px;
+  }
+  .notice-body {
+    flex: 1 1 calc(100% - 52px) !important;
+  }
+  .notice-text,
+  .important-notice #notice-text {
+    -webkit-line-clamp: 3;
   }
   .notice-open {
-    width: 100%;
-    justify-content: center;
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 11px 16px !important;
   }
 }

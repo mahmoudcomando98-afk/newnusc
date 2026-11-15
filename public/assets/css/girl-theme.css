@@ -90,9 +90,25 @@
   border-color: #efc3d3 !important;
 }
 :root[data-palette="girl"] .important-notice {
-  background: #fdf0f5 !important;
+  background:
+    radial-gradient(130% 160% at 100% -20%, rgba(226, 85, 140, .18) 0%, transparent 55%),
+    #fdf0f5 !important;
   border-color: #f0b9cd !important;
-  border-right-color: #e2558c !important;
+}
+:root[data-palette="girl"] .important-notice::before {
+  background: linear-gradient(180deg, #e2558c, #c92d6e) !important;
+}
+:root[data-palette="girl"] .notice-kicker {
+  color: #a92a5b !important;
+  background: #fbe0ea !important;
+  border-color: #efc3d3 !important;
+}
+:root[data-palette="girl"] .notice-kicker::before {
+  background: #e2558c !important;
+}
+:root[data-palette="girl"] .notice-icon-wrap,
+:root[data-palette="girl"] .notice-open {
+  background: linear-gradient(150deg, #e2558c, #c92d6e) !important;
 }
 
 /* الهيدر الكبير والهيرو */
