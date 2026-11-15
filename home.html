@@ -51,11 +51,20 @@
       color: var(--primary); text-transform: uppercase; opacity: .85;
     }
     .footer-credit {
-      margin: 0; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px;
-      font-size: .76rem; color: var(--text-muted);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+      font-size: .8rem; color: var(--text);
     }
-    .footer-credit strong { color: var(--primary-dark); font-weight: 800; }
-    @media (max-width: 520px) { .footer-credit { font-size: .72rem; } }
+    .footer-credit-label {
+      font-size: .64rem; font-weight: 700; color: var(--text-muted);
+      letter-spacing: .05em; text-transform: none;
+    }
+    .footer-credit-name {
+      font-size: 1.14rem; font-weight: 800; letter-spacing: .01em;
+      color: var(--primary); line-height: 1.2;
+      background: linear-gradient(155deg, var(--primary), var(--primary-dark));
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    @media (max-width: 520px) { .footer-credit-name { font-size: 1rem; } }
   </style>
   <script>
     (function () {
@@ -199,7 +208,10 @@
 
       <footer class="site-footer" role="contentinfo">
         <strong class="footer-brand">COMANDO</strong>
-        <p class="footer-credit"><span>تم التطوير بواسطة</span><strong>Mahmoud Oshiba</strong></p>
+        <div class="footer-credit">
+          <span class="footer-credit-label">تم التطوير بواسطة</span>
+          <strong class="footer-credit-name">Mahmoud Oshiba</strong>
+        </div>
       </footer>
     </div>
   </main>
