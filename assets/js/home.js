@@ -54,11 +54,9 @@ async function init() {
     if (avatar) avatar.textContent = (name.trim()[0] || '؟').toUpperCase();
     await Promise.all([
       loadSubjects(),
-      loadAnnouncements(),
       loadImportantNotice(),
       loadLiveOnlineSections(),
-      loadDueReminders(),
-      loadStudyPlanToday()
+      loadDueReminders()
     ]);
     await Promise.all([loadLectures(), loadQuizzes(), loadMaterials(), loadNotifCount()]);
     import('./due-reminders.js')
@@ -389,51 +387,8 @@ async function loadQuizzes() {
   }
 }
 
-function renderAnnouncements(rows) {
-  const el = document.getElementById('announcements-list');
-  if (!el) return;
-  const list = (rows || []).slice(0, 2);
-  if (!list.length) {
-    showEmpty(el, 'لا توجد إعلانات.');
-    return;
-  }
-  el.innerHTML = list
-    .map((a) => {
-      const level = String(a.importance || a.priority || 'normal');
-      return (
-        '<div class="list-item announcement-item ' +
-        (['urgent', 'high'].includes(level) ? 'announcement-important' : '') +
-        '"><div class="list-item-icon" data-icon="megaphone"></div><div class="list-item-body"><div class="list-item-title">' +
-        (a.is_pinned ? '<span data-icon="pin" class="pin-icon"></span>' : '') +
-        escapeHtml(a.title || 'إعلان') +
-        '</div><div class="list-item-desc">' +
-        escapeHtml((a.content || a.body || '').slice(0, 120)) +
-        ' · ' +
-        timeAgo(a.created_at) +
-        '</div></div></div>'
-      );
-    })
-    .join('');
-  initIcons();
-}
-
 function announcementsLoader() {
   return fetchAnnouncements(ANN_LIMIT);
-}
-
-async function loadAnnouncements() {
-  const el = document.getElementById('announcements-list');
-  if (!el) return;
-  try {
-    const data = await cachedStaleWhileRevalidate('home:announcements', announcementsLoader, {
-      ttlMs: TTL,
-      onUpdate: renderAnnouncements
-    });
-    renderAnnouncements(data);
-  } catch (error) {
-    console.error('[NUSC] loadAnnouncements:', error);
-    showError(el, 'تعذر تحميل الإعلانات.');
-  }
 }
 
 async function loadImportantNotice() {
@@ -520,46 +475,6 @@ async function loadMaterials() {
   } catch (error) {
     console.error('[NUSC] loadMaterials:', error);
     showError(el, 'تعذر تحميل الملفات. حاول مرة أخرى.');
-  }
-}
-
-async function loadStudyPlanToday() {
-  const el = document.getElementById('study-plan-banner');
-  const text = document.getElementById('study-plan-banner-text');
-  if (!el || !text) return;
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.id) return;
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-
-    const { data, error } = await supabase
-      .from('study_tasks')
-      .select('id, title, is_done')
-      .eq('user_id', user.id)
-      .gte('due_at', start.toISOString())
-      .lt('due_at', end.toISOString());
-    if (error) return;
-
-    const tasks = data || [];
-    const total = tasks.length;
-    const done = tasks.filter((t) => !!t.is_done).length;
-    const pending = total - done;
-
-    if (total === 0) {
-      el.classList.remove('hidden');
-      el.classList.remove('is-due');
-      text.textContent = 'مفيش مهام مجدولة النهاردة — تحب تضيف واحدة من زر "خطتي"؟';
-      return;
-    }
-    el.classList.remove('hidden');
-    text.textContent = pending === 0
-      ? `اهنيك! النهاردة خلصت كل مهامك ${done}/${total}`
-      : `عندك ${pending} ${pending === 1 ? 'مهمة' : 'مهام'} النهاردة لسة — ${done} من ${total} خلصت`;
-  } catch (error) {
-    console.error('[NUSC] loadStudyPlanToday:', error);
   }
 }
 
