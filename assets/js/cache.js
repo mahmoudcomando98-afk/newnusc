@@ -5,8 +5,9 @@
 
 const PREFIX = 'comando_cache:';
 const LEGACY_PREFIX = 'nusc_cache:';
-const DEFAULT_TTL_MS = 90 * 1000;
-const DEFAULT_MAX_STALE_MS = 20 * 60 * 1000;
+/* مدة أطول = تنقل أسرع بين الصفحات مع تحديث في الخلفية */
+const DEFAULT_TTL_MS = 3 * 60 * 1000;
+const DEFAULT_MAX_STALE_MS = 45 * 60 * 1000;
 
 function key(name) {
   return PREFIX + String(name);
