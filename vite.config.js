@@ -14,11 +14,12 @@ const THEME_HEAD_SNIPPET = `
   <link rel="stylesheet" href="/assets/css/girl-theme.css?v=2" />
 `;
 const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=3"></script>`;
+const PREFETCH_BODY_SNIPPET = `<script src="/assets/js/prefetch-nav.js?v=2"></script>`;
 const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=16" />`;
 const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=20"></script>`;
 const CHAT_ICON_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/chat-icon.css?v=1" />`;
 const CHAT_ICON_BODY_SNIPPET = `<script type="module" src="/assets/js/chat-icon.js?v=1"></script>`;
-const REDESIGN_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/redesign.css?v=12" />`;
+const REDESIGN_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/redesign.css?v=13" />`;
 
 /* رابط الموقع النهائي — من متغيرات Vercel وقت النشر؛ محليًا (Vite preview) يفضل نسبي */
 const SITE_URL = (
@@ -120,6 +121,10 @@ function injectThemePlugin() {
         } else if (out.includes('<head ')) {
           out = out.replace(/<head([^>]*)>/i, `<head$1>${THEME_HEAD_SNIPPET}`);
         }
+      }
+      /* injectPrefetch */
+      if (!out.includes('/assets/js/prefetch-nav.js') && out.includes('</body>')) {
+        out = out.replace('</body>', PREFETCH_BODY_SNIPPET + '</body>');
       }
       if (!out.includes('/assets/js/theme.js') && out.includes('</body>')) {
         out = out.replace('</body>', `${THEME_BODY_SNIPPET}\n</body>`);

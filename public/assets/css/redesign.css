@@ -468,3 +468,32 @@ input:focus, select:focus, textarea:focus,
 @media print {
   .app-header::after, .bottom-nav { display: none !important }
 }
+
+/* ═══════════════════════════════════════════════
+   انتقال سلس بين الصفحات — View Transitions (cross-document)
+   أي تنقل داخل المنصة بيبقى حركة Native لطيفة، مش "ريفريش" عادي
+   ═══════════════════════════════════════════════ */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root) {
+  animation: comando-nav-out 0.16s ease-out both;
+}
+::view-transition-new(root) {
+  animation: comando-nav-in 0.32s cubic-bezier(0.2, 0.7, 0.25, 1) both;
+}
+
+@keyframes comando-nav-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+@keyframes comando-nav-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}

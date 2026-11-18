@@ -1,7 +1,7 @@
 /* COMANDO Service Worker — push + installability + شبكة ثابتة على الموبايل */
 const ICON_PATH = '/nusc.png.jpeg';
-const SW_VERSION = 'comando-sw-v3';
-const RUNTIME_CACHE = 'comando-runtime-v3';
+const SW_VERSION = 'comando-sw-v4';
+const RUNTIME_CACHE = 'comando-runtime-v4';
 
 function iconUrl() {
   try {
@@ -15,6 +15,15 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
+/* تسريع إقلاع الـ Service Worker مع طلبات الصفحات — يتزامن مع الشبكة نفسها */
+try {
+  if (self.registration && self.registration.navigationPreload) {
+    self.registration.navigationPreload.enable();
+  }
+} catch {
+  /* navigationPreload مش مدعوم في كل المتصفحات — fine */
+}
+
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
@@ -27,6 +36,38 @@ self.addEventListener('activate', (event) => {
     })()
   );
 });
+
+/* الصفحات نفسها: من الكاش فورًا + تحديث من الشبكة في الخلفية (stale-while-revalidate) */
+async function staleWhileRevalidate(req, preloadResponse) {
+  const cache = await caches.open(RUNTIME_CACHE);
+  const cached = (await cache.match(req)) || null;
+
+  const networkPromise = Promise.resolve(
+    preloadResponse || self.fetch(req)
+  )
+    .then(async (res) => {
+      if (res && res.ok) {
+        try { await cache.put(req, res.clone()); } catch { /* cache full */ }
+      }
+      return res;
+    })
+    .catch(() => null);
+
+  /* لو فيه نسخة مخزنة رجعها فورًا — الصفحة تظهر فورًا والطالب ما بيشوفش شاشة بيضا */
+  if (cached) {
+    networkPromise.catch(() => {});
+    return cached;
+  }
+
+  /* مفيش كاش: استنى الشبكة مع fallback للصفحات الفاضي */
+  const res = await networkPromise;
+  if (res) return res;
+
+  return new Response(
+    '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>COMANDO</title></head><body style="font-family:sans-serif;text-align:center;padding:40px"><h1>لا يوجد اتصال</h1><p>اتأكد من الشبكة ثم أعد المحاولة.</p></body></html>',
+    { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+  );
+}
 
 /* ملفات البناء المهدومة (hashed) — أولوية الكاش: ثابتة المحتوى واسم الملف بيتبدل مع كل نسخة */
 const HASHED_ASSET = /\/assets\/.+-[A-Za-z0-9_-]{8}\.(?:js|css|woff2?|png|jpe?g|svg|webp|ico)$/i;
@@ -82,7 +123,12 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(cacheFirst(req));
     return;
   }
-  event.respondWith(networkFirst(req, { cachePage: req.mode === 'navigate' }));
+  if (req.mode === 'navigate') {
+    /* الصفحات: كاش فورًا + تحديث في الخلفية — الريفريش بيبقى فوري */
+    event.respondWith(staleWhileRevalidate(req, event.preloadResponse));
+    return;
+  }
+  event.respondWith(networkFirst(req));
 });
 
 self.addEventListener('push', (event) => {
