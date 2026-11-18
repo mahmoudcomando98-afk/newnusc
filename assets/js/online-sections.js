@@ -15,28 +15,33 @@ function sortRows(rows) {
   });
 }
 
-function renderMakeup(rows) {
-  const items = sortRows(rows)
-    .map((row) => {
-      const start = row.start_time ? formatTime(row.start_time) : '—';
-      const end = row.end_time ? formatTime(row.end_time) : '';
-      const instructor = row.instructor
-        ? `<p class="os-instructor"><strong>المعيد:</strong> ${escapeHtml(row.instructor)}</p>`
-        : '';
+function renderItem(row, { makeup = false } = {}) {
+  const start = row.start_time ? formatTime(row.start_time) : '—';
+  const end = row.end_time ? formatTime(row.end_time) : '';
+  const isCancelled = row.is_cancelled === true;
+  const instructor = row.instructor
+    ? `<p class="os-instructor"><strong>المعيد:</strong> ${escapeHtml(row.instructor)}</p>`
+    : '';
 
-      return `
-            <li class="os-item os-item--makeup">
+  return `
+            <li class="os-item${makeup ? ' os-item--makeup' : ''}${isCancelled ? ' os-item--cancelled' : ''}">
               <div class="os-time">
+                <span class="os-time-label">من</span>
                 <span class="os-time-start">${escapeHtml(start)}</span>
-                ${end ? `<span class="os-time-end">${escapeHtml(end)}</span>` : ''}
+                ${end ? `<span class="os-time-label">إلى</span><span class="os-time-end">${escapeHtml(end)}</span>` : ''}
               </div>
               <div class="os-body">
                 <p class="os-course">${escapeHtml(row.course_name || '—')}</p>
                 ${instructor}
-                <p class="os-makeup-tag"><span data-icon="clock"></span>تعويض</p>
+                ${makeup ? '<p class="os-makeup-tag"><span data-icon="clock"></span>تعويض</p>' : ''}
+                ${isCancelled ? '<p class="os-cancel-tag"><span data-icon="alert"></span>ملغى</p>' : ''}
               </div>
             </li>`;
-    })
+}
+
+function renderMakeup(rows) {
+  const items = sortRows(rows)
+    .map((row) => renderItem(row, { makeup: true }))
     .join('');
 
   return `
@@ -69,26 +74,7 @@ function renderSchedule(rows) {
       const countLabel = items.length === 1 ? 'سكشن واحد' : `${items.length} سكاشن`;
 
       const itemsHtml = items
-        .map((row) => {
-          const start = row.start_time ? formatTime(row.start_time) : '—';
-          const end = row.end_time ? formatTime(row.end_time) : '';
-          const instructor = row.instructor
-            ? `<p class="os-instructor"><strong>المعيد:</strong> ${escapeHtml(row.instructor)}</p>`
-            : '';
-
-          return `
-            <li class="os-item">
-              <div class="os-time">
-                <span class="os-time-label">من</span>
-                <span class="os-time-start">${escapeHtml(start)}</span>
-                ${end ? `<span class="os-time-label">إلى</span><span class="os-time-end">${escapeHtml(end)}</span>` : ''}
-              </div>
-              <div class="os-body">
-                <p class="os-course">${escapeHtml(row.course_name || '—')}</p>
-                ${instructor}
-              </div>
-            </li>`;
-        })
+        .map((row) => renderItem(row))
         .join('');
 
       return `
@@ -112,11 +98,19 @@ async function load() {
   try {
     let { data, error } = await supabase
       .from('online_sections')
-      .select('id, day_of_week, start_time, end_time, course_name, instructor, sort_order, is_published, is_compensatory')
+      .select('id, day_of_week, start_time, end_time, course_name, instructor, sort_order, is_published, is_compensatory, is_cancelled')
       .eq('is_published', true)
       .order('day_of_week', { ascending: true })
       .order('start_time', { ascending: true });
 
+    if (error && /is_compensatory|is_cancelled/i.test(String(error.message || ''))) {
+      ({ data, error } = await supabase
+        .from('online_sections')
+        .select('id, day_of_week, start_time, end_time, course_name, instructor, sort_order, is_published, is_compensatory')
+        .eq('is_published', true)
+        .order('day_of_week', { ascending: true })
+        .order('start_time', { ascending: true }));
+    }
     if (error && /is_compensatory/i.test(String(error.message || ''))) {
       ({ data, error } = await supabase
         .from('online_sections')

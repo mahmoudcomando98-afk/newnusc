@@ -251,3 +251,30 @@
     grid-template-columns: 110px 1fr;
   }
 }
+
+/* ═══ سكشن ملغى — يبقى ظاهر لكن بشكل واضح إنه اتلغى ═══ */
+.os-item--cancelled {
+  opacity: 0.55;
+  background: repeating-linear-gradient(-45deg, transparent 0 8px, rgba(180, 80, 80, 0.05) 8px 16px);
+}
+
+.os-item--cancelled .os-course {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--danger, #a55a5a);
+}
+
+.os-cancel-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #a55a5a;
+  background: rgba(165, 90, 90, 0.14);
+  border: 1px solid rgba(165, 90, 90, 0.5);
+  width: max-content;
+}
