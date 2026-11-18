@@ -1,13 +1,11 @@
 /*
  * COMANDO base stylesheet
- * كل @import لازم أول الملف
- * اتشال import نسخة GitHub القديمة (بتاعة "ريفايند ستيت" بـ primary #59636e) —
- * كان بيفشل على صفحة مواد الحاسبات + بيفرض primary رمادي على .page/.container
- * رغم إن الثيم المحلي (orange) هو الرسمي للأونلاين.
+ * All @import must come first (CSS rule).
  */
 @import url("/comando-cairo.css?v=3");
-@import url("./mobile-polish.css");
-@import url("./app-compact.css");
+@import url("https://cdn.jsdelivr.net/gh/mahmoudcomando98-afk/newnusc@d4c287642f0327f903a447de0c6cf37f484dedfb/assets/css/main.css");
+@import url("/assets/css/mobile-polish.css");
+@import url("/assets/css/app-compact.css");
 
 :root {
   --nusc-space-1: 4px;
