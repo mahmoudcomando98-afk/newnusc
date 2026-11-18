@@ -49,6 +49,7 @@
     import { escapeHtml, formatDate, showEmpty, showError, showToast, withLoading, initIcons } from '../assets/js/utils.js';
     let profile = null;
     let attachTargetId = null;
+    let editingId = null;
 
     async function init() {
       const result = await protectAdminPage(); if (!result) return;
@@ -58,8 +59,8 @@
       if (subjectsError) console.warn('Could not load subjects:', subjectsError.message);
       const subjectSelect = document.getElementById('subject_id');
       (subjects || []).forEach(subject => { const option = document.createElement('option'); option.value = subject.id; option.textContent = subject.name; subjectSelect.appendChild(option); });
-      document.getElementById('add-btn').onclick = () => document.getElementById('form-panel').classList.remove('hidden');
-      document.getElementById('cancel-btn').onclick = () => document.getElementById('form-panel').classList.add('hidden');
+      document.getElementById('add-btn').onclick = () => { resetFormState(); document.getElementById('form-panel').classList.remove('hidden'); };
+      document.getElementById('cancel-btn').onclick = () => { resetFormState(); document.getElementById('form-panel').classList.add('hidden'); };
       document.getElementById('quiz-form').onsubmit = save;
       document.getElementById('solution-attach-input').addEventListener('change', onAttachSolution);
       await load();
@@ -104,7 +105,7 @@
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase.from('quizzes').select('id, title, start_at, end_at, duration_minutes, is_published, quiz_url, total_marks, passing_score, subject_id, solution_image_path, has_questions, allow_retake').order('start_at', { ascending: false });
+        const { data, error } = await supabase.from('quizzes').select('id, title, start_at, end_at, duration_minutes, is_published, quiz_url, total_marks, passing_score, subject_id, solution_image_path, has_questions, allow_retake, instructions').order('start_at', { ascending: false });
         if (error) throw error;
         if (!data?.length) { showEmpty(el, 'لا توجد كويزات'); return; }
         el.innerHTML = data.map(q => {
@@ -118,6 +119,7 @@
               </div>
               <div class="flex gap-1 flex-wrap">
                 <a class="btn btn-sm btn-primary" href="/admin/quiz-questions.html?quiz=${q.id}">الأسئلة</a>
+                <button type="button" class="btn btn-sm btn-secondary" data-edit="${q.id}">تعديل</button>
                 <a class="btn btn-sm btn-secondary" href="/admin/quiz-results.html?quiz=${q.id}">النتائج</a>
                 <button type="button" class="btn btn-sm btn-secondary" data-sol="${q.id}">${hasSolution ? 'تغيير صورة الحل' : 'صورة الحل'}</button>
                 <button type="button" class="btn btn-sm btn-danger" data-del="${q.id}">حذف</button>
@@ -131,6 +133,7 @@
           document.getElementById('solution-attach-input').value = '';
           document.getElementById('solution-attach-input').click();
         });
+        el.querySelectorAll('[data-edit]').forEach(btn => btn.onclick = () => startEdit(btn.dataset.edit, data));
         el.querySelectorAll('[data-del]').forEach(btn => btn.onclick = async () => {
           if(!confirm('حذف؟')) return;
           const item = data.find(q => String(q.id) === String(btn.dataset.del));
@@ -141,6 +144,42 @@
       } catch (error) {
         showError(el, 'تعذر تحميل الكويزات.');
       }
+    }
+
+    const toLocalInput = (iso) => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+
+    function startEdit(id, rows) {
+      const q = (rows || []).find((item) => String(item.id) === String(id));
+      if (!q) { showToast('تعذر إيجاد الكويز.', 'error'); return; }
+      editingId = q.id;
+      document.getElementById('title').value = q.title || '';
+      document.getElementById('rules').value = q.instructions || '';
+      document.getElementById('subject_id').value = q.subject_id || '';
+      document.getElementById('total_marks').value = q.total_marks ?? '';
+      document.getElementById('passing_score').value = q.passing_score ?? '';
+      document.getElementById('duration_minutes').value = q.duration_minutes ?? '';
+      document.getElementById('quiz_date').value = toLocalInput(q.start_at);
+      document.getElementById('end_at').value = toLocalInput(q.end_at);
+      document.getElementById('quiz_url').value = q.quiz_url || '';
+      document.getElementById('allow_retake').checked = !!q.allow_retake;
+      document.getElementById('is_published').checked = q.is_published !== false;
+      document.querySelector('#quiz-form [type="submit"]').textContent = 'حفظ التعديلات';
+      document.getElementById('form-panel').classList.remove('hidden');
+      document.getElementById('form-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function resetFormState() {
+      editingId = null;
+      const form = document.getElementById('quiz-form');
+      form.reset();
+      document.getElementById('is_published').checked = true;
+      document.querySelector('#quiz-form [type="submit"]').textContent = 'حفظ';
     }
 
     async function save(e) {
@@ -167,20 +206,24 @@
         };
         if (solutionPath) payload.solution_image_path = solutionPath;
 
-        let { error } = await supabase.from('quizzes').insert(payload);
+        const wasEditing = !!editingId;
+        let { error } = editingId
+          ? await supabase.from('quizzes').update(payload).eq('id', editingId)
+          : await supabase.from('quizzes').insert(payload);
         if (error && /allow_retake|has_questions|end_at/i.test(String(error.message || ''))) {
           delete payload.allow_retake;
-          ({ error } = await supabase.from('quizzes').insert(payload));
+          ({ error } = editingId
+            ? await supabase.from('quizzes').update(payload).eq('id', editingId)
+            : await supabase.from('quizzes').insert(payload));
         }
         if (error) {
           if (solutionPath) await supabase.storage.from('materials').remove([solutionPath]).catch(() => {});
           showToast(error.message, 'error');
           return;
         }
-        showToast('تم حفظ الكويز — من زر الأسئلة ضيف الأسئلة', 'success');
+        showToast(wasEditing ? 'تم حفظ التعديلات.' : 'تم حفظ الكويز — من زر الأسئلة ضيف الأسئلة', 'success');
+        resetFormState();
         document.getElementById('form-panel').classList.add('hidden');
-        e.target.reset();
-        document.getElementById('is_published').checked = true;
         await load();
       });
     }

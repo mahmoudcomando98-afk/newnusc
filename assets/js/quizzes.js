@@ -200,7 +200,7 @@ function renderQuizzes() {
               ? `<button type="button" class="btn btn-secondary" disabled>لسه ما فتحش</button>`
               : ''
           }
-          ${quiz.quiz_url ? `<a class="btn ${interactive ? 'btn-secondary' : 'btn-primary'}" href="${escapeHtml(quiz.quiz_url)}" target="_blank" rel="noopener noreferrer">رابط خارجي</a>` : ''}
+          ${quiz.quiz_url ? `<a class="btn btn-primary" href="${escapeHtml(quiz.quiz_url)}" target="_blank" rel="noopener noreferrer">دخول الامتحان</a>` : ''}
           ${hasSolution && (status === 'closed' || canReveal) ? `<button type="button" class="btn btn-secondary" data-solution="${escapeHtml(encodeURIComponent(quiz.solution_image_path || ''))}">عرض الحل</button>` : ''}
           ${done ? `<span class="quiz-score"><span data-icon="check"></span>درجتك: ${quiz.my_score} / ${quiz.my_max_score ?? '—'}</span>` : ''}
         </div>
