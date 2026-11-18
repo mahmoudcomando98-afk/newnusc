@@ -1,7 +1,7 @@
 /* COMANDO Service Worker — push + installability + شبكة ثابتة على الموبايل */
 const ICON_PATH = '/nusc.png.jpeg';
-const SW_VERSION = 'comando-sw-v3';
-const RUNTIME_CACHE = 'comando-runtime-v3';
+const SW_VERSION = 'comando-sw-v5';
+const RUNTIME_CACHE = 'comando-runtime-v5';
 
 function iconUrl() {
   try {
@@ -18,10 +18,11 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
-      /* نمسح أي كاش قديم من نسخ سابقة عشان ميتلخبطش كاش قديم مع جديد */
+      /* امسح كل الكاش القديمة فوراً — عشان أي تليفون عنده نسخة قديمة
+         يعمل رفريش كامل على المحتوى الحالي من غير ما يبقى فيه تضارب */
       const names = await caches.keys();
       await Promise.all(
-        names.filter((n) => n !== RUNTIME_CACHE).map((n) => caches.delete(n))
+        names.map((n) => caches.delete(n))
       );
       await self.clients.claim();
     })()
