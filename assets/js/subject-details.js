@@ -387,13 +387,13 @@ async function loadLectures(el) {
     )
     .join('');
   const filesHtml = lectureFiles.length
-    ? `<section class="section mt-2"><h3 class="mb-1">ملفات المحاضرات</h3><div class="sd-list">${lectureFiles.map((file) => materialCard(file, 'محاضرات')).join('')}</div></section>`
+    ? `<section class="section mt-2"><h3 class="mb-1">ملفات المحاضرات</h3><div class="card">${lectureFiles.map((file) => materialCard(file, 'محاضرات')).join('')}</div></section>`
     : '';
   const fallbackNotice =
     lecturesResult.error && lectureFiles.length
       ? '<p class="text-sm text-muted mb-2">بنعرِض ملفات المادة المتاحة؛ سجل المحاضرات نفسه تعذر تحميله مؤقتًا.</p>'
       : '';
-  el.innerHTML = `${fallbackNotice}${lectureHtml ? `<div class="sd-list">${lectureHtml}</div>` : ''}${filesHtml}`;
+  el.innerHTML = `${fallbackNotice}${lectureHtml ? `<div class="card">${lectureHtml}</div>` : ''}${filesHtml}`;
   bindDownloads(el);
 }
 
@@ -406,7 +406,7 @@ async function loadMaterialsByType(el, type, emptyMessage) {
   }
   const badge =
     type === 'section' ? 'سكشن' : type === 'assignment' ? 'واجب' : type === 'summary' ? 'ملخص' : 'ملف';
-  el.innerHTML = `<div class="sd-list">${selected.map((item) => materialCard(item, badge)).join('')}</div>`;
+  el.innerHTML = `<div class="card">${selected.map((item) => materialCard(item, badge)).join('')}</div>`;
   bindDownloads(el);
 }
 
@@ -450,7 +450,7 @@ async function loadAnnouncements(el) {
     showEmpty(el, 'مفيش إعلانات للمادة دي حالياً.');
     return;
   }
-  el.innerHTML = `<div class="sd-list">${rows
+  el.innerHTML = `<div class="card">${rows
     .map((a) => {
       const join = announcementJoinUrl(a);
       return `
