@@ -15,7 +15,45 @@ function sortRows(rows) {
   });
 }
 
+function renderMakeup(rows) {
+  const items = sortRows(rows)
+    .map((row) => {
+      const start = row.start_time ? formatTime(row.start_time) : '—';
+      const end = row.end_time ? formatTime(row.end_time) : '';
+      const instructor = row.instructor
+        ? `<p class="os-instructor"><strong>المعيد:</strong> ${escapeHtml(row.instructor)}</p>`
+        : '';
+
+      return `
+            <li class="os-item os-item--makeup">
+              <div class="os-time">
+                <span class="os-time-start">${escapeHtml(start)}</span>
+                ${end ? `<span class="os-time-end">${escapeHtml(end)}</span>` : ''}
+              </div>
+              <div class="os-body">
+                <p class="os-course">${escapeHtml(row.course_name || '—')}</p>
+                ${instructor}
+                <p class="os-makeup-tag"><span data-icon="clock"></span>تعويض</p>
+              </div>
+            </li>`;
+    })
+    .join('');
+
+  return `
+    <section class="os-makeup" aria-label="سيكشن تعويضي">
+      <header class="os-makeup-head">
+        <h2 class="os-makeup-title">سيكشن تعويضي</h2>
+        <span class="os-day-count">${rows.length === 1 ? 'سكشن واحد' : `${rows.length} سكاشن`}</span>
+      </header>
+      <ul class="os-list">${items}</ul>
+      <p class="os-makeup-note">السكاشن دي إضافية — مش بتتعرض مع السكاشن العادية.</p>
+    </section>`;
+}
+
 function renderSchedule(rows) {
+  if (!rows.length) {
+    return `<div class="os-days"><p class="os-empty-regular">لسه مفيش سكاشن عادية — بس السكاشن التعويضية تحت.</p></div>`;
+  }
   const byDay = new Map();
   sortRows(rows).forEach((row) => {
     const day = Number(row.day_of_week);
@@ -72,19 +110,31 @@ function renderSchedule(rows) {
 async function load() {
   const el = document.getElementById('os-root');
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('online_sections')
-      .select('id, day_of_week, start_time, end_time, course_name, instructor, sort_order, is_published')
+      .select('id, day_of_week, start_time, end_time, course_name, instructor, sort_order, is_published, is_compensatory')
       .eq('is_published', true)
       .order('day_of_week', { ascending: true })
       .order('start_time', { ascending: true });
+
+    if (error && /is_compensatory/i.test(String(error.message || ''))) {
+      ({ data, error } = await supabase
+        .from('online_sections')
+        .select('id, day_of_week, start_time, end_time, course_name, instructor, sort_order, is_published')
+        .eq('is_published', true)
+        .order('day_of_week', { ascending: true })
+        .order('start_time', { ascending: true }));
+    }
 
     if (error) throw error;
     if (!data?.length) {
       showEmpty(el, 'لسه مفيش جدول سكاشن أونلاين. الأدمن هيضيفه قريب.');
       return;
     }
-    el.innerHTML = renderSchedule(data);
+    const makeup = data.filter((row) => row.is_compensatory === true);
+    const regular = data.filter((row) => row.is_compensatory !== true);
+    const makeupHtml = makeup.length ? renderMakeup(makeup) : '';
+    el.innerHTML = makeupHtml + renderSchedule(regular);
   } catch (err) {
     console.error(err);
     showError(

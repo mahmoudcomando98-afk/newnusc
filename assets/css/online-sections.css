@@ -164,3 +164,90 @@
     font-size: 0.98rem;
   }
 }
+
+/* ═══ قسم السيكشن التعويضي — منفصل عن السكاشن العادية ═══ */
+.os-makeup {
+  background: var(--primary-light, #fdefe0);
+  border: 1.5px solid var(--primary, #dd6b20);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.os-makeup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--primary, #dd6b20);
+  color: #fff;
+}
+
+.os-makeup-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.os-makeup .os-day-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  opacity: 1;
+}
+
+.os-makeup .os-list {
+  background: transparent;
+}
+
+.os-item--makeup {
+  border-top: 1px solid color-mix(in srgb, var(--primary, #dd6b20) 35%, transparent);
+  background: transparent;
+}
+
+.os-item--makeup:first-child {
+  border-top: 0;
+}
+
+.os-item--makeup:nth-child(even) {
+  background: rgba(221, 107, 32, 0.08);
+}
+
+.os-makeup-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--primary-dark, #b04a12);
+  background: rgba(221, 107, 32, 0.14);
+  border: 1px dashed var(--primary, #dd6b20);
+  width: max-content;
+}
+
+.os-makeup-note {
+  margin: 0;
+  padding: 8px 14px 12px;
+  font-size: 0.72rem;
+  color: var(--primary-dark, #b04a12);
+  font-weight: 600;
+  text-align: center;
+}
+
+.os-empty-regular {
+  margin: 0;
+  padding: 18px 14px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-muted, #7a736c);
+}
+
+@media (min-width: 520px) {
+  .os-item--makeup {
+    grid-template-columns: 110px 1fr;
+  }
+}

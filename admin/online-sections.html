@@ -67,6 +67,12 @@
           </div>
           <div class="form-group">
             <label class="flex items-center gap-1">
+              <input type="checkbox" id="is_compensatory" />
+              <span><strong>سيكشن تعويضي</strong> — هيظهر للطلاب في قسم لوحده + إشعار على موبايلاتهم + إعلان على الرئيسية تلقائيًا</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="flex items-center gap-1">
               <input type="checkbox" id="is_published" checked />
               <span>ظاهر للطلاب</span>
             </label>
@@ -86,6 +92,7 @@
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
     import { escapeHtml, formatTime, showEmpty, showError, showToast, initIcons, WEEKDAYS_AR } from '../assets/js/utils.js';
+    import { sendPushToAll } from '../assets/js/push.js';
 
     let cache = [];
     let editingId = null;
@@ -121,6 +128,7 @@
       document.getElementById('is_published').checked = true;
       document.getElementById('sort_order').value = '0';
       document.getElementById('join_url').value = '';
+      document.getElementById('is_compensatory').checked = false;
       document.getElementById('form-panel').classList.remove('hidden');
     }
 
@@ -136,6 +144,7 @@
       document.getElementById('join_url').value = item.join_url || '';
       document.getElementById('sort_order').value = item.sort_order ?? 0;
       document.getElementById('is_published').checked = item.is_published !== false;
+      document.getElementById('is_compensatory').checked = item.is_compensatory === true;
       document.getElementById('form-panel').classList.remove('hidden');
       document.getElementById('form-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -144,6 +153,72 @@
       editingId = null;
       document.getElementById('form-panel').classList.add('hidden');
       document.getElementById('os-form').reset();
+      document.getElementById('is_compensatory').checked = false;
+    }
+
+    /* إشعار + إعلان تلقائي للطلاب عند تغيير ميعاد سكشن أو إضافة سيكشن تعويضي */
+    async function broadcastSectionChange(kind, item) {
+      const when = `${WEEKDAYS_AR[item.day_of_week] || ''} ${formatTime(item.start_time)}`.trim();
+      const title =
+        kind === 'makeup'
+          ? `سيكشن تعويضي: ${item.course_name}`
+          : `اتغير ميعاد سكشن ${item.course_name}`;
+      const body =
+        kind === 'makeup'
+          ? `اتضاف سيكشن تعويضي — ${item.course_name} — ${when}${item.instructor ? ` مع ${item.instructor}` : ''}. تابع صفحة السكاشن للتفاصيل.`
+          : `اتغير ميعاد ${item.course_name} — بقى ${when}${item.instructor ? ` مع ${item.instructor}` : ''}. تابع صفحة السكاشن للتفاصيل.`;
+      const link = '/online-sections.html';
+
+      /* 1) يظهر في لوحة إشعارات كل الطلاب */
+      const { error: notifError } = await supabase.from('notifications').insert({
+        title,
+        body,
+        type: kind === 'makeup' ? 'info' : 'warning',
+        link,
+        is_global: true,
+        user_id: null
+      });
+
+      /* 2) بوش على موبايلات كل الطلاب المفعّلين */
+      let pushNote = '';
+      try {
+        const pushResult = await sendPushToAll({ title, body, url: link });
+        pushNote = pushResult?.ok
+          ? (pushResult.total
+              ? ` + وصل لموبايلات ${pushResult.sent}/${pushResult.total} طالب`
+              : ' + اتحفظت في لوحة الطلاب (مفيش أجهزة مفعّلة للتليفون)')
+          : ' + التليفون فشل (راجع send-push)';
+      } catch (err) {
+        console.warn('[online-sections] push:', err);
+        pushNote = ' + التليفون فشل';
+      }
+
+      /* 3) إعلان تلقائي على الصفحة الرئيسية */
+      const { error: annError } = await supabase.from('announcements').insert({
+        title,
+        content: body,
+        subject_id: null,
+        importance: 'high',
+        is_pinned: false,
+        is_published: true,
+        link_url: link,
+        link_label: 'صفحة السكاشن',
+        link_status: 'available'
+      });
+
+      if (notifError || annError) {
+        console.error('[online-sections] broadcast:', notifError || annError);
+        showToast(
+          !notifError
+            ? 'اتحفظ + اتبلّغ الطلاب — الإعلان على الرئيسية فشل (صلاحيات؟)'
+            : !annError
+              ? 'اتحفظ + اتعلن على الرئيسية — لوحة الإشعارات فشلت'
+              : 'اتحفظ بس التبليغ فشل — راجع الصلاحيات والربط',
+          'error'
+        );
+        return;
+      }
+      showToast(`تم الحفظ — اتبلّغ الطلاب${pushNote} + إعلان على الرئيسية.`, 'success');
     }
 
     async function load() {
@@ -178,6 +253,7 @@
                     <span class="badge ${item.is_published !== false ? 'badge-success' : 'badge-danger'}">
                       ${item.is_published !== false ? 'ظاهر' : 'مخفي'}
                     </span>
+                    ${item.is_compensatory === true ? '<span class="badge badge-primary" style="margin-right:6px">تعويضي</span>' : ''}
                     ${hasLink ? '<span class="badge badge-primary" style="margin-right:6px">فيه رابط دخول</span>' : '<span class="badge" style="margin-right:6px">مفيش رابط</span>'}
                   </p>
                 </div>
@@ -230,6 +306,7 @@
           return;
         }
       }
+      const before = editingId ? cache.find((x) => String(x.id) === String(editingId)) : null;
       const payload = {
         day_of_week: Number(document.getElementById('day_of_week').value),
         start_time: document.getElementById('start_time').value,
@@ -239,6 +316,7 @@
         join_url: joinUrl,
         sort_order: Number(document.getElementById('sort_order').value) || 0,
         is_published: document.getElementById('is_published').checked,
+        is_compensatory: document.getElementById('is_compensatory').checked,
         updated_at: new Date().toISOString()
       };
       if (!payload.course_name || !payload.start_time) {
@@ -246,14 +324,33 @@
         return;
       }
 
+      const rescheduled =
+        !!before &&
+        (Number(before.day_of_week) !== Number(payload.day_of_week) ||
+          String(before.start_time || '').slice(0, 5) !== String(payload.start_time || '').slice(0, 5));
+      const becameMakeup = !editingId
+        ? payload.is_compensatory === true
+        : !(before?.is_compensatory === true) && payload.is_compensatory === true;
+      const broadcastKind = rescheduled ? 'rescheduled' : becameMakeup ? 'makeup' : null;
+
       const btn = document.getElementById('submit-btn');
       btn.disabled = true;
+      const prevLabel = btn.textContent;
+      btn.textContent = broadcastKind ? 'جاري الحفظ والتبليغ...' : 'جاري الحفظ...';
       try {
         let error;
         if (editingId) {
           ({ error } = await supabase.from('online_sections').update(payload).eq('id', editingId));
         } else {
           ({ error } = await supabase.from('online_sections').insert(payload));
+        }
+        if (error && /is_compensatory/i.test(String(error.message || ''))) {
+          const rest = { ...payload };
+          delete rest.is_compensatory;
+          ({ error } = editingId
+            ? await supabase.from('online_sections').update(rest).eq('id', editingId)
+            : await supabase.from('online_sections').insert(rest));
+          if (!error) showToast('نفّذ ALTER TABLE على Supabase عشان تفعيل «سيكشن تعويضي» بالكامل.', 'info');
         }
         if (error) {
           if (/join_url/i.test(String(error.message || ''))) {
@@ -263,11 +360,17 @@
           }
           return;
         }
-        showToast('تم الحفظ.', 'success');
+        if (broadcastKind) {
+          const item = { ...payload, ...(editingId ? { id: editingId } : {}) };
+          await broadcastSectionChange(broadcastKind, item);
+        } else {
+          showToast('تم الحفظ.', 'success');
+        }
         closeForm();
         await load();
       } finally {
         btn.disabled = false;
+        btn.textContent = prevLabel;
       }
     }
 
