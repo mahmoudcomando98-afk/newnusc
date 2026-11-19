@@ -25,6 +25,19 @@
 
   <main class="page" style="padding-bottom:32px">
     <div class="container page-content">
+      <div class="card mb-3" id="whatsapp-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="min-width:220px">
+          <h2 class="mb-1" style="font-size:1.05rem">إشعارات WhatsApp</h2>
+          <p class="text-sm text-muted">لما يكون مفعل، كل إعلان أو إشعار جديد ينزل جروب الطلاب تلقائيًا. أوقفه ولو عايز توقف الرسائل خالص.</p>
+        </div>
+        <div>
+          <label class="form-check" for="whatsapp-enabled" style="margin:0">
+            <input type="checkbox" id="whatsapp-enabled" />
+            <span id="whatsapp-enabled-label">مفعل</span>
+          </label>
+          <p id="whatsapp-status" class="text-sm text-muted mt-1" role="status" aria-live="polite"></p>
+        </div>
+      </div>
       <h1 class="mb-3" style="font-size:1.25rem">لوحة الإدارة</h1>
 
       <div class="card-grid" id="stats">
@@ -99,7 +112,7 @@
   <script type="module">
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
-    import { showError, initIcons } from '../assets/js/utils.js';
+    import { showError, showToast, initIcons } from '../assets/js/utils.js';
     import { loadAdminStats } from '../assets/js/admin-stats.js';
 
     async function init() {
@@ -107,6 +120,7 @@
       if (!ok) return;
       document.documentElement.classList.remove('admin-auth-pending');
       initIcons();
+      loadWhatsAppToggle();
 
       const el = document.getElementById('stats');
       try {
@@ -127,6 +141,75 @@
       }
 
       await loadAdminStats('extra-stats');
+    }
+
+    /* مفتاح إشعارات WhatsApp — يقرأ/يحفظ في platform_settings (البوت يفحصه كل دورة) */
+    const WA_KEY = 'whatsapp_notifications_enabled';
+
+    function normalizeBool(value) {
+      return value === true || value === 'true' || value === 1 || value === '1';
+    }
+
+    async function loadWhatsAppToggle() {
+      const toggle = document.getElementById('whatsapp-enabled');
+      const label = document.getElementById('whatsapp-enabled-label');
+      const status = document.getElementById('whatsapp-status');
+      try {
+        const { data, error } = await supabase
+          .from('platform_settings')
+          .select('value')
+          .eq('key', WA_KEY)
+          .maybeSingle();
+        if (error) throw error;
+        const enabled = data ? normalizeBool(data.value) : true;
+        toggle.checked = enabled;
+        label.textContent = enabled ? 'مفعل' : 'متوقف';
+        status.textContent = '';
+      } catch (err) {
+        console.error('whatsapp toggle load failed', err);
+        status.textContent = 'تعذرت قراءة حالة إشعارات WhatsApp.';
+      }
+    }
+
+    async function saveWhatsAppToggle() {
+      const toggle = document.getElementById('whatsapp-enabled');
+      const label = document.getElementById('whatsapp-enabled-label');
+      const status = document.getElementById('whatsapp-status');
+      const enabled = toggle.checked;
+      toggle.disabled = true;
+      label.textContent = enabled ? 'مفعل' : 'متوقف';
+      try {
+        const { error } = await supabase
+          .from('platform_settings')
+          .upsert(
+            {
+              key: WA_KEY,
+              value: enabled,
+              description: 'هل إشعارات WhatsApp مفعلة للجروب؟ — يتحكم فيها بوت الإشعارات',
+            },
+            { onConflict: 'key' }
+          );
+        if (error) throw error;
+        showToast(
+          enabled
+            ? 'تم تفعيل إشعارات WhatsApp — البوت هيبعت للجروب عادي'
+            : 'تم إيقاف إشعارات WhatsApp — البوت مش هيبعت',
+          'success'
+        );
+        status.textContent = enabled ? '' : 'الإشعارات متوقفة دلوقتي — البوت ما يبعتش أي رسائل.';
+      } catch (err) {
+        console.error('whatsapp toggle save failed', err);
+        toggle.checked = !enabled;
+        label.textContent = !enabled ? 'مفعل' : 'متوقف';
+        showToast('تعذر حفظ الإعداد — حاول تاني', 'error');
+      } finally {
+        toggle.disabled = false;
+      }
+    }
+
+    const waToggle = document.getElementById('whatsapp-enabled');
+    if (waToggle) {
+      waToggle.addEventListener('change', saveWhatsAppToggle);
     }
 
     init();

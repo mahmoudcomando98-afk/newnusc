@@ -61,4 +61,20 @@ async function ping() {
   return false;
 }
 
-module.exports = { fetchNewAnnouncements, fetchNewNotifications, ping };
+/* حالة مفتاح إشعارات WhatsApp من platform_settings — الافتراضي مفعل لو المفتاح غير موجود أو تعذرت القراءة */
+async function fetchWhatsAppEnabled() {
+  if (!config.supabaseServiceRoleKey) return true;
+  try {
+    const res = await getJson(
+      '/rest/v1/platform_settings?select=value&key=eq.whatsapp_notifications_enabled&limit=1'
+    );
+    if (!Array.isArray(res) || res.length === 0) return true;
+    const v = res[0].value;
+    return v === true || v === 'true' || v === 1 || v === '1';
+  } catch (err) {
+    logger.warn('تعذر قراءة whatsapp_notifications_enabled (' + (err && err.message ? err.message : err) + ') — الاستمرار بالوضع المفعل');
+    return true;
+  }
+}
+
+module.exports = { fetchNewAnnouncements, fetchNewNotifications, ping, fetchWhatsAppEnabled };

@@ -3,12 +3,24 @@
 const config = require('./config');
 const logger = require('./logger');
 const SentStore = require('./sent-store');
-const { fetchNewAnnouncements, fetchNewNotifications } = require('./supabase');
+const { fetchNewAnnouncements, fetchNewNotifications, fetchWhatsAppEnabled } = require('./supabase');
 const { formatAnnouncement, formatNotification } = require('./format');
 
 const MEDIA_EXTENSIONS = /\.(pdf|png|jpe?g|webp|gif|docx?|pptx?|xlsx?|zip)(\?|$)/i;
 
+let _enabledLogged = null;
+
 async function botTick(whatsapp, seen) {
+  /* 0) حالة إشعارات WhatsApp من لوحة الأدمن — متوقفة = لا إرسال */
+  const enabled = await fetchWhatsAppEnabled();
+  if (!enabled) {
+    if (_enabledLogged !== false) logger.warn('إشعارات WhatsApp متوقفة من لوحة الأدمن — لا يوجد إرسال حتى تفعيلها');
+    _enabledLogged = false;
+    return;
+  }
+  if (_enabledLogged === false) logger.ok('إشعارات WhatsApp مفعلة تاني من لوحة الأدمن');
+  _enabledLogged = true;
+
   /* 1) جيب التحديثات الحديثة */
   const [anns, notifs] = await Promise.allSettled([
     fetchNewAnnouncements(20),
