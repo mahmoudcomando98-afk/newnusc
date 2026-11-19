@@ -44,6 +44,21 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
+    /* مفتاح إشعارات الهاتف من لوحة الأدمن — متوقف = لا تذكيرات ولا إرسال */
+    try {
+      const { data: toggleRow } = await admin
+        .from('platform_settings')
+        .select('value')
+        .eq('key', 'phone_notifications_enabled')
+        .maybeSingle();
+      const enabled = toggleRow ? toggleRow.value === true || toggleRow.value === 'true' : true;
+      if (!enabled) {
+        return json({ ok: true, sent: 0, skipped: 'disabled' });
+      }
+    } catch {
+      /* تعذرت القراءة → نكمل (الافتراضي مفعل) */
+    }
+
     // 1) التحقق من مفتاح الـ cron الداخلي (ممنوع الدخول الخارجي)
     const { data: cfg } = await admin
       .from('ai_cron_config')

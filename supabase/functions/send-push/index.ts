@@ -21,6 +21,10 @@ function json(body: Record<string, unknown>, status = 200) {
   });
 }
 
+function normalizeBool(value: unknown): boolean {
+  return value === true || value === 'true' || value === 1 || value === '1';
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: cors });
@@ -96,6 +100,21 @@ Deno.serve(async (req) => {
     }
 
     const admin = createClient(supabaseUrl, serviceKey);
+
+    /* مفتاح إشعارات الهاتف من لوحة الأدمن — متوقف = لا إرسال للطلاب */
+    try {
+      const { data: toggleRow } = await admin
+        .from('platform_settings')
+        .select('value')
+        .eq('key', 'phone_notifications_enabled')
+        .maybeSingle();
+      const enabled = toggleRow ? normalizeBool(toggleRow.value) : true;
+      if (!enabled) {
+        return json({ ok: true, sent: 0, failed: 0, total: 0, skipped: 'disabled', disabled: true });
+      }
+    } catch {
+      /* تعذرت القراءة → نكمل (الافتراضي مفعل) */
+    }
 
     // صلاحية أدمن: role=admin أو is_admin() لو موجودة
     let isAdmin = false;

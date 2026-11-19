@@ -38,6 +38,20 @@
           <p id="whatsapp-status" class="text-sm text-muted mt-1" role="status" aria-live="polite"></p>
         </div>
       </div>
+      <div class="card mb-3" id="phone-card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div style="min-width:220px">
+          <h2 class="mb-1" style="font-size:1.05rem">إشعارات الهاتف</h2>
+          <p class="text-sm text-muted">لما يكون مفعل، الطلاب يستقبلوا إشعارات على المتصفح/الموبايل عن أي إعلان أو إشعار جديد. أوقفها ولو عايز توقف كل إشعارات الهاتف.</p>
+        </div>
+        <div>
+          <label class="form-check" for="phone-enabled" style="margin:0">
+            <input type="checkbox" id="phone-enabled" />
+            <span id="phone-enabled-label">مفعل</span>
+          </label>
+          <p id="phone-status" class="text-sm text-muted mt-1" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+
       <h1 class="mb-3" style="font-size:1.25rem">لوحة الإدارة</h1>
 
       <div class="card-grid" id="stats">
@@ -120,7 +134,6 @@
       if (!ok) return;
       document.documentElement.classList.remove('admin-auth-pending');
       initIcons();
-      loadWhatsAppToggle();
 
       const el = document.getElementById('stats');
       try {
@@ -143,22 +156,25 @@
       await loadAdminStats('extra-stats');
     }
 
-    /* مفتاح إشعارات WhatsApp — يقرأ/يحفظ في platform_settings (البوت يفحصه كل دورة) */
+    /* مفاتيح إرسال الإشعارات من لوحة الأدمن — تقرأ/تحفظ في platform_settings */
     const WA_KEY = 'whatsapp_notifications_enabled';
+    const PHONE_KEY = 'phone_notifications_enabled';
 
     function normalizeBool(value) {
       return value === true || value === 'true' || value === 1 || value === '1';
     }
 
-    async function loadWhatsAppToggle() {
-      const toggle = document.getElementById('whatsapp-enabled');
-      const label = document.getElementById('whatsapp-enabled-label');
-      const status = document.getElementById('whatsapp-status');
+    async function wireToggle({ key, toggleId, labelId, statusId, description, onText, offText, blockedText, readFailText }) {
+      const toggle = document.getElementById(toggleId);
+      const label = document.getElementById(labelId);
+      const status = document.getElementById(statusId);
+      if (!toggle) return;
+
       try {
         const { data, error } = await supabase
           .from('platform_settings')
           .select('value')
-          .eq('key', WA_KEY)
+          .eq('key', key)
           .maybeSingle();
         if (error) throw error;
         const enabled = data ? normalizeBool(data.value) : true;
@@ -166,51 +182,58 @@
         label.textContent = enabled ? 'مفعل' : 'متوقف';
         status.textContent = '';
       } catch (err) {
-        console.error('whatsapp toggle load failed', err);
-        status.textContent = 'تعذرت قراءة حالة إشعارات WhatsApp.';
+        console.error(key + ' load failed', err);
+        status.textContent = readFailText;
       }
+
+      toggle.addEventListener('change', async () => {
+        const enabled = toggle.checked;
+        toggle.disabled = true;
+        label.textContent = enabled ? 'مفعل' : 'متوقف';
+        try {
+          const { error } = await supabase
+            .from('platform_settings')
+            .upsert(
+              { key, value: enabled, description },
+              { onConflict: 'key' }
+            );
+          if (error) throw error;
+          showToast(enabled ? onText : offText, 'success');
+          status.textContent = enabled ? '' : blockedText;
+        } catch (err) {
+          console.error(key + ' save failed', err);
+          toggle.checked = !enabled;
+          label.textContent = !enabled ? 'مفعل' : 'متوقف';
+          showToast('تعذر حفظ الإعداد — حاول تاني', 'error');
+        } finally {
+          toggle.disabled = false;
+        }
+      });
     }
 
-    async function saveWhatsAppToggle() {
-      const toggle = document.getElementById('whatsapp-enabled');
-      const label = document.getElementById('whatsapp-enabled-label');
-      const status = document.getElementById('whatsapp-status');
-      const enabled = toggle.checked;
-      toggle.disabled = true;
-      label.textContent = enabled ? 'مفعل' : 'متوقف';
-      try {
-        const { error } = await supabase
-          .from('platform_settings')
-          .upsert(
-            {
-              key: WA_KEY,
-              value: enabled,
-              description: 'هل إشعارات WhatsApp مفعلة للجروب؟ — يتحكم فيها بوت الإشعارات',
-            },
-            { onConflict: 'key' }
-          );
-        if (error) throw error;
-        showToast(
-          enabled
-            ? 'تم تفعيل إشعارات WhatsApp — البوت هيبعت للجروب عادي'
-            : 'تم إيقاف إشعارات WhatsApp — البوت مش هيبعت',
-          'success'
-        );
-        status.textContent = enabled ? '' : 'الإشعارات متوقفة دلوقتي — البوت ما يبعتش أي رسائل.';
-      } catch (err) {
-        console.error('whatsapp toggle save failed', err);
-        toggle.checked = !enabled;
-        label.textContent = !enabled ? 'مفعل' : 'متوقف';
-        showToast('تعذر حفظ الإعداد — حاول تاني', 'error');
-      } finally {
-        toggle.disabled = false;
-      }
-    }
+    wireToggle({
+      key: WA_KEY,
+      toggleId: 'whatsapp-enabled',
+      labelId: 'whatsapp-enabled-label',
+      statusId: 'whatsapp-status',
+      description: 'هل إشعارات WhatsApp مفعلة للجروب؟ — يتحكم فيها بوت الإشعارات',
+      onText: 'تم تفعيل إشعارات WhatsApp — البوت هيبعت للجروب عادي',
+      offText: 'تم إيقاف إشعارات WhatsApp — البوت مش هيبعت',
+      blockedText: 'الإشعارات متوقفة دلوقتي — البوت ما يبعتش أي رسائل.',
+      readFailText: 'تعذرت قراءة حالة إشعارات WhatsApp.',
+    });
 
-    const waToggle = document.getElementById('whatsapp-enabled');
-    if (waToggle) {
-      waToggle.addEventListener('change', saveWhatsAppToggle);
-    }
+    wireToggle({
+      key: PHONE_KEY,
+      toggleId: 'phone-enabled',
+      labelId: 'phone-enabled-label',
+      statusId: 'phone-status',
+      description: 'هل إشعارات الهاتف/المتصفح مفعلة للطلاب؟',
+      onText: 'تم تفعيل إشعارات الهاتف — الطلاب هتستقبل الإشعارات عادي',
+      offText: 'تم إيقاف إشعارات الهاتف — الطلاب مش هيستقبلوا أي إشعار',
+      blockedText: 'إشعارات الهاتف متوقفة دلوقتي.',
+      readFailText: 'تعذرت قراءة حالة إشعارات الهاتف.',
+    });
 
     init();
   </script>
