@@ -519,7 +519,7 @@ async function loadLiveOnlineSections() {
       async () => {
         const { data: rows, error } = await supabase
           .from('online_sections')
-          .select('id, day_of_week, start_time, end_time, course_name, instructor, join_url, is_published')
+          .select('id, day_of_week, start_time, end_time, course_name, instructor, join_url, is_published, is_cancelled')
           .eq('is_published', true)
           .limit(40);
         if (error) throw error;
@@ -527,7 +527,7 @@ async function loadLiveOnlineSections() {
       },
       { ttlMs: TTL }
     );
-    const live = (data || []).filter((r) => isSectionLiveNow(r));
+    const live = (data || []).filter((r) => r.is_cancelled !== true && isSectionLiveNow(r));
     if (!live.length) {
       el.classList.add('hidden');
       el.innerHTML = '';
