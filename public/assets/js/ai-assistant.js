@@ -171,7 +171,7 @@ function scrollToBottom() { var body = getBody(); if (body) body.scrollTop = bod
 function emptyStateHtml() {
   return (
     '<div class="ai-empty">' +
-      'اسألني عن المواد، الملفات، الكويزات أو مذاكرة الامتحانات — أنا هنا عشانك' +
+      'اسألني عن المواد، الملفات، الكويزات أو مذاكرة الامتحانات — أنا ' + botName() + ' هنا عشانك' +
       '<div class="ai-chips">' +
         '<button class="ai-chip" type="button" data-q="إيه عندي النهاردة؟">إيه عندي النهاردة؟</button>' +
         '<button class="ai-chip" type="button" data-q="أذكرني إيه اللي مفروض أعمله في خطتي النهاردة؟">إيه المطلوب مني النهاردة؟</button>' +
@@ -532,6 +532,13 @@ function assistantTheme() {
 function robotFor() {
   return assistantTheme() === 'female' ? GIRL_ROBOT_SVG : BOY_ROBOT_SVG;
 }
+/* اسم البوت حسب الثيم — حسب جنس الطالب المُسجَّل */
+function botName() {
+  return assistantTheme() === 'female' ? 'توتا' : 'كيرو';
+}
+function botNameFull() {
+  return botName() + '، مساعد COMANDO الذكي';
+}
 
 function buildPanel() {
   if ($('ai-panel')) return;
@@ -542,7 +549,7 @@ function buildPanel() {
   fab.id = 'ai-fab';
   fab.type = 'button';
   fab.className = 'ai-fab ai-gender-' + theme;
-  fab.setAttribute('aria-label', 'المساعد الذكي');
+  fab.setAttribute('aria-label', botNameFull());
   fab.setAttribute('aria-expanded', 'false');
   // ترحيب: مرة واحدة في الجلسة — يطلل الروبوت من تحت الشاشة بسلاسة
   var fabIntroDone = false;
@@ -560,20 +567,20 @@ function buildPanel() {
   panel.className = 'ai-panel ai-gender-' + theme;
   panel.hidden = true; // تبدأ مخفية — لا تظهر إلا بالزر
   panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-label', 'المساعد الذكي — COMANDO');
+  panel.setAttribute('aria-label', botNameFull());
   panel.innerHTML =
     '<div class="ai-panel-inner">' +
       '<div class="ai-header">' +
         '<div class="ai-header-icon">' + robot + '</div>' +
         '<div class="ai-header-text">' +
-          '<p class="ai-header-title">مساعد COMANDO الذكي</p>' +
+          '<p class="ai-header-title">' + botNameFull() + '</p>' +
           '<p class="ai-header-sub">يعرف مجال الدراسة والجدول والامتحانات</p>' +
         '</div>' +
         '<button type="button" class="ai-close" id="ai-close" aria-label="إغلاق">' + CLOSE_SVG + '</button>' +
       '</div>' +
       '<div class="ai-body" id="ai-body" aria-live="polite"></div>' +
       '<form class="ai-input-bar" id="ai-form" autocomplete="off">' +
-        '<textarea class="ai-input" id="ai-input" rows="1" placeholder="اسألني عن المواد، الملفات، المواعيد…" aria-label="اكتب سؤالك" required></textarea>' +
+        '<textarea class="ai-input" id="ai-input" rows="1" placeholder="اسأل ' + botName() + ' عن المواد، الملفات، المواعيد…" aria-label="اكتب سؤالك" required></textarea>' +
         '<button type="submit" class="ai-send" id="ai-send" aria-label="إرسال">' + SEND_SVG + '</button>' +
       '</form>' +
     '</div>';
