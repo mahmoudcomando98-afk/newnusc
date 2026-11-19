@@ -9,7 +9,7 @@ const VAPID_PUBLIC =
   (typeof import.meta !== 'undefined' &&
     import.meta.env &&
     (import.meta.env.VITE_VAPID_PUBLIC_KEY || '').trim()) ||
-  'BPMz4yfOTRot0gDUO_0USJVuqzKYhlY7OWcpvproCs1BlfWpwBNCO-ugCrhLdRJXRcDoFGF-Qi9Y7ItaMlaK9xQ';
+  'BAg77p6sVYswYMKLOxr2JrYRfk4COFIf8PT3Eu3YC_b6zb5RoLT6h6mzi_dtWNJ1r7LPovk9wtbKE-XIC5EMyJ8';
 
 const WELCOME_TITLE = 'تم تفعيل الإشعارات';
 const WELCOME_BODY = 'سيتم ارسال الاشعارات المهمه اليك';
