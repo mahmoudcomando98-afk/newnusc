@@ -12,7 +12,6 @@ const EMOJI = {
   urgent: '🔴',
   warning: '🟠',
   important: '⭐',
-  line: '━━━━━━━━━━━━━━',
 };
 
 function trim(text, max) {
@@ -52,7 +51,7 @@ function announcement(item) {
 
   let msg = `${EMOJI.announce} *إعلان جديد — COMANDO*`;
   if (urg) msg += ` ${urg}`;
-  msg += `\n${EMOJI.line}\n`;
+  msg += `\n`;
   msg += `${EMOJI.pin} *${title}*\n\n`;
   if (content) msg += `${content}\n\n`;
   /* رابط الإعلان نفسه (لو الأدمن حاط رابط) — بدون أي رابط للمنصة نفسها */
@@ -67,7 +66,7 @@ function notification(item) {
   const body  = trim(item.body, 900);
   const time  = fmtTime(item.created_at);
 
-  let msg = `${EMOJI.bell} *إشعار — COMANDO*\n${EMOJI.line}\n`;
+  let msg = `${EMOJI.bell} *إشعار — COMANDO*\n`;
   msg += `*${title}*`;
   if (body) msg += `\n\n${body}`;
   if (item.link) msg += `\n\n${EMOJI.link} ${item.link}`;
