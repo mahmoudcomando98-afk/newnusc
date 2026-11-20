@@ -1,7 +1,7 @@
 /* COMANDO Service Worker — push + installability + شبكة ثابتة على الموبايل */
 const ICON_PATH = '/nusc.png.jpeg';
-const SW_VERSION = 'comando-sw-v4';
-const RUNTIME_CACHE = 'comando-runtime-v4';
+const SW_VERSION = 'comando-sw-v5';
+const RUNTIME_CACHE = 'comando-runtime-v5';
 
 function iconUrl() {
   try {
@@ -13,6 +13,11 @@ function iconUrl() {
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
+});
+
+/* زر «تحديث التطبيق» بيبعت إشارة عشان النسخة المستنية تتفعل فورًا */
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

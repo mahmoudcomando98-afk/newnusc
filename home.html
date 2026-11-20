@@ -29,7 +29,7 @@
   <link rel="stylesheet" href="/assets/css/live-online.css?v=1" />
   <link rel="stylesheet" href="/assets/css/features-polish.css?v=1" />
   <link rel="stylesheet" href="/assets/css/offline-wa.css?v=2" />
-  <link rel="stylesheet" href="/assets/css/install-prompt.css?v=2" />
+  <link rel="stylesheet" href="/assets/css/install-prompt.css?v=3" />
   <style>
     .push-enable-banner { margin-bottom: 10px; }
     .push-enable-inner {
@@ -56,6 +56,11 @@
 </head>
 <body class="home-page">
   <div class="offline-banner hidden" id="offline-banner" role="status">لا يوجد اتصال بالإنترنت</div>
+
+  <div class="app-update-banner hidden" id="app-update-banner" role="status" aria-hidden="true">
+    <strong id="app-update-text">فيه نسخة جديدة جاهزة للتحديث.</strong>
+    <button type="button" class="btn btn-sm btn-primary" id="app-update-reload">تحديث الآن</button>
+  </div>
 
   <div class="offline-overlay" id="offline-overlay" aria-hidden="true">
     <div class="offline-overlay-card">
@@ -99,6 +104,9 @@
         <a href="/updates.html" data-nav="updates">آخر التحديثات</a>
       </nav>
       <div class="header-actions">
+        <button type="button" class="header-btn app-update-header-btn hidden" id="app-update-btn" title="تحديث التطبيق" aria-label="تحديث التطبيق">
+          <span data-icon="refresh"></span>
+        </button>
         <a href="/notifications.html" class="header-btn notification-header-btn" title="الإشعارات" aria-label="الإشعارات" id="notif-btn">
           <span data-icon="bell"></span>
           <span class="notification-dot hidden" id="notif-dot"></span>
@@ -195,6 +203,7 @@
     <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
   </nav>
   <script type="module" src="/assets/js/native-app.js?v=2"></script>
+  <script type="module" src="/assets/js/app-update.js?v=1"></script>
   <script type="module" src="/assets/js/home.js?v=cancel-1"></script>
   <script type="module">
     import { onConnectivityChange } from '/assets/js/utils.js?v=fast-3';
