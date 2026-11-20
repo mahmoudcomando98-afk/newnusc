@@ -18,13 +18,14 @@
   }
 
   var warned = false;
+  var hits = 0;
   var REDIRECT = '/devtools-blocked.html';
 
-  function trap() {
-    var started = performance.now();
-    /* eslint-disable-next-line no-debugger */
-    debugger;
-    return performance.now() - started > 120;
+  /* DevTools المدمج بيصغّر مساحة الصفحة جوّه نفس النافذة */
+  function looksOpen() {
+    var widthGap = window.outerWidth - window.innerWidth;
+    var heightGap = window.outerHeight - window.innerHeight;
+    return widthGap > 200 || heightGap > 200;
   }
 
   function block() {
@@ -39,7 +40,13 @@
   }
 
   function check() {
-    if (trap()) block();
+    /* محاولتين متتاليتين عشان ما يتحولش بسبب تغيير حجم مؤقت */
+    if (looksOpen()) {
+      hits += 1;
+      if (hits >= 2) block();
+    } else {
+      hits = 0;
+    }
   }
 
   function blockKeys(e) {
@@ -70,6 +77,6 @@
   /* تأخير بسيط عشان ما نعترضش تحميل الصفحة أو تكبير الشاشة */
   setTimeout(function () {
     check();
-    setInterval(check, 3000);
-  }, 3500);
+    setInterval(check, 1200);
+  }, 2500);
 })();
