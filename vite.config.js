@@ -262,7 +262,6 @@ export default defineConfig(({ mode }) => {
           'past-exams': resolve(import.meta.dirname, 'past-exams.html'),
           'past-exam-subject': resolve(import.meta.dirname, 'past-exam-subject.html'),
           'study-plan': resolve(import.meta.dirname, 'study-plan.html'),
-          'gpa-calculator': resolve(import.meta.dirname, 'gpa-calculator.html'),
           offline: resolve(import.meta.dirname, 'offline.html')
         }
       }
