@@ -339,14 +339,29 @@ function bindDownloads(el) {
 }
 
 async function loadLectures(el) {
-  const [lecturesResult, materialsResult] = await Promise.all([
-    supabase.from('lectures').select('*').eq('subject_id', subjectId),
-    loadSubjectMaterials()
-      .then((data) => ({ data, error: null }))
-      .catch((error) => ({ data: [], error }))
-  ]);
-  if (lecturesResult.error) console.warn('Lecture records are temporarily unavailable:', lecturesResult.error);
-  const lectures = (lecturesResult.data || [])
+  /* المحاضرات — لو استعلام المحاضرات فشل globally ما يقطعش المواد، ونُسجل الخطأ عشان نشخصه */
+  const lecturesRaw = await supabase
+    .from('lectures')
+    .select('*')
+    .eq('subject_id', subjectId)
+    .then((r) => ({ data: r.data, error: r.error }))
+    .catch((err) => ({ data: null, error: err }));
+
+  /* المواد — loadSubjectMaterials بترمي على الخطأ؛ نُوحد الصيغة {data, error} */
+  let materialsRaw;
+  try {
+    const data = await loadSubjectMaterials();
+    materialsRaw = { data, error: null };
+  } catch (err) {
+    materialsRaw = { data: [], error: err };
+  }
+
+  const lecturesError = lecturesRaw?.error;
+  const materialsError = materialsRaw?.error;
+  if (lecturesError) console.warn('[subject-details] lectures query failed:', lecturesError);
+  if (materialsError) console.warn('[subject-details] materials query failed:', materialsError);
+
+  const lectures = (lecturesRaw?.data || [])
     .filter((item) => item.is_published !== false && item.is_active !== false)
     .sort((a, b) => {
       const numberA = Number(a.lecture_number ?? 999999);
@@ -357,17 +372,28 @@ async function loadLectures(el) {
         new Date(b.lecture_date || b.published_at || b.created_at || 0)
       );
     });
-  const materials = materialsResult.data || [];
-  if (materialsResult.error) console.warn('Subject materials are temporarily unavailable:', materialsResult.error);
+  const materials = materialsRaw?.data || [];
+  if (materialsError) console.warn('[subject-details] materials query failed:', materialsError);
   const lectureFiles = materials.filter(
     (m) => !['section', 'assignment', 'past_exam', 'summary'].includes(m.material_type)
   );
-  if (!lectures.length && !lectureFiles.length) {
-    if (lecturesResult.error || materialsResult.error)
+
+  const hasData = lectures.length > 0 || lectureFiles.length > 0;
+  const hasError = !!lecturesError || !!materialsError;
+
+  if (!hasData) {
+    if (hasError) {
       showRetryState(el, 'lectures', 'تعذر الاتصال بمحتوى المحاضرات أو الملفات. جرّب مرة تانية.');
-    else showEmpty(el, 'لسه مفيش محاضرات أو ملفات للمادة دي.');
+    } else {
+      showEmpty(el, 'لسه مفيش محاضرات أو ملفات للمادة دي.');
+    }
     return;
   }
+
+  const partialWarning = hasError
+    ? '<p class="text-sm text-muted mb-2">جزء من المحتوى تعذر تحميله مؤقتًا؛ يعرض ما هو متاح.</p>'
+    : '';
+
   const lectureHtml = lectures
     .map(
       (lecture) => `
@@ -390,15 +416,22 @@ async function loadLectures(el) {
     ? `<section class="section mt-2"><h3 class="mb-1">ملفات المحاضرات</h3><div class="card">${lectureFiles.map((file) => materialCard(file, 'محاضرات')).join('')}</div></section>`
     : '';
   const fallbackNotice =
-    lecturesResult.error && lectureFiles.length
+    lecturesError && lectureFiles.length
       ? '<p class="text-sm text-muted mb-2">بنعرِض ملفات المادة المتاحة؛ سجل المحاضرات نفسه تعذر تحميله مؤقتًا.</p>'
       : '';
-  el.innerHTML = `${fallbackNotice}${lectureHtml ? `<div class="card">${lectureHtml}</div>` : ''}${filesHtml}`;
+  el.innerHTML = `${partialWarning}${fallbackNotice}${lectureHtml ? `<div class="card">${lectureHtml}</div>` : ''}${filesHtml}`;
   bindDownloads(el);
 }
 
 async function loadMaterialsByType(el, type, emptyMessage) {
-  const materials = await loadSubjectMaterials();
+  let materials;
+  try {
+    materials = await loadSubjectMaterials();
+  } catch (error) {
+    console.warn('[subject-details] materials query failed:', error);
+    showError(el, 'جزء من المحتوى تعذر تحميله مؤقتًا — المواد متاحة للحفظ بعد عودة الاتصال.');
+    return;
+  }
   const selected = materials.filter((item) => item.material_type === type);
   if (!selected.length) {
     showEmpty(el, emptyMessage);

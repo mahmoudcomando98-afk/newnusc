@@ -293,3 +293,39 @@
 :root[data-theme="dark"] .ai-panel.ai-gender-female .ai-msg-assistant { background: #3a1e29; border-color: #5c2b3c; color: #ff9fbd; }
 :root[data-theme="dark"] .ai-panel.ai-gender-female .ai-typing { background: #3a1e29; border-color: #5c2b3c; }
 :root[data-theme="dark"] .ai-panel.ai-gender-female .ai-typing span { background: #ff7ba8; }
+
+/* ========== ثيم الأولاد (أزرق كيرو) — بيتفعل تلقائيًا مع الروبوت الأزرق ========== */
+.ai-panel.ai-gender-male .ai-header { background: linear-gradient(145deg, #1e4fa8 0%, #153d82 100%); }
+.ai-panel.ai-gender-male .ai-header-icon { background: rgba(255, 255, 255, 0.25); }
+.ai-panel.ai-gender-male .ai-close { background: rgba(255, 255, 255, 0.2); }
+.ai-panel.ai-gender-male .ai-close:hover { background: rgba(255, 255, 255, 0.35); }
+.ai-panel.ai-gender-male .ai-send { background: #1e4fa8; }
+.ai-panel.ai-gender-male .ai-send:hover:not(:disabled) { background: #153d82; }
+.ai-panel.ai-gender-male .ai-input:focus { border-color: #1e4fa8; box-shadow: 0 0 0 2px rgba(30, 79, 168, 0.22); }
+.ai-panel.ai-gender-male .ai-chip:hover { border-color: #1e4fa8; color: #153d82; }
+.ai-panel.ai-gender-male .ai-msg-assistant { background: #eef4ff; border-color: #cfe0ff; color: #1e4fa8; }
+.ai-panel.ai-gender-male .ai-typing { background: #eef4ff; border-color: #cfe0ff; }
+.ai-panel.ai-gender-male .ai-typing span { background: #1e4fa8; }
+:root[data-theme="dark"] .ai-panel.ai-gender-male .ai-msg-assistant { background: #1a1f2e; border-color: #2f3d5c; color: #9fc4ff; }
+:root[data-theme="dark"] .ai-panel.ai-gender-male .ai-typing { background: #1a1f2e; border-color: #2f3d5c; }
+:root[data-theme="dark"] .ai-panel.ai-gender-male .ai-typing span { background: #6fa8ff; }
+
+/* أيقونة صغيرة beside الاسم عشان يكون شكلها أوضح في الرأس */
+.ai-header-badge {
+  font-size: 0.62rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-left: 6px;
+  border: 1px solid currentColor;
+  opacity: 0.85;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.ai-gender-female .ai-header-badge { color: #fff; border-color: rgba(255,255,255,0.55); background: rgba(255,255,255,0.12); }
+.ai-gender-male .ai-header-badge { color: #fff; border-color: rgba(255,255,255,0.55); background: rgba(255,255,255,0.12); }
+
+/* حالة فارغة أوضح وألوان حسب الجنس */
+.ai-panel.ai-gender-female .ai-empty { color: #a9245a; }
+.ai-panel.ai-gender-male .ai-empty { color: #1e4fa8; }
+.ai-empty strong { color: inherit; }
