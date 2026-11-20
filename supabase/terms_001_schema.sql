@@ -89,7 +89,8 @@ alter table public.quizzes                  add column if not exists is_active b
 alter table public.schedules                add column if not exists is_active boolean not null default true;
 alter table public.schedule_items           add column if not exists is_active boolean not null default true;
 alter table public.online_section_sessions  add column if not exists is_active boolean not null default true;
-do $$
+create or replace function public.terms_add_term_columns()
+returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
 declare t text;
 begin
   foreach t in array array[
@@ -108,7 +109,10 @@ begin
       t
     );
   end loop;
-end $$;
+end;
+$fn$;
+select public.terms_add_term_columns();
+drop function public.terms_add_term_columns();
 
 -- 7) الدوال اللي بتقرأ الترم الحالي بعد ما الجداول ات-created
 create or replace function public.term_current_id()
@@ -199,7 +203,8 @@ as $$
 $$;
 
 -- 8) Defaults بعد تعريف الدوال (يتخطّى الجداول الناقصة بأمان)
-do $$
+create or replace function public.terms_set_term_defaults()
+returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
 declare t text;
 begin
   foreach t in array array[
@@ -221,10 +226,14 @@ begin
       );
     end if;
   end loop;
-end $$;
+end;
+$fn$;
+select public.terms_set_term_defaults();
+drop function public.terms_set_term_defaults();
 
 -- 9) فهارس الأداء (فقط للجداول اللي ليها عمود term_id)
-do $$
+create or replace function public.terms_create_term_indexes()
+returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
 declare t text;
 begin
   foreach t in array array[
@@ -245,10 +254,14 @@ begin
       );
     end if;
   end loop;
-end $$;
+end;
+$fn$;
+select public.terms_create_term_indexes();
+drop function public.terms_create_term_indexes();
 
 -- 10) إصلاح قيد «ترم واحد فقط» في جدول ميتا الأونلاين
-do $$
+create or replace function public.terms_fix_online_meta_key()
+returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
 declare r record;
 begin
   if to_regclass('public.online_schedule_meta') is null then
@@ -263,7 +276,10 @@ begin
   end loop;
   alter table public.online_schedule_meta drop constraint if exists online_schedule_meta_pkey;
   alter table public.online_schedule_meta alter column id drop default;
-end $$;
+end;
+$fn$;
+select public.terms_fix_online_meta_key();
+drop function public.terms_fix_online_meta_key();
 
 -- 11) RPC لتغيير الترم النشط — التحقق في DB مش في الواجهة
 create or replace function public.set_current_term(p_term uuid)

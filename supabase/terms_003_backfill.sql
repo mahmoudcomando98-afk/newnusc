@@ -27,7 +27,8 @@ update public.profiles p
  where p.current_term_id is null;
 
 -- 3) نقل كل المحتوى الموجود للترم الافتراضي (عشان ما يظهرش كـ «عام» في كل ترم)
-do $$
+create or replace function public.terms_backfill_content()
+returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
 declare
   d uuid;
   t text;
@@ -44,7 +45,6 @@ begin
     'favorites','teacher_upload_links'
   ]
   loop
-    -- نتخطّى أي جدول/عمود مش موجود بدل ماوينStop الـ migration كله
     if to_regclass('public.' || t) is not null
        and exists (
          select 1 from information_schema.columns
@@ -58,7 +58,6 @@ begin
     end if;
   end loop;
 
-  -- ميتا الأونلاين: صف واحد لكل ترم (لو العمود اتضاف فعلًا)
   if to_regclass('public.online_schedule_meta') is not null
      and exists (
        select 1 from information_schema.columns
@@ -74,7 +73,10 @@ begin
       alter table public.online_schedule_meta add primary key (term_id);
     end if;
   end if;
-end $$;
+end;
+$fn$;
+select public.terms_backfill_content();
+drop function public.terms_backfill_content();
 
 -- 4) المسؤولون الحاليون (moderator) يصبحون مسؤولي الترم الافتراضي
 insert into public.term_admins (term_id, user_id, permissions, created_by)

@@ -6,7 +6,8 @@
 
 -- 1) إزالة السياسات القديمة على جداول المحتوى فقط، مع الإبقاء على
 --    «Maintenance access gate» (RESTRICTIVE) وسياساتنا التي تبدأ بـ term_.
-do $$
+create or replace function public.terms_drop_old_policies()
+returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
 declare
   t text;
   r record;
@@ -28,7 +29,10 @@ begin
       execute format('drop policy if exists %I on public.%I', r.policyname, t);
     end loop;
   end loop;
-end $$;
+end;
+$fn$;
+select public.terms_drop_old_policies();
+drop function public.terms_drop_old_policies();
 
 -- 2) الفصول نفسها
 alter table public.terms enable row level security;
@@ -305,7 +309,8 @@ create policy term_teacher_links_write on public.teacher_upload_links
   with check (public.term_can_manage(term_id));
 
 -- 10) Storage: قراءة ملفات الترم الحالي فقط (مسارات التخزين ما زالت كما هي)
-do $$
+create or replace function public.terms_drop_old_storage_policies()
+returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
 declare r record;
 begin
   for r in
@@ -315,7 +320,10 @@ begin
   loop
     execute format('drop policy if exists %I on storage.objects', r.policyname);
   end loop;
-end $$;
+end;
+$fn$;
+select public.terms_drop_old_storage_policies();
+drop function public.terms_drop_old_storage_policies();
 
 drop policy if exists term_storage_materials_read on storage.objects;
 create policy term_storage_materials_read on storage.objects
@@ -380,7 +388,8 @@ create policy term_storage_materials_delete on storage.objects
   );
 
 -- 11) قفل الصيانة للجداول الجديدة (لو نظام الصيانة موجود)
-do $$
+create or replace function public.terms_add_maintenance_gate()
+returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
 begin
   if exists (
     select 1 from pg_proc
@@ -393,7 +402,10 @@ begin
     execute 'drop policy if exists "Maintenance access gate" on public.term_admins';
     execute 'create policy "Maintenance access gate" on public.term_admins as restrictive for all to authenticated using (not private.is_maintenance_active() or public.term_is_super_admin())';
   end if;
-end $$;
+end;
+$fn$;
+select public.terms_add_maintenance_gate();
+drop function public.terms_add_maintenance_gate();
 
 -- 13) RPC البحث: نفس منطق الظهور في الترم الحالي
 create or replace function public.search_content(
