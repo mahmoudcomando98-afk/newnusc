@@ -156,23 +156,3 @@
 /* زر/شريط تحديث التطبيق (PWA) */
 .app-update-header-btn { color: var(--primary-dark); }
 .app-update-header-btn svg { width: 18px; height: 18px; }
-
-.app-update-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-  padding: 10px 12px;
-  background: var(--surface);
-  border: 1px solid var(--primary);
-  border-radius: 10px;
-  box-shadow: var(--shadow);
-}
-.app-update-banner strong {
-  font-size: 0.8rem;
-  color: var(--text);
-  line-height: 1.7;
-}
-.app-update-banner .btn { flex: 0 0 auto; }
