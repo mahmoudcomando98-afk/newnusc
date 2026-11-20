@@ -1,6 +1,6 @@
 /**
  * COMANDO — حارس أدوات المطوّر
- * عند اكتشاف فتح DevTools يتم التحويل لصفحة /devtools-blocked اللي ترجع للرئيسية.
+ * عند اكتشاف فتح DevTools تظهر صفحة المانع تلقائيًا.
  * مستثنى: الأدمن، الدخول، الصفحات النظامية، والـ localhost (للاختبار).
  */
 (function () {
@@ -20,6 +20,17 @@
   var warned = false;
   var hits = 0;
   var REDIRECT = '/devtools-blocked.html';
+  var FLAG = 'comando_devtools_block';
+  var justBlocked = false;
+
+  try {
+    if (sessionStorage.getItem(FLAG) === '1') {
+      sessionStorage.removeItem(FLAG);
+      justBlocked = true;
+    }
+  } catch {
+    /* ignore */
+  }
 
   /* DevTools المدمج بيصغّر مساحة الصفحة جوّه نفس النافذة */
   function looksOpen() {
@@ -32,7 +43,7 @@
     if (warned) return;
     warned = true;
     try {
-      sessionStorage.setItem('comando_devtools_block', '1');
+      sessionStorage.setItem(FLAG, '1');
     } catch {
       /* ignore */
     }
@@ -53,18 +64,17 @@
     var key = (e.key || '').toLowerCase();
     var ctrl = e.ctrlKey || e.metaKey;
     var shift = e.shiftKey;
-    if (key === 'f12') {
+    var alt = e.altKey;
+
+    var devtoolsCombo =
+      key === 'f12' ||
+      (ctrl && shift && ['i', 'j', 'c', 'k', 'm', 'e'].includes(key)) ||
+      (ctrl && alt && ['i', 'j', 'c', 'u'].includes(key)) ||
+      (ctrl && key === 'u');
+
+    if (devtoolsCombo) {
       e.preventDefault();
-      block();
-      return;
-    }
-    if (ctrl && shift && ['i', 'j', 'c'].includes(key)) {
-      e.preventDefault();
-      block();
-      return;
-    }
-    if (ctrl && key === 'u') {
-      e.preventDefault();
+      e.stopPropagation();
       block();
     }
   }
@@ -74,9 +84,9 @@
     e.preventDefault();
   });
 
-  /* تأخير بسيط عشان ما نعترضش تحميل الصفحة أو تكبير الشاشة */
+  /* كشف سريع: تحويل مباشر للرئيسية من غير أي صفحة وسيطة */
   setTimeout(function () {
     check();
-    setInterval(check, 1200);
-  }, 2500);
+    setInterval(check, 700);
+  }, justBlocked ? 1800 : 1200);
 })();
