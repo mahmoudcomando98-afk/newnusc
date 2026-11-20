@@ -3,7 +3,6 @@
  * حساب محلي بالكامل — لا يلمس قاعدة البيانات.
  */
 import { protectPage } from './auth.js';
-import { fetchSubjects } from './data-api.js';
 import { initIcons, setActiveNav, showToast } from './utils.js';
 
 const STORAGE_KEY = 'comando_gpa_v1';
@@ -43,9 +42,8 @@ const state = {
   mode: 'letter', // letter | points | percent
   preset: 'standard4', // standard4 | simple4 | arabic4 | custom
   scale: [], // [{ letter, points }]
-  courses: [], // [{ id, name, subjectId, value, hours }]
-  cum: { enabled: false, gpa: '', hours: '' },
-  subjects: [] // مواد المنصة — تُجلب بعد التحقق من الدخول
+  courses: [], // [{ id, name, value, hours }]
+  cum: { enabled: false, gpa: '', hours: '' }
 };
 
 let saveTimer = null;
@@ -89,7 +87,7 @@ function hoursWord(n) {
 
 /* ===== الحالة الافتراضية والحفظ ===== */
 function newCourse() {
-  return { id: uid(), name: '', subjectId: '', value: defaultGradeValue(), hours: 3 };
+  return { id: uid(), name: '', value: defaultGradeValue(), hours: 3 };
 }
 
 function defaultGradeValue() {
@@ -115,6 +113,7 @@ function loadState() {
           .map((g) => ({ letter: g.letter, points: clamp(Number(g.points), 0, MAX_GPA) }))
       : [];
 
+    if (!state.scale.length) state.scale = presetScale(saved?.preset);
     state.preset = saved.preset && (PRESETS[saved.preset] || saved.preset === 'custom') ? saved.preset : 'custom';
 
     state.courses = Array.isArray(saved.courses)
@@ -123,7 +122,6 @@ function loadState() {
           .map((c) => ({
             id: String(c.id || uid()),
             name: String(c.name || '').slice(0, 80),
-            subjectId: c.subjectId ? String(c.subjectId) : '',
             value: c.value === undefined || c.value === null ? '' : c.value,
             hours: c.hours === undefined || c.hours === null ? 3 : c.hours
           }))
@@ -135,9 +133,6 @@ function loadState() {
       hours: saved.cum && saved.cum.hours !== undefined && saved.cum.hours !== null ? String(saved.cum.hours) : ''
     };
   }
-
-  /* أول دخول أو نظام تقديرات غير صالح — نبدأ بالنظام القياسي */
-  if (!state.scale.length) state.scale = presetScale(saved?.preset || state.preset);
 
   if (!state.courses.length) state.courses = [newCourse()];
   state.courses.forEach((course) => {
@@ -151,10 +146,7 @@ function save() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ mode: state.mode, preset: state.preset, scale: state.scale, courses: state.courses, cum: state.cum })
-      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
       /* التخزين المحلي مش متاح — الحاسبة بتشتغل عادي في الجلسة */
     }
@@ -372,82 +364,6 @@ function makeField(labelText, control, extraClass) {
   return wrap;
 }
 
-function makeNameControl(course) {
-  const wrap = document.createElement('div');
-  wrap.className = 'gpa-subject-control';
-
-  let subjectSelect = null;
-  if (state.subjects.length) {
-    subjectSelect = document.createElement('select');
-    subjectSelect.className = 'form-select gpa-subject-select';
-    subjectSelect.dataset.field = 'subject';
-    subjectSelect.setAttribute('aria-label', 'اختر مادة من المنصة');
-
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = '— اختر مادة من المنصة —';
-    subjectSelect.appendChild(placeholder);
-
-    state.subjects.forEach((subject) => {
-      const option = document.createElement('option');
-      option.value = subject.id;
-      option.textContent = subject.code ? `${subject.name} (${subject.code})` : subject.name;
-      subjectSelect.appendChild(option);
-    });
-
-    const custom = document.createElement('option');
-    custom.value = '__custom__';
-    custom.textContent = 'مادة أخرى (اكتب الاسم)';
-    subjectSelect.appendChild(custom);
-
-    subjectSelect.value = course.subjectId || (course.name ? '__custom__' : '');
-  }
-
-  const nameInput = document.createElement('input');
-  nameInput.type = 'text';
-  nameInput.className = 'form-input';
-  nameInput.dataset.field = 'name';
-  nameInput.maxLength = 80;
-  nameInput.placeholder = 'اسم المادة (اختياري)';
-  nameInput.setAttribute('aria-label', 'اسم المادة');
-  nameInput.value = course.name || '';
-
-  if (subjectSelect) {
-    subjectSelect.addEventListener('change', () => {
-      const value = subjectSelect.value;
-      if (value === '__custom__') {
-        course.subjectId = '';
-        course.name = '';
-        nameInput.value = '';
-        nameInput.focus();
-      } else if (value) {
-        const subject = state.subjects.find((s) => s.id === value);
-        course.subjectId = value;
-        course.name = subject?.name || '';
-        nameInput.value = course.name;
-      } else {
-        course.subjectId = '';
-        course.name = '';
-        nameInput.value = '';
-      }
-      afterChange();
-    });
-  }
-
-  nameInput.addEventListener('input', () => {
-    course.name = nameInput.value.slice(0, 80);
-    if (course.subjectId) {
-      course.subjectId = '';
-      if (subjectSelect) subjectSelect.value = '__custom__';
-    }
-    afterChange();
-  });
-
-  if (subjectSelect) wrap.appendChild(subjectSelect);
-  wrap.appendChild(nameInput);
-  return wrap;
-}
-
 function makeGradeControl(course) {
   if (state.mode === 'letter') {
     const select = document.createElement('select');
@@ -491,6 +407,19 @@ function createCourseRow(course) {
   row.className = 'gpa-course';
   row.dataset.id = course.id;
 
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.className = 'form-input';
+  nameInput.dataset.field = 'name';
+  nameInput.maxLength = 80;
+  nameInput.placeholder = 'اسم المادة (اختياري)';
+  nameInput.setAttribute('aria-label', 'اسم المادة');
+  nameInput.value = course.name || '';
+  nameInput.addEventListener('input', () => {
+    course.name = nameInput.value.slice(0, 80);
+    afterChange();
+  });
+
   const hoursInput = document.createElement('input');
   hoursInput.type = 'number';
   hoursInput.className = 'form-input';
@@ -524,7 +453,7 @@ function createCourseRow(course) {
   });
 
   row.append(
-    makeField('المادة', makeNameControl(course), 'gpa-field-name'),
+    makeField('المادة', nameInput, 'gpa-field-name'),
     makeField(state.mode === 'letter' ? 'التقدير' : state.mode === 'percent' ? 'النسبة %' : 'النقاط', makeGradeControl(course), 'gpa-field-grade'),
     makeField('الساعات', hoursInput, 'gpa-field-hours'),
     remove
@@ -537,28 +466,6 @@ function renderCourses() {
   list.textContent = '';
   state.courses.forEach((course) => list.appendChild(createCourseRow(course)));
   syncCalc();
-}
-
-async function loadSubjects() {
-  try {
-    const rows = await fetchSubjects(100);
-    state.subjects = (rows || [])
-      .filter((row) => row && row.name)
-      .map((row) => ({
-        id: String(row.id),
-        name: String(row.name),
-        code: row.code ? String(row.code) : ''
-      }));
-  } catch {
-    state.subjects = [];
-  }
-  const hint = $('gpa-subject-hint');
-  if (hint) {
-    hint.textContent = state.subjects.length
-      ? `متاح تختار من ${state.subjects.length} مادة موجودة في المنصة، أو تكتب اسم مادة بنفسك.`
-      : 'المواد مش متاحة دلوقتي — تقدر تكتب اسم المادة يدويًا.';
-  }
-  renderCourses();
 }
 
 /* ===== محرر نظام التقديرات ===== */
@@ -760,8 +667,6 @@ async function init() {
   } catch {
     /* لو التحقق فشل بسبب الشبكة، الحاسبة تفضل شغالة محليًا */
   }
-
-  await loadSubjects();
 }
 
 init();

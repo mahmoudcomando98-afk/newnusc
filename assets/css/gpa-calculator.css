@@ -155,14 +155,6 @@
   background: var(--surface);
   color: var(--text);
 }
-.gpa-subject-control { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.gpa-subject-control .gpa-subject-select {
-  min-height: 36px;
-  font-size: 0.76rem;
-  padding: 6px 8px;
-  color: var(--primary-dark);
-  font-weight: 700;
-}
 .gpa-course .form-input::placeholder { font-size: 0.8rem; }
 
 .gpa-field.is-invalid .form-input,
