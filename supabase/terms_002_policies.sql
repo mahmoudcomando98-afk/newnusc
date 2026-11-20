@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- COMANDO — Multi-Term Workspaces (Phase 2: RLS)
 -- ملف محلي للمراجعة فقط — لم يتم تنفيذه على أي قاعدة بيانات.
 -- يعتمد على terms_001_schema.sql ويجب تنفيذه بعد ملفات الحماية القديمة.
@@ -7,7 +7,7 @@
 -- 1) إزالة السياسات القديمة على جداول المحتوى فقط، مع الإبقاء على
 --    «Maintenance access gate» (RESTRICTIVE) وسياساتنا التي تبدأ بـ term_.
 create or replace function public.terms_drop_old_policies()
-returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   t text;
   r record;
@@ -30,7 +30,7 @@ begin
     end loop;
   end loop;
 end;
-$fn$;
+$$;
 select public.terms_drop_old_policies();
 drop function public.terms_drop_old_policies();
 
@@ -310,7 +310,7 @@ create policy term_teacher_links_write on public.teacher_upload_links
 
 -- 10) Storage: قراءة ملفات الترم الحالي فقط (مسارات التخزين ما زالت كما هي)
 create or replace function public.terms_drop_old_storage_policies()
-returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
 declare r record;
 begin
   for r in
@@ -321,7 +321,7 @@ begin
     execute format('drop policy if exists %I on storage.objects', r.policyname);
   end loop;
 end;
-$fn$;
+$$;
 select public.terms_drop_old_storage_policies();
 drop function public.terms_drop_old_storage_policies();
 
@@ -389,7 +389,7 @@ create policy term_storage_materials_delete on storage.objects
 
 -- 11) قفل الصيانة للجداول الجديدة (لو نظام الصيانة موجود)
 create or replace function public.terms_add_maintenance_gate()
-returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
 begin
   if exists (
     select 1 from pg_proc
@@ -403,7 +403,7 @@ begin
     execute 'create policy "Maintenance access gate" on public.term_admins as restrictive for all to authenticated using (not private.is_maintenance_active() or public.term_is_super_admin())';
   end if;
 end;
-$fn$;
+$$;
 select public.terms_add_maintenance_gate();
 drop function public.terms_add_maintenance_gate();
 
@@ -480,3 +480,4 @@ grant execute on function public.search_content(text, integer) to authenticated;
 -- 14) صلاحيات الجداول الجديدة
 grant select, insert, update, delete on public.terms, public.term_members, public.term_admins to authenticated;
 grant usage on schema public to authenticated;
+

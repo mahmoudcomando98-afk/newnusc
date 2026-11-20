@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- COMANDO — Multi-Term Workspaces (Phase 1: schema)
 -- ملف محلي للمراجعة فقط — لم يتم تنفيذه على أي قاعدة بيانات.
 -- لا يعيد تعريف is_admin() / is_admin_or_moderator() المتعارضة.
@@ -90,7 +90,7 @@ alter table public.schedules                add column if not exists is_active b
 alter table public.schedule_items           add column if not exists is_active boolean not null default true;
 alter table public.online_section_sessions  add column if not exists is_active boolean not null default true;
 create or replace function public.terms_add_term_columns()
-returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
 declare t text;
 begin
   foreach t in array array[
@@ -110,7 +110,7 @@ begin
     );
   end loop;
 end;
-$fn$;
+$$;
 select public.terms_add_term_columns();
 drop function public.terms_add_term_columns();
 
@@ -204,7 +204,7 @@ $$;
 
 -- 8) Defaults بعد تعريف الدوال (يتخطّى الجداول الناقصة بأمان)
 create or replace function public.terms_set_term_defaults()
-returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
 declare t text;
 begin
   foreach t in array array[
@@ -227,13 +227,13 @@ begin
     end if;
   end loop;
 end;
-$fn$;
+$$;
 select public.terms_set_term_defaults();
 drop function public.terms_set_term_defaults();
 
 -- 9) فهارس الأداء (فقط للجداول اللي ليها عمود term_id)
 create or replace function public.terms_create_term_indexes()
-returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
 declare t text;
 begin
   foreach t in array array[
@@ -255,13 +255,13 @@ begin
     end if;
   end loop;
 end;
-$fn$;
+$$;
 select public.terms_create_term_indexes();
 drop function public.terms_create_term_indexes();
 
 -- 10) إصلاح قيد «ترم واحد فقط» في جدول ميتا الأونلاين
 create or replace function public.terms_fix_online_meta_key()
-returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
 declare r record;
 begin
   if to_regclass('public.online_schedule_meta') is null then
@@ -277,7 +277,7 @@ begin
   alter table public.online_schedule_meta drop constraint if exists online_schedule_meta_pkey;
   alter table public.online_schedule_meta alter column id drop default;
 end;
-$fn$;
+$$;
 select public.terms_fix_online_meta_key();
 drop function public.terms_fix_online_meta_key();
 
@@ -350,3 +350,4 @@ drop trigger if exists terms_set_new_user_term on public.profiles;
 create trigger terms_set_new_user_term
   before insert on public.profiles
   for each row execute function public.terms_set_new_user_term();
+

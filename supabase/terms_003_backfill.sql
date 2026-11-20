@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- COMANDO — Multi-Term Workspaces (Phase 3: backfill)
 -- ملف محلي للمراجعة فقط — لم يتم تنفيذه على أي قاعدة بيانات.
 -- يعتمد على terms_001 + terms_002.Affects existing rows but does NOT delete data.
@@ -28,7 +28,7 @@ update public.profiles p
 
 -- 3) نقل كل المحتوى الموجود للترم الافتراضي (عشان ما يظهرش كـ «عام» في كل ترم)
 create or replace function public.terms_backfill_content()
-returns void language plpgsql security definer set search_path = public, pg_temp as $fn$
+returns void language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   d uuid;
   t text;
@@ -74,7 +74,7 @@ begin
     end if;
   end if;
 end;
-$fn$;
+$$;
 select public.terms_backfill_content();
 drop function public.terms_backfill_content();
 
@@ -106,3 +106,4 @@ create index if not exists subjects_term_published_idx
   on public.subjects (term_id, is_published, sort_order);
 create index if not exists announcements_term_published_idx
   on public.announcements (term_id, is_published, created_at desc);
+
