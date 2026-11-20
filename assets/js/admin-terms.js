@@ -48,6 +48,7 @@ function renderTerms() {
             ${term.status === 'active' ? 'إيقاف' : 'تفعيل'}
           </button>
           <button type="button" class="btn btn-secondary term-btn-sm" data-action="archive" ${disabled ? 'disabled' : ''}>أرشفة</button>
+          <button type="button" class="btn btn-secondary term-btn-sm term-danger" data-action="delete" ${term.is_default ? 'disabled' : ''}>حذف</button>
         </div>
       </article>`;
     })
@@ -88,6 +89,41 @@ async function setStatus(termId, status) {
   if (error) throw error;
   showToast(status === 'active' ? 'تم تفعيل الترم' : 'تم إيقاف الترم', 'success');
   await loadTerms();
+}
+
+async function deleteTerm(term) {
+  const first = window.confirm(
+    `حذف «${term.name}» نهائيًا؟\n\nالترم الافتراضي ما يتحذفش. لو الترم فيه محتوى، هتظهر رسالة تأكيد تانية لحذف كل المحتوى والملفات المرتبطة.`
+  );
+  if (!first) return false;
+  try {
+    const { error } = await supabase.rpc('delete_term_safe', {
+      p_term: term.id,
+      p_confirm_delete_content: false
+    });
+    if (error) {
+      const message = error.message || '';
+      if (/محتوى/.test(message)) {
+        const second = window.confirm(
+          `الترم فيه محتوى.\nاضغط موافق لحذف الترم وكل مواده وملفاته نهائيًا — ده مش قابل للتراجع.`
+        );
+        if (!second) return false;
+        const { error: e2 } = await supabase.rpc('delete_term_safe', {
+          p_term: term.id,
+          p_confirm_delete_content: true
+        });
+        if (e2) throw e2;
+      } else {
+        throw error;
+      }
+    }
+    showToast('تم حذف الترم', 'success');
+    await loadTerms();
+    return true;
+  } catch (err) {
+    showToast(err?.message || 'تعذر حذف الترم', 'error');
+    return false;
+  }
 }
 
 async function editTerm(term) {
@@ -209,7 +245,7 @@ function bindEvents() {
       else if (action === 'archive') {
         if (!window.confirm(`أرشفة «${term.name}»؟ المحتوى هيفضل محفوظ.`)) return;
         await setStatus(term.id, 'archived');
-      }
+      } else if (action === 'delete') await deleteTerm(term);
     } catch (err) {
       showToast(err?.message || 'تعذر تنفيذ الطلب', 'error');
     }

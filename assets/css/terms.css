@@ -34,6 +34,28 @@
 .term-switcher.is-admin .term-switcher-label { color: var(--primary-dark, #82621a); }
 .term-switcher.is-admin { border-color: var(--primary, #c69b2d); }
 
+/* بطاقة اختيار الترم في الصفحة الرئيسية */
+.term-home-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  border-color: var(--primary, #c69b2d);
+}
+.term-home-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.term-home-kicker {
+  font-size: 0.68rem; font-weight: 800; color: var(--primary-dark, #82621a);
+}
+.term-home-info strong { font-size: 0.95rem; color: var(--text, #25271f); }
+.term-home-info small { font-size: 0.72rem; }
+.term-home-card select { flex: 0 1 220px; min-height: 40px; font-weight: 700; }
+
+@media (max-width: 640px) {
+  .term-home-card select { flex: 1 1 100%; }
+}
+
 @media (max-width: 760px) {
   .term-switcher { max-width: 150px; }
   .term-switcher-select { max-width: 95px; font-size: 0.7rem; }

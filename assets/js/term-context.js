@@ -139,6 +139,24 @@ export async function setCurrentTerm(termId) {
   }
 }
 
+function buildHomeCard(ctx) {
+  const card = document.getElementById('term-home-card');
+  const select = document.getElementById('term-home-select');
+  const current = document.getElementById('term-home-current');
+  if (!card || !select) return;
+
+  select.innerHTML = ctx.terms
+    .map((term) => `<option value="${term.id}">${termLabel(term)}</option>`)
+    .join('');
+  const active = ctx.terms.find((t) => t.id === ctx.activeId);
+  if (active) {
+    select.value = active.id;
+    if (current) current.textContent = termLabel(active);
+  }
+  select.addEventListener('change', () => setCurrentTerm(select.value));
+  card.classList.remove('hidden');
+}
+
 function buildSwitcher(ctx) {
   if (document.getElementById('term-switcher')) return;
   const header = document.querySelector('.app-header .container') || document.querySelector('.app-header');
@@ -174,7 +192,10 @@ function buildSwitcher(ctx) {
 export async function initTermContext() {
   if (isSkippedPage()) return;
   const ctx = await loadTermContext();
-  if (ctx?.terms?.length) buildSwitcher(ctx);
+  if (ctx?.terms?.length) {
+    buildSwitcher(ctx);
+    buildHomeCard(ctx);
+  }
 }
 
 if (document.readyState === 'loading') {
