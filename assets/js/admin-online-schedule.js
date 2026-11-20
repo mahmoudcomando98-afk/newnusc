@@ -1,14 +1,12 @@
-import { supabase, getProfile } from './supabase.js';
+import { supabase } from './supabase.js';
 import { protectAdminPage } from './auth.js';
 import { escapeHtml, showEmpty, showError, showToast, initIcons, WEEKDAYS_AR } from './utils.js';
 
 let editingId = null;
-let activeTermId = null;
 
 async function init() {
-  const result = await protectAdminPage();
-  if (!result) return;
-  activeTermId = result.profile?.current_term_id || null;
+  const ok = await protectAdminPage();
+  if (!ok) return;
   document.documentElement.classList.remove('admin-auth-pending');
   initIcons();
 
@@ -21,9 +19,11 @@ async function init() {
 }
 
 async function loadMeta() {
-  let query = supabase.from('online_schedule_meta').select('*');
-  query = activeTermId ? query.eq('term_id', activeTermId) : query.eq('id', 1);
-  const { data } = await query.maybeSingle();
+  const { data } = await supabase
+    .from('online_schedule_meta')
+    .select('*')
+    .eq('id', 1)
+    .maybeSingle();
   if (!data) return;
   document.getElementById('meta-title').value = data.title || '';
   document.getElementById('meta-subtitle').value = data.subtitle || '';
@@ -34,17 +34,14 @@ async function loadMeta() {
 async function saveMeta(e) {
   e.preventDefault();
   const payload = {
+    id: 1,
     title: document.getElementById('meta-title').value.trim() || 'جدول الأونلاين',
     subtitle: document.getElementById('meta-subtitle').value.trim() || null,
     note: document.getElementById('meta-note').value.trim() || null,
     footer_note: document.getElementById('meta-footer').value.trim() || null,
     updated_at: new Date().toISOString()
   };
-  if (activeTermId) payload.term_id = activeTermId;
-  else payload.id = 1;
-  const { error } = await supabase
-    .from('online_schedule_meta')
-    .upsert(payload, activeTermId ? { onConflict: 'term_id' } : undefined);
+  const { error } = await supabase.from('online_schedule_meta').upsert(payload);
   if (error) {
     showToast(error.message || 'تعذر حفظ العنوان.', 'error');
     return;

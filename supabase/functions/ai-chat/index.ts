@@ -257,14 +257,12 @@ Deno.serve(async (req) => {
     // 2) المستخدم محظور؟
     const { data: profile } = await admin
       .from('profiles')
-      .select('id, full_name, is_active, role, gender, current_term_id')
+      .select('id, full_name, is_active, role, gender')
       .eq('id', user.id)
       .maybeSingle();
     if (profile && profile.is_active === false) {
       return json({ ok: false, error: 'حسابك موقوف مؤقتًا. تواصل مع الإدارة.' }, 403);
     }
-    const termId = profile?.current_term_id || null;
-    const scope = (q: any) => (termId ? q.or(`term_id.is.null,term_id.eq.${termId}`) : q);
 
     // 3) حد معدّل لكل طالب (نمرر توكن المستخدم لأن check_rate_limit ترجع false لو auth.uid() == NULL)
     const { data: allowed } = await userClient.rpc('check_rate_limit', {
@@ -296,32 +294,26 @@ Deno.serve(async (req) => {
       { data: quizzes },
       { data: knowledge }
     ] = await Promise.all([
-      scope(admin.from('subjects').select('name, code, instructor').eq('is_published', true).order('created_at')),
-      scope(
-        admin
-          .from('materials')
-          .select('title, material_type, subject_id, is_published, created_at, due_at')
-          .eq('is_published', true)
-          .order('created_at', { ascending: false })
-          .limit(30)
-      ),
+      admin.from('subjects').select('name, code, instructor').eq('is_published', true).order('created_at'),
+      admin
+        .from('materials')
+        .select('title, material_type, subject_id, is_published, created_at, due_at')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false })
+        .limit(30),
       admin.from('faq').select('question, answer').eq('is_published', true).order('sort_order').limit(20),
-      scope(
-        admin
-          .from('announcements')
-          .select('title, content, created_at, is_pinned')
-          .eq('is_published', true)
-          .order('created_at', { ascending: false })
-          .limit(5)
-      ),
-      scope(
-        admin
-          .from('quizzes')
-          .select('title, start_at, end_at, status, subject_id')
-          .eq('is_published', true)
-          .order('start_at', { ascending: true })
-          .limit(10)
-      ),
+      admin
+        .from('announcements')
+        .select('title, content, created_at, is_pinned')
+        .eq('is_published', true)
+        .order('created_at', { ascending: false })
+        .limit(5),
+      admin
+        .from('quizzes')
+        .select('title, start_at, end_at, status, subject_id')
+        .eq('is_published', true)
+        .order('start_at', { ascending: true })
+        .limit(10),
       admin
         .from('ai_knowledge')
         .select('title, content')

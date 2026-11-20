@@ -3,7 +3,6 @@
  */
 import { supabase } from './supabase.js';
 import { protectPage } from './auth.js';
-import { getCachedTerm, loadTermContext } from './term-context.js';
 import { escapeHtml, showToast, initIcons, WEEKDAYS_AR } from './utils.js';
 
 function formatTimeAr(t) {
@@ -26,11 +25,11 @@ function timeBlock(start, end) {
 }
 
 async function loadMeta() {
-  const ctx = getCachedTerm() || (await loadTermContext());
-  const termId = ctx?.id || ctx?.activeId;
-  let query = supabase.from('online_schedule_meta').select('title, subtitle, note, footer_note');
-  query = termId ? query.eq('term_id', termId) : query.eq('id', 1);
-  const { data } = await query.maybeSingle();
+  const { data } = await supabase
+    .from('online_schedule_meta')
+    .select('title, subtitle, note, footer_note')
+    .eq('id', 1)
+    .maybeSingle();
   return data || {};
 }
 

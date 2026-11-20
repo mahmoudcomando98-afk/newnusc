@@ -27,8 +27,6 @@ const REDESIGN_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/redesign
 const APP_LIKE_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/app-like.css?v=1" />`;
 const APP_LIKE_BODY_SNIPPET = `<script type="module" src="/assets/js/app-like.js?v=1"></script>`;
 const DEVTOOLS_GUARD_BODY_SNIPPET = `<script type="module" src="/assets/js/devtools-guard.js?v=6"></script>`;
-const TERMS_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/terms.css?v=1" />`;
-const TERMS_BODY_SNIPPET = `<script type="module" src="/assets/js/term-context.js?v=1"></script>`;
 
 const SITE_URL = (
   process.env.SITE_URL ||
@@ -169,23 +167,6 @@ function injectDevtoolsGuardPlugin() {
   };
 }
 
-function injectTermsPlugin() {
-  return {
-    name: 'inject-terms-context',
-    transformIndexHtml(html) {
-      let out = html;
-      if (!out.includes('terms.css')) {
-        if (out.includes('</head>')) out = out.replace('</head>', `${TERMS_HEAD_SNIPPET}\n</head>`);
-        else if (out.includes('<head>')) out = out.replace('<head>', `<head>${TERMS_HEAD_SNIPPET}`);
-      }
-      if (!out.includes('/assets/js/term-context.js') && out.includes('</body>')) {
-        out = out.replace('</body>', `${TERMS_BODY_SNIPPET}\n</body>`);
-      }
-      return out;
-    }
-  };
-}
-
 function injectAppLikePlugin() {
   return {
     name: 'inject-app-like',
@@ -245,7 +226,6 @@ export default defineConfig(({ mode }) => {
       injectChatIconPlugin(),
       injectAppLikePlugin(),
       injectDevtoolsGuardPlugin(),
-      injectTermsPlugin(),
       injectOgPlugin(),
       injectRedesignPlugin()
     ],
@@ -289,8 +269,6 @@ export default defineConfig(({ mode }) => {
           maintenance: resolve(import.meta.dirname, 'maintenance.html'),
           status: resolve(import.meta.dirname, 'status.html'),
           'admin-index': resolve(import.meta.dirname, 'admin/index.html'),
-          'admin-terms': resolve(import.meta.dirname, 'admin/terms.html'),
-          'admin-term-workspace': resolve(import.meta.dirname, 'admin/term-workspace.html'),
           'admin-codes': resolve(import.meta.dirname, 'admin/codes.html'),
           'admin-statistics': resolve(import.meta.dirname, 'admin/statistics.html'),
           'admin-subjects': resolve(import.meta.dirname, 'admin/subjects.html'),
