@@ -1,7 +1,7 @@
 /* COMANDO Service Worker — push + installability + شبكة ثابتة على الموبايل */
 const ICON_PATH = '/nusc.png.jpeg';
-const SW_VERSION = 'comando-sw-v3';
-const RUNTIME_CACHE = 'comando-runtime-v3';
+const SW_VERSION = 'comando-sw-v4';
+const RUNTIME_CACHE = 'comando-runtime-v4';
 
 function iconUrl() {
   try {
@@ -78,11 +78,54 @@ self.addEventListener('fetch', (event) => {
   /* طلبات خارجية (Supabase, fonts...) تعدّي عادي */
   if (url.origin !== self.location.origin) return;
 
-  if (HASHED_ASSET.test(url.pathname) || url.pathname.startsWith('/assets/js/')) {
-    event.respondWith(cacheFirst(req));
+  /* صفحات HTML (navigate) — دائمًا من الشبكة أولاً عشان الموبايل ما يظهِرش نسخة قديمة */
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      (async () => {
+        try {
+          const res = await fetch(req);
+          if (res && res.ok) {
+            const cache = await caches.open(RUNTIME_CACHE);
+            cache.put(req, res.clone());
+          }
+          return res;
+        } catch {
+          const cache = await caches.open(RUNTIME_CACHE);
+          const hit = await cache.match(req);
+          if (hit) return hit;
+          return new Response(
+            '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>COMANDO</title></head><body style="font-family:sans-serif;text-align:center;padding:40px"><h1>لا يوجد اتصال</h1><p>اتأكد من الشبكة ثم أعد المحاولة.</p></body></html>',
+            { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+          );
+        }
+      })()
+    );
     return;
   }
-  event.respondWith(networkFirst(req, { cachePage: req.mode === 'navigate' }));
+
+  /* ملفات JS/CSS — جرب الشبكة أولاً، لو مش فيه نت استخدم الكاش المخزن */
+  if (HASHED_ASSET.test(url.pathname) || url.pathname.startsWith('/assets/js/') || url.pathname.startsWith('/assets/css/')) {
+    event.respondWith(
+      (async () => {
+        try {
+          const res = await fetch(req);
+          if (res && res.ok) {
+            const cache = await caches.open(RUNTIME_CACHE);
+            cache.put(req, res.clone());
+          }
+          return res;
+        } catch {
+          const cache = await caches.open(RUNTIME_CACHE);
+          const hit = await cache.match(req);
+          if (hit) return hit;
+          return new Response('', { status: 503, statusText: 'Offline' });
+        }
+      })()
+    );
+    return;
+  }
+
+  event.respondWith(networkFirst(req, { cachePage: false }));
 });
 
 self.addEventListener('push', (event) => {
