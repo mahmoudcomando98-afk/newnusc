@@ -1,12 +1,7 @@
 /*
- * COMANDO base stylesheet
- * Local base only (no CDN @import) — faster first paint, no third-party CSS block.
+ * COMANDO — page-level font rules only.
+ * Base + polish + perf load as parallel <link> tags (injected by Vite) to avoid @import waterfalls.
  */
-@import url("/assets/css/base-legacy.css");
-@import url("/assets/css/mobile-polish.css");
-@import url("/assets/css/app-compact.css");
-@import url("/assets/css/perf.css");
-
 :root {
   --nusc-space-1: 4px;
   --nusc-space-2: 8px;

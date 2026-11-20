@@ -1,4 +1,4 @@
-/* COMANDO paint/layout performance helpers — no visual redesign */
+/* COMANDO paint/layout performance — no visual redesign */
 
 .app-header,
 .bottom-nav,
@@ -11,8 +11,7 @@
 .subject-card,
 .quiz-card,
 .notification-card,
-.announcement-card,
-.feed-panel .list-item {
+.announcement-card {
   content-visibility: auto;
   contain-intrinsic-size: auto 72px;
 }
