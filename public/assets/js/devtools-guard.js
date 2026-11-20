@@ -32,24 +32,29 @@
     /* ignore */
   }
 
-  /* فخ احتياطي: نزرع تحويل قبل الـ debugger عشان المتصفح يتحول وهو لسه مفتوح،
-     ولو مفيش DevTools بنشيله فورًا قبل ما يتفعّل */
-  function debuggerTrap() {
-    var meta = document.createElement('meta');
-    meta.setAttribute('http-equiv', 'refresh');
-    meta.setAttribute('content', '1;url=/devtools-blocked.html');
-    document.head.appendChild(meta);
-
-    var started = performance.now();
-    /* eslint-disable-next-line no-debugger */
-    debugger;
-    var elapsed = performance.now() - started;
-
-    if (elapsed < 60 && meta.parentNode) {
-      meta.parentNode.removeChild(meta);
-      return false;
-    }
-    return true;
+  /* فخ Console: المتصفح بيترجم رسائل console بس لما أدوات المطوّر تكون مفتوحة،
+     فأول ما تفتح الـ getters بتتCalled ونحوّل فورًا من غير أي تجميد */
+  function consoleTrap() {
+    var fired = false;
+    var probe = {};
+    Object.defineProperty(probe, 'id', {
+      configurable: true,
+      get: function () {
+        if (!fired) {
+          fired = true;
+          block();
+        }
+        return 'COMANDO';
+      }
+    });
+    probe.toString = function () {
+      if (!fired) {
+        fired = true;
+        block();
+      }
+      return 'COMANDO';
+    };
+    console.log('%o', probe);
   }
 
   /* DevTools المدمج بيصغّر مساحة الصفحة جوّه نفس النافذة */
@@ -71,10 +76,7 @@
   }
 
   function check() {
-    if (debuggerTrap()) {
-      block();
-      return;
-    }
+    consoleTrap();
     /* محاولتين متتاليتين عشان ما يتحولش بسبب تغيير حجم مؤقت */
     if (looksOpen()) {
       hits += 1;
@@ -108,7 +110,7 @@
     e.preventDefault();
   });
 
-  /* كشف سريع: تحويل مباشر للرئيسية من غير أي صفحة وسيطة */
+  /* فحص سريع ومستمر — التحويل لصفحة المانع أول ما يتكشف الفتح */
   setTimeout(function () {
     check();
     setInterval(check, 700);
