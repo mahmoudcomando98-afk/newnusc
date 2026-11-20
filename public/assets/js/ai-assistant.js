@@ -151,11 +151,13 @@ var CLOSE_SVG =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 
 var state = { open: false, sending: false, messages: [], gender: null };
+var started = false;
 
 function $(id) { return document.getElementById(id); }
 function getToken() {
   try {
     var raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) raw = sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     var parsed = JSON.parse(raw);
     return parsed?.access_token || null;
@@ -669,11 +671,19 @@ function rigRobot() {
   });
 }
 
-function init() {
+function init(attempt) {
+  if (started) return;
+  attempt = attempt || 0;
   var path = (window.location.pathname || '').toLowerCase();
   if (/admin/i.test(path)) return;
   if (/\/chat(\.html)?$/.test(path)) return;
-  if (!getToken()) return;
+
+  /* على الموبايل الجلسة ممكن تتحفظ في sessionStorage أو تتأخر في الاستعادة — نستنى شوية بدل ما نرمي الشات */
+  if (!getToken()) {
+    if (attempt < 25) setTimeout(function () { init(attempt + 1); }, 400);
+    return;
+  }
+  started = true;
 
   // تنظيف مفاتيح قديمة من نسخ سابقة كانت بتحفظ المحادثة محليًا أو بتفتح تلقائي
   try { localStorage.removeItem('ai_chat_history_v1'); } catch { /* ignore */ }

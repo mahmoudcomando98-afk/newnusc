@@ -100,9 +100,13 @@
         <a href="/updates.html" data-nav="updates">آخر التحديثات</a>
       </nav>
       <div class="header-actions">
-        <button type="button" class="header-btn app-update-header-btn hidden" id="app-update-btn" title="تحديث التطبيق" aria-label="تحديث التطبيق">
-          <span data-icon="refresh"></span>
-        </button>
+        <div class="app-update-wrap hidden" id="app-update-wrap">
+          <button type="button" class="header-btn app-update-header-btn" id="app-update-btn" title="تحديث التطبيق" aria-label="تحديث التطبيق">
+            <span class="app-update-spinner" aria-hidden="true"></span>
+            <span data-icon="refresh"></span>
+          </button>
+          <span class="app-update-status" id="app-update-status" aria-live="polite"></span>
+        </div>
         <a href="/notifications.html" class="header-btn notification-header-btn" title="الإشعارات" aria-label="الإشعارات" id="notif-btn">
           <span data-icon="bell"></span>
           <span class="notification-dot hidden" id="notif-dot"></span>
