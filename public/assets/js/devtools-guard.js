@@ -32,6 +32,14 @@
     /* ignore */
   }
 
+  /* فخ احتياطي: لو DevTools مفتوح، الـ debugger بيقف لحظة وبعد الاستئناف بنحوّل فورًا */
+  function debuggerTrap() {
+    var started = performance.now();
+    /* eslint-disable-next-line no-debugger */
+    debugger;
+    return performance.now() - started > 60;
+  }
+
   /* DevTools المدمج بيصغّر مساحة الصفحة جوّه نفس النافذة */
   function looksOpen() {
     var widthGap = window.outerWidth - window.innerWidth;
@@ -51,6 +59,10 @@
   }
 
   function check() {
+    if (debuggerTrap()) {
+      block();
+      return;
+    }
     /* محاولتين متتاليتين عشان ما يتحولش بسبب تغيير حجم مؤقت */
     if (looksOpen()) {
       hits += 1;

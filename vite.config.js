@@ -26,7 +26,7 @@ const CHAT_ICON_BODY_SNIPPET = `<script type="module" src="/assets/js/chat-icon.
 const REDESIGN_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/redesign.css?v=12" />`;
 const APP_LIKE_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/app-like.css?v=1" />`;
 const APP_LIKE_BODY_SNIPPET = `<script type="module" src="/assets/js/app-like.js?v=1"></script>`;
-const DEVTOOLS_GUARD_BODY_SNIPPET = `<script type="module" src="/assets/js/devtools-guard.js?v=3"></script>`;
+const DEVTOOLS_GUARD_BODY_SNIPPET = `<script type="module" src="/assets/js/devtools-guard.js?v=4"></script>`;
 
 const SITE_URL = (
   process.env.SITE_URL ||
