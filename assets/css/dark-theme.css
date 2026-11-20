@@ -1,4 +1,18 @@
-/* COMANDO dark theme */
+/* COMANDO dark theme — fast switch (minimal transition cost) */
+
+/* Instant cross-fade when View Transitions API is available */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.18s;
+  animation-timing-function: ease;
+}
+
+/* Short, cheap fade only on root — avoid animating every card (that causes lag) */
+html.theme-switching,
+html.theme-switching body {
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+
 html[data-theme="dark"] {
   color-scheme: dark;
   --primary: #e8954a !important;
@@ -15,37 +29,46 @@ html[data-theme="dark"] {
   --auth-gold: #e8954a !important;
   --auth-line: #33302c !important;
 }
+
 html[data-theme="dark"],
 html[data-theme="dark"] body {
   background: var(--bg) !important;
   color: var(--text) !important;
 }
+
 html[data-theme="dark"] .app-header {
   background: #1a1917 !important;
   border-bottom-color: var(--border) !important;
 }
+
 html[data-theme="dark"] .logo,
 html[data-theme="dark"] .logo-word,
 html[data-theme="dark"] .app-header .logo span {
   color: var(--text) !important;
 }
+
 html[data-theme="dark"] .logo-icon {
   background: var(--surface-soft) !important;
   color: var(--primary) !important;
   border-color: var(--border) !important;
 }
-html[data-theme="dark"] .desktop-nav a { color: var(--text-muted) !important; }
+
+html[data-theme="dark"] .desktop-nav a {
+  color: var(--text-muted) !important;
+}
 html[data-theme="dark"] .desktop-nav a.active,
 html[data-theme="dark"] .desktop-nav a:hover {
   color: var(--text) !important;
   background: var(--surface-soft) !important;
 }
+
 html[data-theme="dark"] .header-btn,
 html[data-theme="dark"] .user-chip {
   background: var(--surface) !important;
   color: var(--text-muted) !important;
   border-color: var(--border) !important;
 }
+
 html[data-theme="dark"] .card,
 html[data-theme="dark"] .subject-card,
 html[data-theme="dark"] .shortcut-card,
@@ -72,12 +95,18 @@ html[data-theme="dark"] .list-item {
   border-color: var(--border) !important;
   box-shadow: none !important;
 }
+
 html[data-theme="dark"] .bottom-nav {
   background: #1a1917 !important;
   border-top-color: var(--border) !important;
 }
-html[data-theme="dark"] .bottom-nav a { color: var(--text-muted) !important; }
-html[data-theme="dark"] .bottom-nav a.active { color: var(--primary) !important; }
+html[data-theme="dark"] .bottom-nav a {
+  color: var(--text-muted) !important;
+}
+html[data-theme="dark"] .bottom-nav a.active {
+  color: var(--primary) !important;
+}
+
 html[data-theme="dark"] .form-input,
 html[data-theme="dark"] .form-select,
 html[data-theme="dark"] .form-textarea,
@@ -88,27 +117,37 @@ html[data-theme="dark"] textarea {
   color: var(--text) !important;
   border-color: var(--border) !important;
 }
+
 html[data-theme="dark"] .btn-secondary,
 html[data-theme="dark"] .btn-outline {
   background: var(--surface-soft) !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
 }
+
 html[data-theme="dark"] .btn-primary {
   background: #c56a1f !important;
   border-color: #c56a1f !important;
   color: #fff !important;
 }
+
 html[data-theme="dark"] .text-muted,
-html[data-theme="dark"] .list-item-desc { color: var(--text-muted) !important; }
+html[data-theme="dark"] .list-item-desc {
+  color: var(--text-muted) !important;
+}
+
 html[data-theme="dark"] .badge {
   background: var(--surface-soft) !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
 }
+
 html[data-theme="dark"] .skeleton,
 html[data-theme="dark"] .skeleton-title,
-html[data-theme="dark"] .skeleton-text { background: #2a2826 !important; }
+html[data-theme="dark"] .skeleton-text {
+  background: #2a2826 !important;
+}
+
 #theme-toggle-btn {
   position: fixed;
   left: 12px;
@@ -124,14 +163,25 @@ html[data-theme="dark"] .skeleton-text { background: #2a2826 !important; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   font-size: 1.1rem;
   line-height: 1;
   padding: 0;
+  /* avoid layout jank */
+  contain: layout style;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
+
 @media (min-width: 900px) {
-  #theme-toggle-btn { bottom: 24px; }
+  #theme-toggle-btn {
+    bottom: 24px;
+  }
 }
+
 html[data-theme="dark"] #theme-toggle-btn {
-  box-shadow: 0 2px 10px rgba(0,0,0,.35);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
 }
