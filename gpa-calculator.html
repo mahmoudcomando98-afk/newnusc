@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#faf9f7" />
+  <meta name="description" content="حاسبة GPA من COMANDO — احسب معدلك الفصلي والتراكمي بدقة حسب نظام التقديرات اللي جامعتك بتستخدمه." />
+  <link rel="icon" href="/nusc.png.jpeg" type="image/jpeg" />
+  <title>حاسبة GPA | COMANDO</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=comando-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-2" />
+  <link rel="stylesheet" href="/assets/css/gpa-calculator.css?v=1" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/home.html" class="logo">
+        <span class="logo-icon">C</span>
+        <span class="logo-word">COMANDO</span>
+      </a>
+      <nav class="desktop-nav" aria-label="التنقل الرئيسي">
+        <a href="/home.html" data-nav="home">الرئيسية</a>
+        <a href="/subjects.html" data-nav="subjects">المواد</a>
+        <a href="/study-plan.html" data-nav="study-plan">خطتي</a>
+        <a href="/gpa-calculator.html" class="active" data-nav="gpa">حاسبة GPA</a>
+        <a href="/quizzes.html" data-nav="quizzes">الكويزات</a>
+        <a href="/schedule.html" data-nav="schedule">الجدول</a>
+        <a href="/profile.html" data-nav="profile">حسابي</a>
+      </nav>
+      <div class="header-actions">
+        <a href="/notifications.html" class="header-btn notification-header-btn" title="الإشعارات" aria-label="الإشعارات">
+          <span data-icon="bell"></span>
+          <span class="notification-dot hidden" id="notif-dot"></span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="container page-content gpa-root">
+      <section class="gpa-hero" aria-labelledby="gpa-title">
+        <div class="gpa-hero-icon" aria-hidden="true"><span data-icon="calculator"></span></div>
+        <div>
+          <h1 id="gpa-title">حاسبة GPA</h1>
+          <p>احسب معدلك الفصلي والتراكمي بدقة — اختار نظام التقديرات اللي جامعتك بتستخدمه، وضيف موادك وساعاتها.</p>
+        </div>
+      </section>
+
+      <div class="gpa-layout">
+        <div class="gpa-main">
+          <!-- إعدادات الحساب -->
+          <section class="card gpa-card" aria-labelledby="gpa-settings-title">
+            <div class="gpa-card-head">
+              <h2 class="card-title" id="gpa-settings-title">إعدادات الحساب</h2>
+              <span class="gpa-pill">مقياس من 4.00</span>
+            </div>
+            <div class="gpa-settings-grid">
+              <div class="form-group">
+                <label class="form-label" for="gpa-mode">طريقة إدخال الدرجات</label>
+                <select id="gpa-mode" class="form-select">
+                  <option value="letter">تقدير (A / B+ / امتياز…)</option>
+                  <option value="points">نقاط مباشرة (0 – 4)</option>
+                  <option value="percent">نسبة مئوية (0 – 100)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="gpa-preset">نظام التقديرات</label>
+                <select id="gpa-preset" class="form-select"></select>
+              </div>
+            </div>
+            <details class="gpa-scale-details" id="gpa-scale-details">
+              <summary>ضبط نقاط التقديرات (متقدم)</summary>
+              <p class="gpa-hint">عدّل نقاط أي تقدير لو جامعتك بتستخدم نظام مختلف. أي تعديل هنا بيتحفظ تلقائيًا وبيتحوّل لنظام «مخصص».</p>
+              <div class="gpa-scale-editor" id="gpa-scale-editor"></div>
+            </details>
+          </section>
+
+          <!-- مواد الفصل -->
+          <section class="card gpa-card" aria-labelledby="gpa-courses-title">
+            <div class="gpa-card-head">
+              <h2 class="card-title" id="gpa-courses-title">مواد الفصل</h2>
+              <span class="gpa-count" id="gpa-course-count">0 مادة</span>
+            </div>
+            <div class="gpa-courses" id="gpa-courses"></div>
+            <div class="gpa-alert hidden" id="gpa-alert" role="alert"></div>
+            <button type="button" class="btn btn-secondary gpa-add-btn" id="gpa-add">+ إضافة مادة</button>
+          </section>
+
+          <!-- المعدل التراكمي -->
+          <section class="card gpa-card" aria-labelledby="gpa-cum-title">
+            <div class="gpa-card-head">
+              <h2 class="card-title" id="gpa-cum-title">المعدل التراكمي</h2>
+              <label class="gpa-switch">
+                <input type="checkbox" id="gpa-cum-enabled" />
+                <span>احتساب التراكمي</span>
+              </label>
+            </div>
+            <p class="gpa-hint">لو عندك معدل قديم، دخّله عشان نحسب المعدل التراكمي الجديد بعد مواد الفصل ده.</p>
+            <div class="gpa-settings-grid gpa-cum-fields is-disabled" id="gpa-cum-fields">
+              <div class="form-group">
+                <label class="form-label" for="gpa-prev-gpa">GPA التراكمي السابق (من 4)</label>
+                <input type="number" id="gpa-prev-gpa" class="form-input" min="0" max="4" step="0.01" inputmode="decimal" placeholder="مثال: 3.25" disabled />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="gpa-prev-hours">الساعات المجتازة سابقًا</label>
+                <input type="number" id="gpa-prev-hours" class="form-input" min="0" max="300" step="1" inputmode="numeric" placeholder="مثال: 60" disabled />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="gpa-side">
+          <!-- النتيجة -->
+          <section class="card gpa-result" id="gpa-result-card" aria-live="polite">
+            <div class="gpa-result-top">
+              <span class="gpa-result-kicker">معدل الفصل</span>
+              <span class="gpa-grade-badge" id="gpa-grade-label">—</span>
+            </div>
+            <div class="gpa-result-value">
+              <strong id="gpa-value">0.00</strong>
+              <span>/ 4.00</span>
+            </div>
+            <div class="gpa-progress" aria-hidden="true"><span id="gpa-progress-bar"></span></div>
+            <p class="gpa-result-note" id="gpa-result-note">ضيف موادك وساعاتها عشان يظهر المعدل.</p>
+            <div class="gpa-mini-stats">
+              <div><strong id="gpa-hours">0</strong><small>ساعة معتمدة</small></div>
+              <div><strong id="gpa-points">0</strong><small>مجموع النقاط</small></div>
+            </div>
+            <div class="gpa-cum-box hidden" id="gpa-cum-box">
+              <div>
+                <span>GPA التراكمي الجديد</span>
+                <strong id="gpa-cum-value">—</strong>
+              </div>
+              <div class="gpa-cum-meta">
+                <span id="gpa-cum-hours">0 ساعة إجمالية</span>
+                <span id="gpa-cum-label">—</span>
+              </div>
+            </div>
+            <div class="gpa-actions">
+              <button type="button" class="btn btn-primary" id="gpa-calc">احسب المعدل</button>
+              <button type="button" class="btn btn-secondary" id="gpa-reset">إعادة ضبط</button>
+            </div>
+          </section>
+
+          <!-- المساعدة -->
+          <section class="card gpa-help" aria-labelledby="gpa-help-title">
+            <h2 class="card-title" id="gpa-help-title">إزاي بنحسب؟</h2>
+            <ul>
+              <li>نقاط المادة = نقاط التقدير × عدد الساعات.</li>
+              <li>GPA الفصل = مجموع النقاط ÷ مجموع الساعات.</li>
+              <li>GPA التراكمي = (نقاطك القديمة + نقاط الفصل) ÷ (ساعاتك القديمة + ساعات الفصل).</li>
+              <li>التحويل من نسبة مئوية بيستخدم جدول قياسي (90+ = 4.00 … أقل من 60 = 0).</li>
+            </ul>
+            <button type="button" class="gpa-link-btn" id="gpa-clear-storage">حذف البيانات المحفوظة على الجهاز</button>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <strong class="footer-brand">COMANDO</strong>
+    <div class="footer-credit">
+      <span class="footer-credit-label">تم التطوير بواسطة</span>
+      <strong class="footer-credit-name">Mahmoud Oshiba</strong>
+    </div>
+  </footer>
+
+  <nav class="bottom-nav">
+    <a href="/home.html" data-nav="home"><span data-icon="home"></span>الرئيسية</a>
+    <a href="/subjects.html" data-nav="subjects"><span data-icon="book"></span>المواد</a>
+    <a href="/study-plan.html" data-nav="study-plan"><span data-icon="clipboard"></span>خطتي</a>
+    <a href="/quizzes.html" data-nav="quizzes"><span data-icon="clipboard"></span>الكويزات</a>
+    <a href="/profile.html" data-nav="profile"><span data-icon="user"></span>حسابي</a>
+  </nav>
+
+  <script type="module" src="/assets/js/gpa-calculator.js?v=1"></script>
+</body>
+</html>
