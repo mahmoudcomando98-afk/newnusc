@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#faf9f7" />
+  <title>حالة المنصة | COMANDO</title>
+  <link rel="stylesheet" href="/assets/css/main.css?v=comando-1" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-1" />
+  <style>
+    .status-grid { display: grid; gap: 12px; margin-top: 16px; }
+    .status-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border,#ebe6e1); border-radius: 10px; background: #fff; }
+    .status-ok { color: #2e7d32; font-weight: 700; }
+    .status-bad { color: #c62828; font-weight: 700; }
+    .status-wait { color: #ef6c00; font-weight: 600; }
+    .status-meta { font-size: 0.85rem; color: #7a736c; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <a href="/home.html" class="logo"><span>حالة المنصة</span></a>
+    </div>
+  </header>
+  <main class="page">
+    <div class="container page-content" style="max-width:560px;padding-bottom:40px">
+      <h1 style="font-size:1.2rem;margin:12px 0 4px">حالة خدمات COMANDO</h1>
+      <p class="text-sm text-muted">فحص سريع للاتصال بقاعدة البيانات من جهازك.</p>
+      <div class="status-grid" id="checks">
+        <div class="status-row"><span>الاتصال بالإنترنت</span><span id="net" class="status-wait">جاري الفحص…</span></div>
+        <div class="status-row"><span>Supabase (قاعدة البيانات)</span><span id="db" class="status-wait">جاري الفحص…</span></div>
+        <div class="status-row"><span>زمن الاستجابة</span><span id="lat" class="status-wait">—</span></div>
+      </div>
+      <p class="status-meta" id="updated">آخر فحص: —</p>
+      <div class="flex gap-1" style="margin-top:16px">
+        <button type="button" class="btn btn-primary" id="recheck">إعادة الفحص</button>
+        <a class="btn btn-secondary" href="/home.html">الرئيسية</a>
+      </div>
+    </div>
+  </main>
+  <script type="module">
+    import { supabase } from '/assets/js/supabase.js';
+
+    function set(id, text, cls) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = text;
+      el.className = cls;
+    }
+
+    async function run() {
+      set('net', navigator.onLine ? 'متصل' : 'غير متصل', navigator.onLine ? 'status-ok' : 'status-bad');
+      set('db', 'جاري الفحص…', 'status-wait');
+      set('lat', '—', 'status-wait');
+      const t0 = performance.now();
+      try {
+        const { error } = await Promise.race([
+          supabase.from('subjects').select('id').limit(1),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))
+        ]);
+        const ms = Math.round(performance.now() - t0);
+        if (error) {
+          set('db', 'مشكلة: ' + (error.message || 'خطأ'), 'status-bad');
+          set('lat', ms + ' ms', 'status-bad');
+        } else {
+          set('db', 'يعمل بشكل طبيعي', 'status-ok');
+          set('lat', ms + ' ms', ms > 2500 ? 'status-wait' : 'status-ok');
+        }
+      } catch (e) {
+        set('db', 'تعذر الاتصال', 'status-bad');
+        set('lat', 'انتهت المهلة', 'status-bad');
+      }
+      document.getElementById('updated').textContent =
+        'آخر فحص: ' + new Date().toLocaleString('ar-EG');
+    }
+
+    document.getElementById('recheck').addEventListener('click', run);
+    window.addEventListener('online', run);
+    window.addEventListener('offline', run);
+    run();
+  </script>
+</body>
+</html>
