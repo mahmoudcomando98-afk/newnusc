@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>إدارة الفصول الدراسية | COMANDO</title>
+  <style>html.admin-auth-pending body{visibility:hidden!important}</style>
+  <script>document.documentElement.classList.add('admin-auth-pending')</script>
+  <link rel="stylesheet" href="/assets/css/main.css?v=comando-2" />
+  <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=comando-2" />
+  <link rel="stylesheet" href="/assets/css/terms.css?v=1" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="container">
+      <div style="display:flex;align-items:center;gap:10px">
+        <a href="/admin/index.html" class="header-btn" aria-label="رجوع للوحة الأدمن">←</a>
+        <div>
+          <a href="/admin/index.html" class="text-sm text-muted" style="text-decoration:none">لوحة الأدمن</a>
+          <div style="font-weight:800;color:var(--text)">إدارة الفصول الدراسية</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="/home.html" class="header-btn" title="العودة للمنصة">🏠</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="container page-content">
+      <section class="card mb-3">
+        <h1 class="card-title" style="font-size:1.2rem">إدارة الفصول الدراسية</h1>
+        <p class="text-sm text-muted" style="margin:4px 0 0">
+          أنشئ ترمات مستقلة، واضبط الترم الافتراضي، وعيّن مسؤول لكل ترم. كل ترم له محتواه وصلاحياته المنفصلة.
+        </p>
+      </section>
+
+      <div class="terms-layout">
+        <div>
+          <section class="card mb-3" aria-labelledby="terms-list-title">
+            <div class="gpa-card-head" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <h2 class="card-title" id="terms-list-title" style="margin:0">الفصول الدراسية</h2>
+              <button type="button" class="btn btn-secondary term-btn-sm" id="terms-reload">تحديث القائمة</button>
+            </div>
+            <div id="terms-list" class="terms-list" aria-live="polite">
+              <div class="terms-empty">جاري تحميل الفصول…</div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="terms-side">
+          <section class="card mb-3" aria-labelledby="term-create-title">
+            <h2 class="card-title" id="term-create-title">ترم جديد</h2>
+            <form id="term-create-form" class="terms-form" autocomplete="off">
+              <div class="form-group">
+                <label class="form-label" for="term-name">اسم الترم *</label>
+                <input id="term-name" class="form-input" maxlength="80" required placeholder="مثال: الترم الثاني" />
+              </div>
+              <div class="terms-inline">
+                <div class="form-group">
+                  <label class="form-label" for="term-year">السنة الدراسية</label>
+                  <input id="term-year" class="form-input" maxlength="40" placeholder="2025/2026" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="term-status">الحالة</label>
+                  <select id="term-status" class="form-select">
+                    <option value="draft">مسودة</option>
+                    <option value="active" selected>مفعّل</option>
+                    <option value="paused">موقوف</option>
+                    <option value="archived">مؤرشف</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="term-desc">الوصف</label>
+                <textarea id="term-desc" class="form-input" rows="2" maxlength="300" placeholder="وصف مختصر للترم"></textarea>
+              </div>
+              <label class="gpa-switch" style="display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700;margin-bottom:8px">
+                <input type="checkbox" id="term-public" checked /> متاح لكل الطلاب
+              </label>
+              <label class="gpa-switch" style="display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700;margin-bottom:12px">
+                <input type="checkbox" id="term-default" /> الترم الافتراضي
+              </label>
+              <button type="submit" class="btn btn-primary btn-block" id="term-create-btn">إنشاء الترم</button>
+            </form>
+          </section>
+
+          <section class="card mb-3" aria-labelledby="term-admins-title">
+            <h2 class="card-title" id="term-admins-title">مسؤولو الترم</h2>
+            <p class="term-help">اختر ترمًا من القائمة لعرض مسؤوليه وإضافة مسؤول فرعي بصلاحيات محددة.</p>
+            <div class="form-group">
+              <label class="form-label" for="admin-term-select">الترم</label>
+              <select id="admin-term-select" class="form-select"><option value="">— اختر ترمًا —</option></select>
+            </div>
+            <div id="term-admins-list" class="term-admins-list" aria-live="polite">
+              <div class="terms-empty">اختر ترمًا أولًا.</div>
+            </div>
+            <div class="terms-inline" style="margin-top:10px">
+              <input id="admin-code" class="form-input" placeholder="كود الطالب للمسؤول" maxlength="60" />
+              <button type="button" class="btn btn-secondary term-btn-sm" id="admin-add-btn">إضافة مسؤول</button>
+            </div>
+          </section>
+
+          <section class="card" aria-labelledby="terms-help-title">
+            <h2 class="card-title" id="terms-help-title">ملاحظات مهمة</h2>
+            <p class="term-help">
+              حذف الترم غير متاح عمدًا — استخدم «أرشفة» عشان تحفظ البيانات. الترم المؤرشف ما يظهرش للطلاب.
+              الصلاحيات مطبّقة في قاعدة البيانات، فتعديل الرابط ما يسمحش بالوصول لترم مش مخصص.
+            </p>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/assets/js/admin-terms.js?v=1"></script>
+</body>
+</html>

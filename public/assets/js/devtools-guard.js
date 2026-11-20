@@ -32,8 +32,15 @@
     /* ignore */
   }
 
-  /* فخ Console: المتصفح بيترجم رسائل console بس لما أدوات المطوّر تكون مفتوحة،
-     فأول ما تفتح الـ getters بتتCalled ونحوّل فورًا من غير أي تجميد */
+  /* فخ الـ debugger القديم — بيقف لحظة وبعد الاستئناف بيحوّل لصفحة المانع */
+  function debuggerTrap() {
+    var started = performance.now();
+    /* eslint-disable-next-line no-debugger */
+    debugger;
+    return performance.now() - started > 60;
+  }
+
+  /* فخ Console: المتصفح بيترجم رسائل console بس لما أدوات المطوّر تكون مفتوحة */
   function consoleTrap() {
     var fired = false;
     var probe = {};

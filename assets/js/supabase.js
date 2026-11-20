@@ -463,6 +463,7 @@ function profileFromAuthUser(user) {
     student_id: meta.student_id || null,
     college: meta.college || null,
     academic_year: meta.academic_year || null,
+    current_term_id: meta.current_term_id || null,
     avatar_url: meta.avatar_url || null,
     role: meta.role === 'admin' || meta.role === 'moderator' ? meta.role : 'student',
     is_active: true,
@@ -484,7 +485,7 @@ export async function getProfile(userId = null) {
     const { data, error } = await withTimeout(
       supabase
         .from('profiles')
-        .select('id, full_name, email, student_id, college, academic_year, avatar_url, role, is_active, gender, created_at')
+        .select('id, full_name, email, student_id, college, academic_year, avatar_url, role, is_active, gender, current_term_id, created_at')
         .eq('id', uid)
         .maybeSingle(),
       8000

@@ -105,11 +105,6 @@
       text-decoration: none;
     }
     .blocked-actions a:hover { background: var(--gold-dark); }
-    .blocked-note {
-      margin-top: 14px;
-      font-size: 0.72rem;
-      color: var(--muted);
-    }
     .blocked-count { color: var(--gold-dark); font-weight: 800; }
     @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
   </style>
@@ -133,23 +128,7 @@
       <div class="blocked-actions">
         <a href="/home.html">العودة للرئيسية</a>
       </div>
-      <p class="blocked-note">هترجع تلقائيًا خلال <span class="blocked-count" id="blocked-count">10</span> ثوانٍ.</p>
     </div>
   </section>
-
-  <script>
-    (function () {
-      var el = document.getElementById('blocked-count');
-      var left = 10;
-      var timer = setInterval(function () {
-        left -= 1;
-        if (el) el.textContent = String(Math.max(left, 0));
-        if (left <= 0) {
-          clearInterval(timer);
-          location.replace('/home.html');
-        }
-      }, 1000);
-    })();
-  </script>
 </body>
 </html>
