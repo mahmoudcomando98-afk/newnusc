@@ -1,0 +1,132 @@
+/* COMANDO — جولة تعريفية للطالب الجديد */
+
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(20, 19, 16, 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  backdrop-filter: blur(3px);
+  animation: onboarding-fade 0.22s ease;
+}
+@keyframes onboarding-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.onboarding-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e9e4d6);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+  animation: onboarding-in 0.28s cubic-bezier(.34, 1.4, .64, 1);
+}
+@keyframes onboarding-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.onboarding-top {
+  background: linear-gradient(135deg, #25271f 0%, #3c3e33 100%);
+  color: #fff7d8;
+  padding: 18px 18px 16px;
+  position: relative;
+}
+.onboarding-brand {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #f4d779;
+  letter-spacing: 0.06em;
+}
+.onboarding-title {
+  font-size: 1.12rem;
+  font-weight: 800;
+  margin-top: 4px;
+  color: #fff9e5;
+  line-height: 1.6;
+}
+.onboarding-skip {
+  position: absolute;
+  top: 14px;
+  inset-inline-start: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff7d8;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.onboarding-body {
+  padding: 22px 20px 8px;
+  text-align: center;
+}
+.onboarding-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 12px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-soft, #fbf8ee);
+  border: 1px solid var(--border, #e9e4d6);
+  color: var(--primary-dark, #82621a);
+}
+.onboarding-icon svg { width: 30px; height: 30px; }
+.onboarding-text {
+  font-size: 0.9rem;
+  line-height: 1.9;
+  color: var(--text, #25271f);
+  font-weight: 700;
+  margin: 0;
+}
+.onboarding-sub {
+  font-size: 0.78rem;
+  line-height: 1.8;
+  color: var(--text-muted, #77786e);
+  margin: 6px 0 0;
+}
+
+.onboarding-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 0 4px;
+}
+.onboarding-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--border, #e9e4d6);
+  transition: width 0.2s ease, background 0.2s ease;
+}
+.onboarding-dot.is-active {
+  width: 22px;
+  background: var(--primary, #c69b2d);
+}
+
+.onboarding-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px 20px;
+}
+.onboarding-actions .btn { flex: 1; }
+.onboarding-actions .btn-secondary { background: var(--surface); }
+
+:root[data-theme="dark"] .onboarding-overlay { background: rgba(0, 0, 0, 0.75); }
+:root[data-palette="girl"] .onboarding-top {
+  background: linear-gradient(135deg, #a9245a 0%, #d6336c 100%);
+  color: #fff;
+}
+:root[data-palette="girl"] .onboarding-title,
+:root[data-palette="girl"] .onboarding-brand { color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-overlay, .onboarding-card { animation: none; }
+}

@@ -24,6 +24,10 @@ const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assi
 const CHAT_ICON_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/chat-icon.css?v=1" />`;
 const CHAT_ICON_BODY_SNIPPET = `<script type="module" src="/assets/js/chat-icon.js?v=1"></script>`;
 const REDESIGN_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/redesign.css?v=12" />`;
+const ONBOARDING_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/onboarding.css?v=1" />`;
+const ONBOARDING_BODY_SNIPPET = `<script type="module" src="/assets/js/onboarding.js?v=1"></script>`;
+const APP_LIKE_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/app-like.css?v=1" />`;
+const APP_LIKE_BODY_SNIPPET = `<script type="module" src="/assets/js/app-like.js?v=1"></script>`;
 
 const SITE_URL = (
   process.env.SITE_URL ||
@@ -154,6 +158,40 @@ function injectChatIconPlugin() {
   };
 }
 
+function injectOnboardingPlugin() {
+  return {
+    name: 'inject-onboarding',
+    transformIndexHtml(html) {
+      let out = html;
+      if (!out.includes('onboarding.css')) {
+        if (out.includes('</head>')) out = out.replace('</head>', `${ONBOARDING_HEAD_SNIPPET}\n</head>`);
+        else if (out.includes('<head>')) out = out.replace('<head>', `<head>${ONBOARDING_HEAD_SNIPPET}`);
+      }
+      if (!out.includes('/assets/js/onboarding.js') && out.includes('</body>')) {
+        out = out.replace('</body>', `${ONBOARDING_BODY_SNIPPET}\n</body>`);
+      }
+      return out;
+    }
+  };
+}
+
+function injectAppLikePlugin() {
+  return {
+    name: 'inject-app-like',
+    transformIndexHtml(html) {
+      let out = html;
+      if (!out.includes('app-like.css')) {
+        if (out.includes('</head>')) out = out.replace('</head>', `${APP_LIKE_HEAD_SNIPPET}\n</head>`);
+        else if (out.includes('<head>')) out = out.replace('<head>', `<head>${APP_LIKE_HEAD_SNIPPET}`);
+      }
+      if (!out.includes('/assets/js/app-like.js') && out.includes('</body>')) {
+        out = out.replace('</body>', `${APP_LIKE_BODY_SNIPPET}\n</body>`);
+      }
+      return out;
+    }
+  };
+}
+
 function injectCairoPlugin() {
   return {
     name: 'inject-cairo-font',
@@ -194,6 +232,8 @@ export default defineConfig(({ mode }) => {
       injectThemePlugin(),
       injectAiAssistantPlugin(),
       injectChatIconPlugin(),
+      injectOnboardingPlugin(),
+      injectAppLikePlugin(),
       injectOgPlugin(),
       injectRedesignPlugin()
     ],
