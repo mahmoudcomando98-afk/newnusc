@@ -573,7 +573,7 @@ function buildPanel() {
       '<div class="ai-header">' +
         '<div class="ai-header-icon">' + robot + '</div>' +
         '<div class="ai-header-text">' +
-          '<p class="ai-header-title">' + botNameFull() + '<span class="ai-header-badge">' + (theme === 'female' ? 'شابة' : 'شاب') + '</span></p>' +
+          '<p class="ai-header-title">' + botNameFull() + '</p>' +
           '<p class="ai-header-sub">يعرف مجال الدراسة والجدول والامتحانات</p>' +
         '</div>' +
         '<button type="button" class="ai-close" id="ai-close" aria-label="إغلاق">' + CLOSE_SVG + '</button>' +
