@@ -6,21 +6,18 @@ const CAIRO_HEAD_SNIPPET = `
   <style id="comando-cairo-boot">html,body,button,input,select,textarea{font-family:"Cairo",Tahoma,Arial,sans-serif!important}</style>
 `;
 
-/* يُحقن في كل صفحة: سكربت تهيئة الوضع الليلي (قبل الرسم لمنع الوميض) + ملف أنماطه + سكربت الزر
-   الافتراضي دائمًا نهاري — الطالب يقدر يبدّل بنفسه ويحفظ اختياره */
 const THEME_HEAD_SNIPPET = `
   <script id="comando-theme-init">(function(){try{var t=localStorage.getItem('comando-theme');if(t!=='dark'&&t!=='light'){t='light';}}catch(e){t='light';}document.documentElement.setAttribute('data-theme',t);try{var p=localStorage.getItem('comando-palette');var path=(window.location.pathname||'').toLowerCase();var skip=/login|register|signup|sign-up/.test(path);if(p==='girl'&&!skip){document.documentElement.setAttribute('data-palette','girl');}}catch(e){}})();</script>
-  <link rel="stylesheet" href="/assets/css/dark-theme.css?v=4" />
+  <link rel="stylesheet" href="/assets/css/dark-theme.css?v=5" />
   <link rel="stylesheet" href="/assets/css/girl-theme.css?v=2" />
 `;
-const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=3"></script>`;
+const THEME_BODY_SNIPPET = `<script type="module" src="/assets/js/theme.js?v=4"></script>`;
 const AI_ASSISTANT_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/ai-assistant.css?v=16" />`;
 const AI_ASSISTANT_BODY_SNIPPET = `<script type="module" src="/assets/js/ai-assistant.js?v=20"></script>`;
 const CHAT_ICON_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/chat-icon.css?v=1" />`;
 const CHAT_ICON_BODY_SNIPPET = `<script type="module" src="/assets/js/chat-icon.js?v=1"></script>`;
 const REDESIGN_HEAD_SNIPPET = `<link rel="stylesheet" href="/assets/css/redesign.css?v=12" />`;
 
-/* رابط الموقع النهائي — من متغيرات Vercel وقت النشر؛ محليًا (Vite preview) يفضل نسبي */
 const SITE_URL = (
   process.env.SITE_URL ||
   (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '') ||
@@ -48,43 +45,24 @@ function buildOgBlock(siteUrl, pagePath) {
     `<meta property="og:image" content="${image}" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="COMANDO" />`,
-    `<meta property="og:locale" content="ar_EG" />`,
-    ...(siteUrl ? [`<meta property="og:url" content="${siteUrl}${pagePath || '/'}" />`] : []),
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${OG_DEFAULT_TITLE}" />`,
     `<meta name="twitter:description" content="${OG_DEFAULT_DESC}" />`,
-    `<meta name="twitter:image" content="${image}" />`,
-  ].join('\n  ');
+    `<meta name="twitter:image" content="${image}" />`
+  ].join('\n    ');
 }
 
-/* يضمن إن og:image مطلق (مطلوب للمعاينة في واتساب) + يضيف og tags افتراضية للصفحات اللي معندهاش */
 function injectOgPlugin() {
   return {
-    name: 'inject-og-absolute',
+    name: 'inject-og',
     transformIndexHtml(html, ctx) {
-      let out = html;
-      const pagePath = pagePathFromFilename(ctx?.filename);
-      if (SITE_URL) {
-        out = out.replace(/(<meta property="og:image" content=")\/([^"]+)(")/g, `$1${SITE_URL}/$2$3`);
-        out = out.replace(/(<meta name="twitter:image" content=")\/([^"]+)(")/g, `$1${SITE_URL}/$2$3`);
-        /* og:url — أضفه إن كان ناقصًا */
-        if (/<meta property="og:image"/.test(out) && !/property="og:url"/.test(out)) {
-          out = out.replace('</head>', `  <meta property="og:url" content="${SITE_URL}${pagePath}" />\n</head>`);
-        }
+      if (html.includes('og:title')) return html;
+      const path = pagePathFromFilename(ctx?.filename || ctx?.path || '');
+      const block = buildOgBlock(SITE_URL, path);
+      if (html.includes('</head>')) {
+        return html.replace('</head>', `    ${block}\n  </head>`);
       }
-      if (!out.includes('og:title')) {
-        const block = buildOgBlock(SITE_URL, pagePath);
-        if (out.includes('</head>')) {
-          out = out.replace('</head>', `  ${block}\n</head>`);
-        } else if (out.includes('<head>')) {
-          out = out.replace('<head>', `<head>${block}`);
-        }
-      }
-      /* twitter:card لازم summary_large_image دايمًا */
-      if (!/name="twitter:card"/.test(out) && /og:title/.test(out)) {
-        out = out.replace('</head>', '  <meta name="twitter:card" content="summary_large_image" />\n</head>');
-      }
-      return out;
+      return html;
     }
   };
 }
@@ -130,7 +108,6 @@ function injectThemePlugin() {
 }
 
 function injectRedesignPlugin() {
-  // تُدرج آخر الجافاكريبت/الـ CSS — بعد neutral-theme — عشان تكسب أي تعادل specificity
   return {
     name: 'inject-redesign',
     transformIndexHtml: {
@@ -193,7 +170,14 @@ export default defineConfig(({ mode }) => {
     root: '.',
     publicDir: 'public',
     envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
-    plugins: [injectCairoPlugin(), injectThemePlugin(), injectAiAssistantPlugin(), injectChatIconPlugin(), injectOgPlugin(), injectRedesignPlugin()],
+    plugins: [
+      injectCairoPlugin(),
+      injectThemePlugin(),
+      injectAiAssistantPlugin(),
+      injectChatIconPlugin(),
+      injectOgPlugin(),
+      injectRedesignPlugin()
+    ],
     define: {
       'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(
         env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -204,7 +188,8 @@ export default defineConfig(({ mode }) => {
           env.VITE_SUPABASE_ANON_KEY ||
           env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
           ''
-      )
+      ),
+      'import.meta.env.VITE_VAPID_PUBLIC_KEY': JSON.stringify(env.VITE_VAPID_PUBLIC_KEY || '')
     },
     build: {
       outDir: 'dist',
@@ -212,24 +197,10 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: resolve(import.meta.dirname, 'index.html'),
-          '404': resolve(import.meta.dirname, '404.html'),
-          '500': resolve(import.meta.dirname, '500.html'),
-          offline: resolve(import.meta.dirname, 'offline.html'),
-          banned: resolve(import.meta.dirname, 'banned.html'),
-          'devtools-blocked': resolve(import.meta.dirname, 'devtools-blocked.html'),
-          'chrome-required': resolve(import.meta.dirname, 'chrome-required.html'),
-          about: resolve(import.meta.dirname, 'about.html'),
-          contact: resolve(import.meta.dirname, 'contact.html'),
-          privacy: resolve(import.meta.dirname, 'privacy.html'),
           login: resolve(import.meta.dirname, 'login.html'),
           home: resolve(import.meta.dirname, 'home.html'),
-          'study-plan': resolve(import.meta.dirname, 'study-plan.html'),
-          'chat': resolve(import.meta.dirname, 'chat.html'),
           subjects: resolve(import.meta.dirname, 'subjects.html'),
-          'past-exams': resolve(import.meta.dirname, 'past-exams.html'),
-          'past-exam-subject': resolve(import.meta.dirname, 'past-exam-subject.html'),
           'subject-details': resolve(import.meta.dirname, 'subject-details.html'),
-          'file-view': resolve(import.meta.dirname, 'file-view.html'),
           'lecture-details': resolve(import.meta.dirname, 'lecture-details.html'),
           quizzes: resolve(import.meta.dirname, 'quizzes.html'),
           'quiz-take': resolve(import.meta.dirname, 'quiz-take.html'),
@@ -245,6 +216,7 @@ export default defineConfig(({ mode }) => {
           'teacher-upload': resolve(import.meta.dirname, 'teacher-upload.html'),
           'maintenance-mode': resolve(import.meta.dirname, 'maintenance-mode.html'),
           maintenance: resolve(import.meta.dirname, 'maintenance.html'),
+          status: resolve(import.meta.dirname, 'status.html'),
           'admin-index': resolve(import.meta.dirname, 'admin/index.html'),
           'admin-codes': resolve(import.meta.dirname, 'admin/codes.html'),
           'admin-statistics': resolve(import.meta.dirname, 'admin/statistics.html'),
@@ -262,7 +234,16 @@ export default defineConfig(({ mode }) => {
           'admin-ai': resolve(import.meta.dirname, 'admin/ai.html'),
           'admin-faq': resolve(import.meta.dirname, 'admin/faq.html'),
           'admin-settings': resolve(import.meta.dirname, 'admin/settings.html'),
-          'admin-hackers': resolve(import.meta.dirname, 'admin/hackers.html')
+          'admin-hackers': resolve(import.meta.dirname, 'admin/hackers.html'),
+          about: resolve(import.meta.dirname, 'about.html'),
+          contact: resolve(import.meta.dirname, 'contact.html'),
+          privacy: resolve(import.meta.dirname, 'privacy.html'),
+          chat: resolve(import.meta.dirname, 'chat.html'),
+          'file-view': resolve(import.meta.dirname, 'file-view.html'),
+          'past-exams': resolve(import.meta.dirname, 'past-exams.html'),
+          'past-exam-subject': resolve(import.meta.dirname, 'past-exam-subject.html'),
+          'study-plan': resolve(import.meta.dirname, 'study-plan.html'),
+          offline: resolve(import.meta.dirname, 'offline.html')
         }
       }
     },
