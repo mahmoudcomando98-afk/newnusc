@@ -32,12 +32,24 @@
     /* ignore */
   }
 
-  /* فخ احتياطي: لو DevTools مفتوح، الـ debugger بيقف لحظة وبعد الاستئناف بنحوّل فورًا */
+  /* فخ احتياطي: نزرع تحويل قبل الـ debugger عشان المتصفح يتحول وهو لسه مفتوح،
+     ولو مفيش DevTools بنشيله فورًا قبل ما يتفعّل */
   function debuggerTrap() {
+    var meta = document.createElement('meta');
+    meta.setAttribute('http-equiv', 'refresh');
+    meta.setAttribute('content', '1;url=/devtools-blocked.html');
+    document.head.appendChild(meta);
+
     var started = performance.now();
     /* eslint-disable-next-line no-debugger */
     debugger;
-    return performance.now() - started > 60;
+    var elapsed = performance.now() - started;
+
+    if (elapsed < 60 && meta.parentNode) {
+      meta.parentNode.removeChild(meta);
+      return false;
+    }
+    return true;
   }
 
   /* DevTools المدمج بيصغّر مساحة الصفحة جوّه نفس النافذة */
