@@ -12,6 +12,7 @@
     { "source": "/online-schedule", "destination": "/online-schedule.html" },
     { "source": "/admin/statistics", "destination": "/admin/statistics.html" },
     { "source": "/admin/terms", "destination": "/admin/terms.html" },
+    { "source": "/admin/term-workspace", "destination": "/admin/term-workspace.html" },
     { "source": "/admin/quiz-questions", "destination": "/admin/quiz-questions.html" },
     { "source": "/announcements", "destination": "/updates.html" },
     { "source": "/notifications", "destination": "/notifications.html" },

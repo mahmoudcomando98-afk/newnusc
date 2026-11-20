@@ -34,6 +34,17 @@
 .term-switcher.is-admin .term-switcher-label { color: var(--primary-dark, #82621a); }
 .term-switcher.is-admin { border-color: var(--primary, #c69b2d); }
 
+/* مساحة إدارة الترم الفاضية */
+.workspace-hero { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.workspace-title { font-size:1.3rem; margin:2px 0; color:var(--text,#25271f); }
+.workspace-empty {
+  border-style:dashed;
+  border-color:var(--primary,#c69b2d);
+  background:var(--surface-soft,#fbf8ee);
+  padding:18px;
+}
+.workspace-empty strong { color:var(--primary-dark,#82621a); font-size:0.95rem; }
+
 /* بطاقة اختيار الترم في الصفحة الرئيسية */
 .term-home-card {
   display: flex;

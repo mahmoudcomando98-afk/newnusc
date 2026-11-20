@@ -145,7 +145,7 @@ async function editTerm(term) {
 async function openTerm(termId) {
   const { error } = await supabase.rpc('set_current_term', { p_term: termId });
   if (error) throw error;
-  window.location.href = '/admin/index.html';
+  window.location.href = `/admin/term-workspace.html?term=${encodeURIComponent(termId)}`;
 }
 
 async function loadTermAdmins(termId) {

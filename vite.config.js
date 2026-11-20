@@ -290,6 +290,7 @@ export default defineConfig(({ mode }) => {
           status: resolve(import.meta.dirname, 'status.html'),
           'admin-index': resolve(import.meta.dirname, 'admin/index.html'),
           'admin-terms': resolve(import.meta.dirname, 'admin/terms.html'),
+          'admin-term-workspace': resolve(import.meta.dirname, 'admin/term-workspace.html'),
           'admin-codes': resolve(import.meta.dirname, 'admin/codes.html'),
           'admin-statistics': resolve(import.meta.dirname, 'admin/statistics.html'),
           'admin-subjects': resolve(import.meta.dirname, 'admin/subjects.html'),
