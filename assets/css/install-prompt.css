@@ -158,18 +158,10 @@
 .app-update-wrap { position: relative; display: inline-flex; align-items: center; }
 .app-update-header-btn { position: relative; color: var(--primary-dark); }
 .app-update-header-btn svg { width: 18px; height: 18px; }
-.app-update-spinner {
-  display: none;
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(198, 155, 45, 0.25);
-  border-top-color: var(--primary-dark);
-  border-radius: 50%;
+.app-update-header-btn.is-loading [data-icon] {
   animation: app-update-spin 0.7s linear infinite;
 }
 @keyframes app-update-spin { to { transform: rotate(360deg); } }
-.app-update-header-btn.is-loading [data-icon] { display: none; }
-.app-update-header-btn.is-loading .app-update-spinner { display: block; }
 .app-update-status {
   position: absolute;
   top: calc(100% + 6px);
@@ -190,6 +182,6 @@
 }
 .app-update-status.is-visible { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
-  .app-update-spinner { animation: none; }
+  .app-update-header-btn.is-loading [data-icon] { animation: none; }
   .app-update-status { transition: none; }
 }
