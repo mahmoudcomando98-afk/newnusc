@@ -1,12 +1,7 @@
 /*
- * COMANDO base stylesheet
- * All @import must come first (CSS rule).
+ * COMANDO — page-level font rules only.
+ * Base + polish + perf load as parallel <link> tags (injected by Vite) to avoid @import waterfalls.
  */
-@import url("/comando-cairo.css?v=3");
-@import url("https://cdn.jsdelivr.net/gh/mahmoudcomando98-afk/newnusc@d4c287642f0327f903a447de0c6cf37f484dedfb/assets/css/main.css");
-@import url("/assets/css/mobile-polish.css");
-@import url("/assets/css/app-compact.css");
-
 :root {
   --nusc-space-1: 4px;
   --nusc-space-2: 8px;
@@ -42,7 +37,6 @@ th {
   font-family: "Cairo", Tahoma, Arial, sans-serif !important;
 }
 
-/* ===== ??????? ????? ??????: ??????? ?? ?? ???? ??????? ???? ===== */
 .header-btn [data-icon] {
   display: flex !important;
   align-items: center !important;

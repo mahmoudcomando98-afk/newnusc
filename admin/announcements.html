@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <style>html.admin-auth-pending body{visibility:hidden!important}</style>
   <script>document.documentElement.classList.add('admin-auth-pending')</script>
-  <title>إعلانات المواد | NUSC</title>
+  <title>إعلانات المواد | COMANDO</title>
   <link rel="stylesheet" href="/assets/css/main.css?v=neutral-v2" />
   <link rel="stylesheet" href="/assets/css/neutral-theme.css?v=neutral-v2" />
 </head>
@@ -35,25 +35,33 @@
           <div class="form-group">
             <label class="form-label" for="link_url">رابط الدخول (اختياري)</label>
             <input type="url" id="link_url" class="form-input" maxlength="2000" placeholder="https://..." inputmode="url" dir="ltr" />
-            <p class="text-sm text-muted mt-1">أضف رابط Zoom أو Google Meet أو أي رابط دخول للسيكشن. تقدر تسيبه فاضي وتضيفه بعدين من زر تعديل الإعلان.</p>
+            <p class="text-sm text-muted mt-1">أضف رابط Zoom أو Google Meet أو أي رابط. تقدر تسيبه فاضي.</p>
           </div>
           <div class="form-group">
             <label class="form-label" for="link_label">نص زر الرابط</label>
             <input type="text" id="link_label" class="form-input" maxlength="60" placeholder="دخول السيكشن أونلاين" />
           </div>
           <div class="form-group">
-            <label class="form-label" for="link_status">حالة الرابط عند عدم توفره</label>
+            <label class="form-label" for="link_status">حالة الرابط</label>
             <select id="link_status" class="form-select">
-              <option value="none">بدون رابط إضافي</option>
-              <option value="coming_soon">قريبًا — الرابط هيتضاف بعدين</option>
+              <option value="available">متاح</option>
+              <option value="soon">قريبًا</option>
+              <option value="none">بدون رابط</option>
             </select>
           </div>
           <div class="form-group"><label class="form-label" for="importance">الأهمية</label>
             <select id="importance" class="form-select"><option value="normal">عادي</option><option value="high">مهم</option><option value="urgent">عاجل</option><option value="low">أهمية قليلة</option></select>
           </div>
           <div class="form-group"><label class="form-check"><input type="checkbox" id="is_pinned" /><span>تثبيت الإعلان</span></label></div>
-          <div class="form-group"><label class="form-check"><input type="checkbox" id="is_published" checked /><span>نشر الإعلان فورًا</span></label></div>
-          <div class="flex gap-1"><button type="submit" class="btn btn-primary">نشر الإعلان</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
+          <div class="form-group"><label class="form-check"><input type="checkbox" id="is_published" checked /><span>نشر الإعلان</span></label>
+            <p class="text-sm text-muted mt-1">لو شلت العلامة = مسودة (مش ظاهرة للطلاب).</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="publish_at">جدولة الظهور (اختياري)</label>
+            <input type="datetime-local" id="publish_at" class="form-input" />
+            <p class="text-sm text-muted mt-1">حدد وقت ظهور الإعلان للطلاب. لو فاضي هيظهر فور النشر.</p>
+          </div>
+          <div class="flex gap-1"><button type="submit" class="btn btn-primary">حفظ الإعلان</button><button type="button" class="btn btn-secondary" id="cancel-btn">إلغاء</button></div>
         </form>
       </div>
       <div id="list"></div>
@@ -63,6 +71,24 @@
     import { supabase } from '../assets/js/supabase.js';
     import { protectAdminPage } from '../assets/js/auth.js';
     import { escapeHtml, timeAgo, showEmpty, showError, showToast, withLoading, initIcons } from '../assets/js/utils.js';
+
+    function formatDateTimeLocal(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '';
+      return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    }
+
+    function readPublishState() {
+      const published = document.getElementById('is_published')?.checked !== false;
+      const raw = document.getElementById('publish_at')?.value || '';
+      let publishAt = null;
+      if (raw) {
+        const d = new Date(raw);
+        if (!Number.isNaN(d.getTime())) publishAt = d.toISOString();
+      }
+      return { is_published: published, publish_at: publishAt };
+    }
 
     let subjectsById = new Map();
     let currentProfile = null;
@@ -96,52 +122,102 @@
       if (error) throw error;
       const select = document.getElementById('subject_id');
       (data || []).forEach((subject) => {
-        subjectsById.set(subject.id, subject.name);
-        const option = document.createElement('option');
-        option.value = subject.id;
-        option.textContent = subject.name;
-        select.appendChild(option);
+        subjectsById.set(String(subject.id), subject.name);
+        const opt = document.createElement('option');
+        opt.value = subject.id;
+        opt.textContent = subject.name;
+        select.appendChild(opt);
       });
     }
 
-    function importanceOf(item) { return item.importance || item.priority || 'normal'; }
+    async function persistAnnouncement(candidate, announcementId) {
+      const optionalColumns = ['is_pinned', 'is_published', 'publish_at', 'created_by', 'link_url', 'link_label', 'link_status', 'importance', 'subject_id'];
+      let payload = { ...candidate };
+      for (let attempt = 0; attempt < 8; attempt++) {
+        const query = announcementId
+          ? supabase.from('announcements').update(payload).eq('id', announcementId).select('id').maybeSingle()
+          : supabase.from('announcements').insert(payload).select('id').maybeSingle();
+        const { data, error } = await query;
+        if (!error) return { data, error: null };
+        const msg = String(error.message || '');
+        const hit = optionalColumns.find((col) => msg.includes(col));
+        if (hit && hit in payload) {
+          delete payload[hit];
+          continue;
+        }
+        return { data: null, error };
+      }
+      return { data: null, error: { message: 'تعذر حفظ الإعلان' } };
+    }
 
     async function load() {
       const el = document.getElementById('list');
       try {
-        const { data, error } = await supabase.from('announcements').select('*').order('created_at', { ascending: false }).limit(100);
+        const { data, error } = await supabase
+          .from('announcements')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(80);
         if (error) throw error;
         announcementsById.clear();
         (data || []).forEach((item) => announcementsById.set(String(item.id), item));
-        if (!data?.length) { showEmpty(el, 'لسه مفيش إعلانات. اضغط «إعلان جديد» عشان تبدأ.'); return; }
-        el.innerHTML = data.map((item) => {
-          const subjectName = item.subject_id ? (subjectsById.get(item.subject_id) || 'إعلان لمادة') : 'كل المنصة';
-          const level = importanceOf(item);
-          const levelLabel = level === 'urgent' ? 'عاجل' : level === 'high' ? 'مهم' : level === 'low' ? 'أهمية قليلة' : 'عادي';
-          return `<article class="card mb-2">
-            <div class="flex justify-between items-center flex-wrap gap-1">
-              <div>
-                <h3 class="card-title">${item.is_pinned ? '<span data-icon="pin" class="pin-icon"></span>' : ''}${escapeHtml(item.title || 'إعلان')}</h3>
-                <p class="text-sm text-muted">${escapeHtml(subjectName)} · ${levelLabel} · ${timeAgo(item.created_at)}</p>
-                <p class="text-sm mt-1">${escapeHtml((item.content || item.body || '').slice(0, 160))}</p>
-                ${item.link_url ? '<p class="text-sm text-muted mt-1"><span data-icon="link" class="inline-icon"></span> رابط مضاف</p>' : item.link_status === 'coming_soon' ? '<p class="text-sm text-muted mt-1"><span data-icon="clock" class="inline-icon"></span> الرابط قريبًا</p>' : ''}
+        if (!data?.length) {
+          showEmpty(el, 'مفيش إعلانات لسه.');
+          return;
+        }
+        el.innerHTML = `<div class="card">${data
+          .map((item) => {
+            const scheduled =
+              item.is_published !== false &&
+              item.publish_at &&
+              new Date(item.publish_at).getTime() > Date.now();
+            const statusLabel =
+              item.is_published === false
+                ? 'مسودة'
+                : scheduled
+                  ? 'مجدول ' +
+                    new Date(item.publish_at).toLocaleString('ar-EG', {
+                      dateStyle: 'short',
+                      timeStyle: 'short'
+                    })
+                  : 'منشور';
+            const statusClass =
+              item.is_published === false || scheduled ? 'badge-warning' : 'badge-success';
+            const subjectName = item.subject_id
+              ? subjectsById.get(String(item.subject_id)) || 'مادة'
+              : 'كل المنصة';
+            return `
+            <div class="list-item">
+              <div class="list-item-body" style="flex:1">
+                <div class="list-item-title">${escapeHtml(item.title || 'إعلان')}</div>
+                <div class="list-item-desc">${escapeHtml(subjectName)} · ${timeAgo(item.created_at)}</div>
               </div>
               <div class="flex gap-1 items-center">
-                <span class="badge ${item.is_published === false ? 'badge-warning' : 'badge-success'}">${item.is_published === false ? 'مسودة' : 'منشور'}</span>
+                <span class="badge ${statusClass}">${escapeHtml(statusLabel)}</span>
                 <button type="button" class="btn btn-sm btn-secondary" data-edit="${escapeHtml(String(item.id))}">تعديل</button>
-                <button type="button" class="btn btn-sm btn-danger" data-del="${escapeHtml(String(item.id))}">حذف</button>
+                <button type="button" class="btn btn-sm btn-outline" data-del="${escapeHtml(String(item.id))}">حذف</button>
               </div>
-            </div>
-          </article>`;
-        }).join('');
-        el.querySelectorAll('[data-edit]').forEach((button) => button.addEventListener('click', () => editAnnouncement(button.dataset.edit)));
-        el.querySelectorAll('[data-del]').forEach((button) => button.addEventListener('click', async () => {
-          if (!confirm('متأكد إنك عايز تحذف الإعلان ده؟')) return;
-          const { error: deleteError } = await supabase.from('announcements').delete().eq('id', button.dataset.del);
-          if (deleteError) { showToast(deleteError.message, 'error'); return; }
-          showToast('الإعلان اتحذف.', 'success');
-          await load();
-        }));
+            </div>`;
+          })
+          .join('')}</div>`;
+        el.querySelectorAll('[data-edit]').forEach((button) =>
+          button.addEventListener('click', () => editAnnouncement(button.dataset.edit))
+        );
+        el.querySelectorAll('[data-del]').forEach((button) =>
+          button.addEventListener('click', async () => {
+            if (!confirm('متأكد إنك عايز تحذف الإعلان ده؟')) return;
+            const { error: deleteError } = await supabase
+              .from('announcements')
+              .delete()
+              .eq('id', button.dataset.del);
+            if (deleteError) {
+              showToast(deleteError.message, 'error');
+              return;
+            }
+            showToast('الإعلان اتحذف.', 'success');
+            await load();
+          })
+        );
       } catch (error) {
         console.error('Announcement management load failed:', error);
         showError(el, 'مش قادرين نحمّل الإعلانات. راجع اتصال قاعدة البيانات والصلاحيات.');
@@ -153,13 +229,18 @@
       const form = document.getElementById('ann-form');
       form.reset();
       document.getElementById('is_published').checked = true;
+      const patReset = document.getElementById('publish_at');
+      if (patReset) patReset.value = '';
       document.getElementById('link_status').disabled = false;
-      form.querySelector('[type=submit]').textContent = 'نشر الإعلان';
+      form.querySelector('[type=submit]').textContent = 'حفظ الإعلان';
     }
 
     function editAnnouncement(id) {
       const item = announcementsById.get(String(id));
-      if (!item) { showToast('مش قادرين نفتح الإعلان للتعديل. حدّث الصفحة وجرب تاني.', 'error'); return; }
+      if (!item) {
+        showToast('مش قادرين نفتح الإعلان للتعديل. حدّث الصفحة وجرب تاني.', 'error');
+        return;
+      }
       editingId = String(item.id);
       document.getElementById('title').value = item.title || '';
       document.getElementById('subject_id').value = item.subject_id || '';
@@ -167,78 +248,15 @@
       document.getElementById('importance').value = item.importance || item.priority || 'normal';
       document.getElementById('is_pinned').checked = item.is_pinned === true;
       document.getElementById('is_published').checked = item.is_published !== false;
+      const pat = document.getElementById('publish_at');
+      if (pat) pat.value = formatDateTimeLocal(item.publish_at);
       document.getElementById('link_url').value = item.link_url || '';
-      document.getElementById('link_label').value = item.link_label || 'دخول السيكشن أونلاين';
-      document.getElementById('link_status').value = item.link_status === 'coming_soon' ? 'coming_soon' : 'none';
+      document.getElementById('link_label').value = item.link_label || '';
+      document.getElementById('link_status').value = item.link_status || 'available';
       document.getElementById('link_status').disabled = Boolean(item.link_url);
-      document.querySelector('#ann-form [type=submit]').textContent = 'حفظ التعديلات';
       document.getElementById('form-panel').classList.remove('hidden');
+      document.getElementById('ann-form').querySelector('[type=submit]').textContent = 'تحديث الإعلان';
       document.getElementById('title').focus();
-      document.getElementById('form-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    function isMissingColumn(error, column) {
-      const message = String(error?.message || '').toLowerCase();
-      const details = String(error?.details || '').toLowerCase();
-      const combined = message + ' ' + details;
-      return combined.includes(`could not find the '${column.toLowerCase()}' column`) ||
-        combined.includes(`column "${column.toLowerCase()}" does not exist`) ||
-        combined.includes(`column ${column.toLowerCase()} does not exist`) ||
-        combined.includes(`announcements.${column.toLowerCase()}`);
-    }
-
-    async function persistAnnouncement(payload, announcementId = null) {
-      const candidate = { ...payload };
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        const query = announcementId
-          ? supabase.from('announcements').update(candidate).eq('id', announcementId)
-          : supabase.from('announcements').insert(candidate);
-        const result = await query.select('id, title, subject_id').single();
-        if (!result.error) return result;
-
-        if (isMissingColumn(result.error, 'importance') && Object.hasOwn(candidate, 'importance')) {
-          candidate.priority = candidate.importance;
-          delete candidate.importance;
-          continue;
-        }
-        if (isMissingColumn(result.error, 'priority') && Object.hasOwn(candidate, 'priority')) {
-          delete candidate.priority;
-          continue;
-        }
-
-        const linkColumns = ['link_url', 'link_label', 'link_status'];
-        const missingLink = linkColumns.find(column => Object.hasOwn(candidate, column) && isMissingColumn(result.error, column));
-        if (missingLink) {
-          const hasLinkFeature = Boolean(payload.link_url) || payload.link_status === 'coming_soon';
-          if (hasLinkFeature) {
-            return { data: null, error: { ...result.error, message: 'ميزة رابط السيكشن محتاجة تحديث قاعدة البيانات. شغّل ملف fix_announcements_and_branding.sql في Supabase SQL Editor.' } };
-          }
-          delete candidate[missingLink];
-          continue;
-        }
-
-        const optionalColumns = ['is_pinned', 'is_published', 'created_by'];
-        const missingOptional = optionalColumns.find(column =>
-          Object.hasOwn(candidate, column) && isMissingColumn(result.error, column)
-        );
-        if (missingOptional) {
-          delete candidate[missingOptional];
-          continue;
-        }
-        return result;
-      }
-      return { data: null, error: { message: 'تعذر حفظ الإعلان بسبب اختلاف أعمدة جدول الإعلانات.' } };
-    }
-
-    function announcementSaveError(error) {
-      const message = String(error?.message || '');
-      if (error?.code === '42501' || /row-level security|permission denied|not allowed/i.test(message)) {
-        return 'قاعدة البيانات رفضت الحفظ بسبب الصلاحيات. شغّل ملف fix_announcements_and_branding.sql في Supabase SQL Editor.';
-      }
-      if (/column|schema cache|42703|pgrst204/i.test(message)) {
-        return 'جدول الإعلانات محتاج تحديث. شغّل ملف fix_announcements_and_branding.sql في Supabase SQL Editor.';
-      }
-      return 'فشل حفظ الإعلان: ' + (message || 'خطأ غير معروف');
     }
 
     async function save(event) {
@@ -259,13 +277,15 @@
         }
         const selectedLinkStatus = document.getElementById('link_status').value;
         const linkStatus = linkUrl ? 'available' : selectedLinkStatus;
+        const pubState = readPublishState();
         const payload = {
           title: document.getElementById('title').value.trim(),
           content: document.getElementById('content').value.trim(),
           subject_id: document.getElementById('subject_id').value || null,
           importance: document.getElementById('importance').value,
           is_pinned: document.getElementById('is_pinned').checked,
-          is_published: document.getElementById('is_published').checked,
+          is_published: pubState.is_published,
+          publish_at: pubState.publish_at,
           link_url: linkUrl || null,
           link_label: document.getElementById('link_label').value.trim() || 'دخول السيكشن أونلاين',
           link_status: linkStatus
@@ -274,20 +294,19 @@
         const { data: savedAnnouncement, error } = await persistAnnouncement(payload, editingId);
         if (error || !savedAnnouncement?.id) {
           console.error('Announcement save was not confirmed:', error);
-          showToast(announcementSaveError(error || { message: 'لم يتم تأكيد حفظ الإعلان.' }), 'error');
+          showToast(error?.message || 'تعذر حفظ الإعلان.', 'error');
           return;
         }
-        console.info('Announcement saved:', savedAnnouncement.id);
-        showToast(editingId ? 'تم تحديث الإعلان بنجاح.' : 'تم حفظ الإعلان بنجاح.', 'success');
-        document.getElementById('form-panel').classList.add('hidden');
+        showToast(editingId ? 'تم تحديث الإعلان.' : 'تم حفظ الإعلان.', 'success');
         resetForm();
+        document.getElementById('form-panel').classList.add('hidden');
         await load();
       });
     }
 
     init().catch((error) => {
-      console.error('Announcement admin setup failed:', error);
-      showError(document.getElementById('list'), 'مش قادرين نجهّز صفحة الإعلانات. راجع صلاحيات الإدارة وقاعدة البيانات.');
+      console.error(error);
+      showToast('تعذر فتح صفحة الإعلانات.', 'error');
     });
   </script>
 </body>

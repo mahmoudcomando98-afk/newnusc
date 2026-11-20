@@ -1,5 +1,5 @@
 /**
- * NUSC Student Hub - Subject Details
+ * COMANDO Student Hub - Subject Details
  * Assignments: last deadline + live countdown
  * Storage: signed URLs cached; no auto-fetch of file bodies in lists
  * In-app view only when file_size <= 1MB; solution images always allowed
@@ -11,7 +11,7 @@ import { downloadMaterialFile } from './material-download.js';
 import { getSignedMaterialUrl } from './signed-url-cache.js';
 import { freshnessBadgesHtml } from './freshness.js';
 
-const VIEW_MAX_BYTES = 1024 * 1024; // 1 MB
+const VIEW_MAX_BYTES = 1024 * 1024;
 
 function canViewMaterialInApp(fileSize) {
   const n = Number(fileSize) || 0;
@@ -169,13 +169,20 @@ function setupTabs() {
 async function loadSubject() {
   const el = document.getElementById('subject-header');
   try {
-    const { data, error } = await supabase.from('subjects').select('*').eq('id', subjectId).maybeSingle();
+    let { data, error } = await supabase
+      .from('subjects')
+      .select('id, name, code, instructor, description, is_published, is_active')
+      .eq('id', subjectId)
+      .maybeSingle();
+    if (error) {
+      ({ data, error } = await supabase.from('subjects').select('*').eq('id', subjectId).maybeSingle());
+    }
     if (error || !data || data.is_active === false || data.is_published === false) {
       showError(el, 'المادة دي مش موجودة أو لسه مش منشورة.');
       return;
     }
     document.getElementById('page-title').textContent = data.name;
-    document.title = `${data.name} | NUSC`;
+    document.title = `${data.name} | COMANDO`;
     el.innerHTML = `
       <h1 style="font-size:1.35rem;margin-bottom:8px">${escapeHtml(data.name)}</h1>
       <div class="flex flex-wrap gap-1 items-center">
@@ -215,7 +222,15 @@ function showRetryState(el, tab, message) {
 }
 
 async function loadSubjectMaterials() {
-  const { data, error } = await supabase.from('materials').select('*').eq('subject_id', subjectId);
+  // أعمدة آمنة أولاً — لو فشل (عمود ناقص في DB) نرجع لـ select('*')
+  let data = null;
+  let error = null;
+  const preferred =
+    'id, title, description, subject_id, material_type, file_type, file_name, file_size, file_path, solution_image_path, due_at, created_at, is_published, download_count';
+  ({ data, error } = await supabase.from('materials').select(preferred).eq('subject_id', subjectId));
+  if (error) {
+    ({ data, error } = await supabase.from('materials').select('*').eq('subject_id', subjectId));
+  }
   if (error) throw error;
   return (data || [])
     .filter((item) => {
@@ -250,7 +265,8 @@ function shortFileType(raw) {
 }
 
 function materialCard(material, badgeLabel) {
-  const hasSolution = !!material.solution_image_path;
+  const hasSolution = !!(material.solution_image_path || material.solution_image_url || material.solution_url);
+  const solutionPath = material.solution_image_path || material.solution_image_url || material.solution_url || '';
   const isAssignment = badgeLabel === 'واجب' || material.material_type === 'assignment';
   let submitLink = '';
   if (isAssignment && material.submission_url) submitLink = safeHttpUrl(material.submission_url);
@@ -266,7 +282,7 @@ function materialCard(material, badgeLabel) {
   }
   const typeLabel = shortFileType(material.file_type);
   const solutionBtn = hasSolution
-    ? `<button type="button" class="btn btn-sm btn-primary material-action-btn" data-solution="${escapeHtml(material.solution_image_path)}" aria-label="عرض الحل">عرض الحل</button>`
+    ? `<button type="button" class="btn btn-sm btn-primary material-action-btn" data-solution="${escapeHtml(solutionPath)}" aria-label="عرض الحل">عرض الحل</button>`
     : '';
   const platformLink = `${window.location.origin}/file-view.html?id=${encodeURIComponent(material.id || '')}`;
   const dueBlock = isDelivered
@@ -339,13 +355,22 @@ function bindDownloads(el) {
 }
 
 async function loadLectures(el) {
-  /* المحاضرات — لو استعلام المحاضرات فشل globally ما يقطعش المواد، ونُسجل الخطأ عشان نشخصه */
-  const lecturesRaw = await supabase
-    .from('lectures')
-    .select('*')
-    .eq('subject_id', subjectId)
-    .then((r) => ({ data: r.data, error: r.error }))
-    .catch((err) => ({ data: null, error: err }));
+  /* المحاضرات — حاولت أعمدة محددة أولاً للأداء، وإذا فشلت glove كل الأعمدة.
+     أي فشل هنا ما يقطعش المواد، ونُسجل الخطأ عشان نشخصه */
+  let lecturesResult;
+  try {
+    lecturesResult = await supabase
+      .from('lectures')
+      .select('id, title, description, subject_id, lecture_number, lecture_date, notes, video_url, is_published, created_at')
+      .eq('subject_id', subjectId);
+    if (lecturesResult.error) {
+      lecturesResult = await supabase.from('lectures').select('*').eq('subject_id', subjectId);
+    }
+  } catch (err) {
+    lecturesResult = { data: null, error: err };
+  }
+  const lecturesError = lecturesResult?.error;
+  if (lecturesError) console.warn('[subject-details] lectures query failed:', lecturesError);
 
   /* المواد — loadSubjectMaterials بترمي على الخطأ؛ نُوحد الصيغة {data, error} */
   let materialsRaw;
@@ -355,13 +380,10 @@ async function loadLectures(el) {
   } catch (err) {
     materialsRaw = { data: [], error: err };
   }
-
-  const lecturesError = lecturesRaw?.error;
   const materialsError = materialsRaw?.error;
-  if (lecturesError) console.warn('[subject-details] lectures query failed:', lecturesError);
   if (materialsError) console.warn('[subject-details] materials query failed:', materialsError);
 
-  const lectures = (lecturesRaw?.data || [])
+  const lectures = (lecturesResult?.data || [])
     .filter((item) => item.is_published !== false && item.is_active !== false)
     .sort((a, b) => {
       const numberA = Number(a.lecture_number ?? 999999);
@@ -459,7 +481,7 @@ async function copyPlatformLink(url) {
 async function sharePlatformLink(url, title) {
   try {
     if (navigator.share) {
-      await navigator.share({ title: title || 'ملف NUSC', text: title || 'ملف', url });
+      await navigator.share({ title: title || 'ملف COMANDO', text: title || 'ملف', url });
       return;
     }
     await navigator.clipboard.writeText(url || '');
@@ -471,12 +493,22 @@ async function sharePlatformLink(url, title) {
 }
 
 async function loadAnnouncements(el) {
-  const { data, error } = await supabase
+  let data = null;
+  let error = null;
+  ({ data, error } = await supabase
     .from('announcements')
-    .select('*')
+    .select('id, title, content, body, is_pinned, is_published, created_at, subject_id')
     .eq('subject_id', subjectId)
     .order('created_at', { ascending: false })
-    .limit(40);
+    .limit(40));
+  if (error) {
+    ({ data, error } = await supabase
+      .from('announcements')
+      .select('*')
+      .eq('subject_id', subjectId)
+      .order('created_at', { ascending: false })
+      .limit(40));
+  }
   if (error) throw error;
   const rows = (data || []).filter((a) => a.is_published !== false);
   if (!rows.length) {

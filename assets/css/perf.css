@@ -1,0 +1,36 @@
+/* COMANDO paint/layout performance — no visual redesign */
+
+.app-header,
+.bottom-nav,
+#theme-toggle-btn {
+  contain: layout style;
+}
+
+.list-item,
+.material-card,
+.subject-card,
+.quiz-card,
+.notification-card,
+.announcement-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 72px;
+}
+
+img {
+  decoding: async;
+}
+
+.app-header {
+  transform: translateZ(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
