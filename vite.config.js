@@ -2,7 +2,14 @@ import { defineConfig, loadEnv } from 'vite';
 import { resolve } from 'path';
 
 const CAIRO_HEAD_SNIPPET = `
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="stylesheet" href="/comando-cairo.css?v=3" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/mahmoudcomando98-afk/newnusc@d4c287642f0327f903a447de0c6cf37f484dedfb/assets/css/main.css" />
+  <link rel="stylesheet" href="/assets/css/mobile-polish.css?v=2" />
+  <link rel="stylesheet" href="/assets/css/app-compact.css?v=2" />
+  <link rel="stylesheet" href="/assets/css/perf.css?v=2" />
   <style id="comando-cairo-boot">html,body,button,input,select,textarea{font-family:"Cairo",Tahoma,Arial,sans-serif!important}</style>
 `;
 
@@ -151,14 +158,26 @@ function injectCairoPlugin() {
   return {
     name: 'inject-cairo-font',
     transformIndexHtml(html) {
-      if (html.includes('comando-cairo.css')) return html;
-      if (html.includes('<head>')) {
-        return html.replace('<head>', `<head>${CAIRO_HEAD_SNIPPET}`);
+      let out = html;
+      if (!out.includes('comando-cairo.css')) {
+        if (out.includes('<head>')) {
+          out = out.replace('<head>', `<head>${CAIRO_HEAD_SNIPPET}`);
+        } else if (out.includes('<head ')) {
+          out = out.replace(/<head([^>]*)>/i, `<head$1>${CAIRO_HEAD_SNIPPET}`);
+        }
+      } else if (!out.includes('/assets/css/perf.css')) {
+        const extra = `
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/mahmoudcomando98-afk/newnusc@d4c287642f0327f903a447de0c6cf37f484dedfb/assets/css/main.css" />
+  <link rel="stylesheet" href="/assets/css/mobile-polish.css?v=2" />
+  <link rel="stylesheet" href="/assets/css/app-compact.css?v=2" />
+  <link rel="stylesheet" href="/assets/css/perf.css?v=2" />
+`;
+        if (out.includes('</head>')) {
+          out = out.replace('</head>', `${extra}</head>`);
+        }
       }
-      if (html.includes('<head ')) {
-        return html.replace(/<head([^>]*)>/i, `<head$1>${CAIRO_HEAD_SNIPPET}`);
-      }
-      return html;
+      return out;
     }
   };
 }
