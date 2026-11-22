@@ -237,10 +237,11 @@ async function loadSubjectMaterials() {
   if (error) throw error;
   return (data || [])
     .filter((item) => {
-      if (item.is_published === false) return false;
+      if (item.is_published === false || item.is_published === 'false' || item.is_published === 0) return false;
+      if (item.is_active === false || item.is_active === 'false') return false;
       if (item.publish_at) {
-        const t = new Date(item.publish_at).getTime();
-        if (!Number.isNaN(t) && t > Date.now()) return false;
+        const ts = new Date(item.publish_at).getTime();
+        if (!Number.isNaN(ts) && ts > Date.now()) return false;
       }
       return true;
     })
@@ -313,7 +314,7 @@ function materialCard(material, badgeLabel) {
             ${material.created_at ? `<span>${escapeHtml(timeAgo(material.created_at))}</span>` : ''}
           </div>
           ${material.description ? `<p class="material-card-desc">${escapeHtml(material.description)}</p>` : ''}
-          ${material.admin_note ? `<p class="material-card-note"><span class="material-note-badge">${escapeHtml(material.admin_note)}</span></p>` : ''}
+          ${material.admin_note ? `<p class="material-card-note"><span class="material-note-badge">${escapeHtml(material.admin_note)}</span>` : ''}
           ${dueBlock}
         </div>
       </div>
