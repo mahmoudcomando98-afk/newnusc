@@ -1,4 +1,4 @@
-﻿/**
+/**
  * نافذة تثبيت التطبيق / اختصار سطح المكتب (PWA)
  * - موبايل + كمبيوتر (Chrome / Edge)
  * - لو متثبت أو مفتوح كـ standalone → مش بتظهر
@@ -62,7 +62,6 @@ function isDesktop() {
   return true;
 }
 
-/** تسجيل مبكر عشان قبلinstallprompt يشتغل على الكمبيوتر */
 async function ensureServiceWorkerRegistered() {
   if (!('serviceWorker' in navigator)) return null;
   try {
@@ -169,7 +168,6 @@ export async function setupInstallPrompt() {
     return;
   }
 
-  // سجّل الـ SW بدري عشان التثبيت يشتغل على الكمبيوتر
   await ensureServiceWorkerRegistered();
 
   try {
@@ -229,7 +227,6 @@ export async function setupInstallPrompt() {
             hideSheet(sheet);
             return;
           }
-          // رفض المستخدم — نخفي للزيارة دي
           hideSheet(sheet);
           return;
         } catch {
@@ -237,15 +234,26 @@ export async function setupInstallPrompt() {
         }
       }
 
-      // مفيش prompt جاهز (Firefox / Safari سطح مكتب) → خطوات يدوية
       if (howto) howto.classList.add('is-open');
     });
   }
 
-  // استنى شوية عشان beforeinstallprompt يلحق يتسجل بعد SW
+  const delay = isDesktop() ? 1000 : 400;
   setTimeout(() => {
-    if (!isAppInstalled()) showSheet(sheet);
-  }, isDesktop() ? 900 : 500);
+    if (isAppInstalled()) {
+      hideSheet(sheet);
+      return;
+    }
+    showSheet(sheet);
+  }, delay);
+
+  window.addEventListener(
+    'beforeinstallprompt',
+    () => {
+      if (!isAppInstalled()) showSheet(sheet);
+    },
+    { once: true }
+  );
 }
 
 captureInstallPrompt();
