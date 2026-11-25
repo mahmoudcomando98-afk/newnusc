@@ -1,0 +1,83 @@
+/* Pinned subject shortcuts */
+.subject-pin-btn {
+  border: 1px solid var(--border, #ebe6e1);
+  background: var(--surface, #fff);
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted, #7a736c);
+  padding: 0;
+}
+.subject-pin-btn svg { width: 16px; height: 16px; }
+.subject-pin-btn.is-pinned,
+.subject-pin-btn[aria-pressed="true"] {
+  color: var(--primary, #c69b2d);
+  border-color: rgba(198, 155, 45, 0.45);
+  background: rgba(198, 155, 45, 0.08);
+}
+.subject-pinned-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--primary, #c69b2d);
+  background: rgba(198, 155, 45, 0.12);
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-inline-start: 6px;
+  vertical-align: middle;
+}
+.subject-tile.is-pinned-tile {
+  border-color: rgba(198, 155, 45, 0.35);
+}
+.subject-tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.home-pinned-section { margin-bottom: 8px; }
+.home-pinned-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.home-pinned-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border, #ebe6e1);
+  background: var(--surface, #fff);
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+  max-width: 100%;
+}
+.home-pinned-chip:hover {
+  border-color: rgba(198, 155, 45, 0.45);
+}
+.home-pinned-chip-pin { color: var(--primary, #c69b2d); display: inline-flex; }
+.home-pinned-chip-pin svg { width: 14px; height: 14px; }
+.home-pinned-chip-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.home-pinned-chip-text strong {
+  font-size: 0.86rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.home-pinned-chip-text small {
+  font-size: 0.72rem;
+  color: var(--text-muted, #7a736c);
+}
+.home-subject-card.is-pinned-home {
+  border-color: rgba(198, 155, 45, 0.35);
+}
