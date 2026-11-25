@@ -9,17 +9,26 @@ import {
   showError,
   initIcons,
   setActiveNav,
-  debounce
+  debounce,
+  showToast
 } from './utils.js';
 import { cachedStaleWhileRevalidate } from './cache.js';
 import { fetchSubjects } from './data-api.js';
+import {
+  getPinnedSubjectIds,
+  isSubjectPinned,
+  togglePinnedSubject,
+  getMaxPinned
+} from './pinned-subjects.js';
 
 let allSubjects = [];
+let profile = null;
 
 async function init() {
   try {
     const result = await protectPage();
     if (!result) return;
+    profile = result.profile || null;
 
     setActiveNav('subjects');
     initIcons();
@@ -49,7 +58,11 @@ function applySubjects(data) {
   const el = document.getElementById('subjects-grid');
   if (!el) return;
 
+  const pinned = new Set(getPinnedSubjectIds(profile?.id));
   allSubjects = (data || []).slice().sort((a, b) => {
+    const pinA = pinned.has(String(a.id)) ? 0 : 1;
+    const pinB = pinned.has(String(b.id)) ? 0 : 1;
+    if (pinA !== pinB) return pinA - pinB;
     const orderA = Number(a.sort_order ?? 9999);
     const orderB = Number(b.sort_order ?? 9999);
     if (orderA !== orderB) return orderA - orderB;
@@ -101,11 +114,11 @@ function filterSubjects(query) {
       subject.code,
       subject.instructor,
       subject.description
-    ];
-
-    return searchable.some((value) =>
-      String(value || '').toLocaleLowerCase().includes(search)
-    );
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase();
+    return searchable.includes(search);
   });
 
   renderSubjects(filtered);
@@ -123,6 +136,7 @@ function renderSubjects(subjects) {
   const count = document.getElementById('subjects-count');
   if (count) count.textContent = String(subjects.length);
 
+  const userId = profile?.id;
   el.innerHTML = subjects
     .map((subject) => {
       const name = escapeHtml(subject.name || 'مادة دراسية');
@@ -135,16 +149,21 @@ function renderSubjects(subjects) {
       const desc = subject.description
         ? `<p class="subject-tile-desc">${escapeHtml(String(subject.description).slice(0, 110))}</p>`
         : '';
+      const pinned = isSubjectPinned(userId, subject.id);
+      const pinLabel = pinned ? 'إلغاء التثبيت' : 'تثبيت';
+      const pinClass = pinned ? 'subject-pin-btn is-pinned' : 'subject-pin-btn';
 
       return `
-    <article class="subject-tile">
+    <article class="subject-tile${pinned ? ' is-pinned-tile' : ''}">
       <div class="subject-tile-accent" aria-hidden="true"></div>
       <div class="subject-tile-body">
         <div class="subject-tile-top">
           ${code}
-          <div class="subject-tile-icon" data-icon="book"></div>
+          <button type="button" class="${pinClass}" data-pin-subject="${escapeHtml(String(subject.id))}" aria-pressed="${pinned ? 'true' : 'false'}" title="${pinLabel}" aria-label="${pinLabel}">
+            <span data-icon="pin"></span>
+          </button>
         </div>
-        <h3 class="subject-tile-title">${name}</h3>
+        <h3 class="subject-tile-title">${name}${pinned ? ' <span class="subject-pinned-badge">مثبّتة</span>' : ''}</h3>
         ${instructor}
         ${desc}
         <div class="subject-tile-footer">
@@ -157,6 +176,21 @@ function renderSubjects(subjects) {
     </article>`;
     })
     .join('');
+
+  el.querySelectorAll('[data-pin-subject]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = btn.getAttribute('data-pin-subject');
+      const result = togglePinnedSubject(userId, id);
+      if (result.full) {
+        showToast('تقدر تثبّت ' + getMaxPinned() + ' مواد بس. شيل واحدة الأول.', 'info');
+        return;
+      }
+      showToast(result.pinned ? 'اتثبتت المادة في الرئيسية.' : 'اتشال التثبيت.', 'success');
+      applySubjects(allSubjects);
+    });
+  });
 
   initIcons();
 }
